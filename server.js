@@ -18,16 +18,9 @@ const CHATWOOT_USER_ID = process.env.CHATWOOT_USER_ID || 1;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jytsrxrmgvliyyuktxsd.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-if (!PLATFORM_TOKEN) {
-    console.error('❌ Erro: PLATFORM_TOKEN não definido');
-}
-
-// 1. Endpoints do Dashboard (Devem vir ANTES do Proxy para não serem sequestrados)
+// 1. PRIORIDADE: Rotas do Próprio Dashboard
 app.get('/api/config', (req, res) => {
-    res.json({
-        supabaseUrl: SUPABASE_URL,
-        supabaseAnonKey: SUPABASE_ANON_KEY
-    });
+    res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
 });
 
 app.get('/api/chatwoot/sso', async (req, res) => {
@@ -44,47 +37,56 @@ app.get('/api/chatwoot/sso', async (req, res) => {
         throw new Error('Invalid response from Chatwoot');
     } catch (error) {
         console.error('❌ Erro SSO:', error.message);
-        res.status(500).json({ success: false, error: 'Falha ao gerar acesso', details: error.message });
+        res.status(500).json({ success: false, error: 'Falha ao acessar Chatwoot', details: error.message });
     }
 });
 
-// 2. Middleware para servir arquivos estáticos do Dashboard
+// 2. Arquivos estáticos do Dashboard (JS, CSS local)
 app.use(express.static(__dirname));
 
-// 3. Proxy para Ativos do Chatwoot (Vite, Assets, etc)
-const assetProxy = createProxyMiddleware({
-    target: CHATWOOT_URL,
-    changeOrigin: true,
-    secure: false
-});
-
-app.use('/vite', assetProxy);
-app.use('/assets', assetProxy);
-app.use('/packs', assetProxy);
-app.use('/rails', assetProxy);
-app.use('/app', assetProxy);
-// Mapeamos o /api do Chatwoot apenas se não for pego pelos nossos routes acima
-app.use('/api', assetProxy);
-
-// 4. Proxy Principal (Túnel)
+// 3. PROXY INTELIGENTE (Túnel para o Chatwoot)
+// Esse proxy só cuida de remover as travas e avisar ao navegador onde os arquivos estão.
 app.use('/chatwoot-proxy', createProxyMiddleware({
     target: CHATWOOT_URL,
     changeOrigin: true,
     pathRewrite: { '^/chatwoot-proxy': '' },
-    onProxyRes: function (proxyRes, req, res) {
-        // Remove as travas de segurança do Chatwoot
-        delete proxyRes.headers['x-frame-options'];
-        delete proxyRes.headers['content-security-policy'];
-        // Força permissão total para o iframe
-        res.setHeader('X-Frame-Options', 'ALLOWALL');
-        res.setHeader('Access-Control-Allow-Origin', '*');
+    selfHandleResponse: true, // Permite que a gente edite o HTML antes de entregar
+    onProxyReq: (proxyReq) => {
+        // Evita que o Chatwoot mande o arquivo compactado (GZIP), o que causaria o erro 500
+        proxyReq.setHeader('accept-encoding', 'identity');
     },
+    onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+        // Remove as travas de segurança original do Chatwoot
+        res.removeHeader('X-Frame-Options');
+        res.removeHeader('Content-Security-Policy');
+        res.setHeader('X-Frame-Options', 'ALLOWALL');
+
+        // Se o que o Chatwoot mandou for uma página HTML, injetamos a correção de links
+        const contentType = proxyRes.headers['content-type'];
+        if (contentType && contentType.includes('text/html')) {
+            let html = responseBuffer.toString('utf8');
+
+            // Injetamos a tag <base> para que os ícones e JS carreguem do lugar certo
+            const baseTag = `<head><base href="${CHATWOOT_URL}/">`;
+
+            if (html.includes('<head>')) {
+                html = html.replace('<head>', baseTag);
+            } else if (html.includes('<html>')) {
+                html = html.replace('<html>', `<html>${baseTag}`);
+            }
+
+            return Buffer.from(html);
+        }
+
+        // Se for imagem ou outro arquivo, entrega sem mexer
+        return responseBuffer;
+    }),
     cookieDomainRewrite: "",
     followRedirects: true,
-    secure: false,
-    ws: true
+    ws: true,
+    secure: false
 }));
 
 app.listen(PORT, () => {
-    console.log(`🚀 Quantic Dashboard ativo em http://localhost:${PORT}`);
+    console.log(`🚀 Servidor Quantic Online: Porto ${PORT}`);
 });
