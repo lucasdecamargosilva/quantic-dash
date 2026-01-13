@@ -3,17 +3,36 @@
  * Handles Supabase Authentication and Session Management
  */
 
-// Initialize global Supabase client once
-window.supabaseClient = window.supabase.createClient(
-    window.SUPABASE_CONFIG.URL,
-    window.SUPABASE_CONFIG.KEY
-);
+// Wait for config to load, then initialize Supabase client
+let authClient = null;
 
-const authClient = window.supabaseClient;
+async function initAuthClient() {
+    // Wait for config to be loaded
+    if (window.CONFIG_LOADED) {
+        await window.CONFIG_LOADED;
+    }
+
+    if (!window.SUPABASE_CONFIG || !window.SUPABASE_CONFIG.URL) {
+        console.error('SUPABASE_CONFIG not loaded!');
+        return null;
+    }
+
+    if (!window.supabaseClient) {
+        window.supabaseClient = window.supabase.createClient(
+            window.SUPABASE_CONFIG.URL,
+            window.SUPABASE_CONFIG.KEY
+        );
+    }
+
+    return window.supabaseClient;
+}
 
 const AUTH = {
     // Current user session
     async getSession() {
+        authClient = await initAuthClient();
+        if (!authClient) return null;
+
         const { data: { session }, error } = await authClient.auth.getSession();
         if (error) {
             console.error('Error fetching session:', error);
@@ -24,6 +43,9 @@ const AUTH = {
 
     // Login function
     async login(email, password) {
+        authClient = await initAuthClient();
+        if (!authClient) throw new Error('Supabase client not initialized');
+
         const { data, error } = await authClient.auth.signInWithPassword({
             email,
             password
@@ -35,6 +57,12 @@ const AUTH = {
 
     // Logout function
     async logout() {
+        authClient = await initAuthClient();
+        if (!authClient) {
+            window.location.href = 'login.html';
+            return;
+        }
+
         const { error } = await authClient.auth.signOut();
         if (error) console.error('Error signing out:', error);
         window.location.href = 'login.html';
