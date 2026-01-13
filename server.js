@@ -1,12 +1,12 @@
-require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configurações do Chatwoot (Vindas do .env no EasyPanel)
+// Configurações do Chatwoot
 const CHATWOOT_URL = process.env.CHATWOOT_URL || 'https://chatwoot.segredosdodrop.com';
 const PLATFORM_TOKEN = process.env.PLATFORM_TOKEN;
 const CHATWOOT_USER_ID = process.env.CHATWOOT_USER_ID || 1;
@@ -20,6 +20,39 @@ if (!PLATFORM_TOKEN) {
     process.exit(1);
 }
 
+// Proxy Inteligente: Remove bloqueios e conserta caminhos de arquivos
+app.use('/chatwoot-proxy', createProxyMiddleware({
+    target: CHATWOOT_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/chatwoot-proxy': '' },
+    onProxyRes: function (proxyRes, req, res) {
+        // Remove as travas de segurança do Chatwoot
+        delete proxyRes.headers['x-frame-options'];
+        delete proxyRes.headers['content-security-policy'];
+        res.setHeader('X-Frame-Options', 'ALLOWALL');
+
+        // Truque da Tag Base: Conserta links de CSS/JS/Imagens internos
+        if (proxyRes.headers['content-type'] && proxyRes.headers['content-type'].includes('text/html')) {
+            const originalWrite = res.write;
+            const originalEnd = res.end;
+            let body = '';
+
+            res.write = function (chunk) { body += chunk; };
+            res.end = function (chunk) {
+                if (chunk) body += chunk;
+                const baseTag = `<head><base href="${CHATWOOT_URL}/">`;
+                const injectedBody = body.replace('<head>', baseTag);
+                res.setHeader('Content-Length', Buffer.byteLength(injectedBody));
+                originalWrite.call(res, injectedBody);
+                originalEnd.call(res);
+            };
+        }
+    },
+    cookieDomainRewrite: "",
+    followRedirects: true,
+    secure: false
+}));
+
 // Middleware para servir arquivos estáticos
 app.use(express.static(__dirname));
 
@@ -31,7 +64,7 @@ app.get('/api/config', (req, res) => {
     });
 });
 
-// Endpoint SSO - Direto para o link oficial
+// Endpoint SSO - Agora retorna a URL que passa pelo Proxy
 app.get('/api/chatwoot/sso', async (req, res) => {
     try {
         const response = await axios.get(
@@ -39,7 +72,9 @@ app.get('/api/chatwoot/sso', async (req, res) => {
             { headers: { api_access_token: PLATFORM_TOKEN } }
         );
 
-        res.json({ success: true, ssoUrl: response.data.url });
+        // Transformamos a URL original em uma que aponta para o nosso proxy local
+        const ssoUrl = response.data.url.replace(CHATWOOT_URL, '/chatwoot-proxy');
+        res.json({ success: true, ssoUrl });
     } catch (error) {
         console.error('❌ Erro SSO:', error.message);
         res.status(500).json({ success: false, error: 'Falha ao gerar acesso' });
