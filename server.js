@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,24 @@ if (!PLATFORM_TOKEN) {
     process.exit(1);
 }
 
+// Proxy para contornar X-Frame-Options do Chatwoot
+app.use('/chatwoot-proxy', createProxyMiddleware({
+    target: CHATWOOT_URL,
+    changeOrigin: true,
+    pathRewrite: {
+        '^/chatwoot-proxy': '',
+    },
+    onProxyRes: function (proxyRes, req, res) {
+        // Remove os headers que bloqueiam o iframe
+        delete proxyRes.headers['x-frame-options'];
+        delete proxyRes.headers['content-security-policy'];
+        // Permite o iframe
+        res.setHeader('X-Frame-Options', 'ALLOWALL');
+    },
+    cookieDomainRewrite: "",
+    followRedirects: true
+}));
+
 // Middleware para servir arquivos estáticos
 app.use(express.static(__dirname));
 
@@ -31,7 +50,7 @@ app.get('/api/config', (req, res) => {
     });
 });
 
-// Endpoint SSO - Apenas gera o link, sem fazer proxy de tráfego
+// Endpoint SSO - Agora retorna a URL apontando para o nosso PROXY
 app.get('/api/chatwoot/sso', async (req, res) => {
     try {
         const response = await axios.get(
@@ -39,8 +58,11 @@ app.get('/api/chatwoot/sso', async (req, res) => {
             { headers: { api_access_token: PLATFORM_TOKEN } }
         );
 
-        // Retorna a URL oficial do Chatwoot
-        res.json({ success: true, ssoUrl: response.data.url });
+        // Transformamos a URL real em uma URL via nosso proxy local
+        // Ex: https://chatwoot.com/...?token=... -> https://nosso-site.com/chatwoot-proxy/...?token=...
+        const ssoUrl = response.data.url.replace(CHATWOOT_URL, '/chatwoot-proxy');
+
+        res.json({ success: true, ssoUrl });
     } catch (error) {
         console.error('❌ Erro SSO:', error.message);
         res.status(500).json({ success: false, error: 'Falha ao gerar acesso' });
