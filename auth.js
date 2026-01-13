@@ -65,19 +65,38 @@ const AUTH = {
     },
 
     async protectPage() {
+        // Garantir duração mínima de 1.5s para a tela de carregamento
+        const minDuration = 1500;
+        const startTime = Date.now();
+
         const session = await this.getSession();
         const isLoginPage = window.location.pathname.includes('login.html');
 
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minDuration - elapsedTime);
+
         if (!session && !isLoginPage) {
-            window.location.href = 'login.html';
+            // Efeito de transição suave para o login
+            setTimeout(() => {
+                const loader = document.getElementById('quantic-auth-loader');
+                if (loader) {
+                    loader.style.background = '#000';
+                    loader.style.opacity = '1';
+                }
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 500);
+            }, remainingTime);
             return null;
         } else if (session && isLoginPage) {
-            window.location.href = 'index.html';
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, remainingTime);
             return session;
         }
 
-        // Se está logado ou é página de login, remove o loader
-        this.removeLoader();
+        // Se está logado, remove o loader com o delay mínimo
+        setTimeout(() => this.removeLoader(), remainingTime);
         return session;
     },
 
@@ -85,7 +104,8 @@ const AUTH = {
         const loader = document.getElementById('quantic-auth-loader');
         if (loader) {
             loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 400);
+            loader.style.transform = 'scale(1.05)'; // Leve zoom ao sair
+            setTimeout(() => loader.remove(), 600);
         }
     },
 
@@ -152,15 +172,23 @@ const AUTH = {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #070708; display: flex; flex-direction: column;
             align-items: center; justify-content: center; z-index: 999999;
-            transition: opacity 0.4s ease;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .loader-logo { width: 120px; margin-bottom: 24px; animation: pulse 2s infinite; }
+        .loader-logo { 
+            width: 180px; 
+            margin-bottom: 32px; 
+            animation: pulse-glow 2.5s infinite ease-in-out; 
+            filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.2));
+        }
         .loader-spinner {
-            width: 32px; height: 32px; border: 3px solid rgba(139, 92, 246, 0.1);
-            border-top-color: #8b5cf6; border-radius: 50%; animation: spin 0.8s linear infinite;
+            width: 40px; height: 40px; border: 3px solid rgba(139, 92, 246, 0.05);
+            border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+        @keyframes pulse-glow { 
+            0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.2)); } 
+            50% { opacity: 0.7; transform: scale(0.96); filter: drop-shadow(0 0 35px rgba(139, 92, 246, 0.4)); } 
+        }
     `;
     document.head.appendChild(style);
 
