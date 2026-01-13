@@ -66,28 +66,19 @@ app.use('/app', assetProxy);
 // Mapeamos o /api do Chatwoot apenas se não for pego pelos nossos routes acima
 app.use('/api', assetProxy);
 
-// 4. Proxy Principal (Túnel) com Injeção de Tag Base
+// 4. Proxy Principal (Túnel)
 app.use('/chatwoot-proxy', createProxyMiddleware({
     target: CHATWOOT_URL,
     changeOrigin: true,
     pathRewrite: { '^/chatwoot-proxy': '' },
-    selfHandleResponse: true,
-    onProxyReq: (proxyReq) => {
-        proxyReq.setHeader('accept-encoding', 'identity');
-    },
-    onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
-        res.removeHeader('X-Frame-Options');
-        res.removeHeader('Content-Security-Policy');
+    onProxyRes: function (proxyRes, req, res) {
+        // Remove as travas de segurança do Chatwoot
+        delete proxyRes.headers['x-frame-options'];
+        delete proxyRes.headers['content-security-policy'];
+        // Força permissão total para o iframe
         res.setHeader('X-Frame-Options', 'ALLOWALL');
-
-        if (proxyRes.headers['content-type'] && proxyRes.headers['content-type'].includes('text/html')) {
-            let html = responseBuffer.toString('utf8');
-            const baseTag = `<head><base href="${CHATWOOT_URL}/">`;
-            html = html.includes('<head>') ? html.replace('<head>', baseTag) : html.replace('<html>', `<html>${baseTag}`);
-            return Buffer.from(html);
-        }
-        return responseBuffer;
-    }),
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    },
     cookieDomainRewrite: "",
     followRedirects: true,
     secure: false,
