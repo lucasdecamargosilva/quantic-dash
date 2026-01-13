@@ -1008,8 +1008,8 @@
             }
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (initSupabase()) {
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await initSupabase()) {
                 fetchRawHistory();
                 fetchIAHistory();
 

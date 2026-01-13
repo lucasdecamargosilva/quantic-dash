@@ -1869,7 +1869,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             renderBoard();
 
-            if (window.CRM_LOGIC && CRM_LOGIC.initCrmSupabase()) {
+            if (window.CRM_LOGIC && await CRM_LOGIC.initCrmSupabase()) {
                 await loadData();
                 CRM_LOGIC.subscribeToCrmChanges(() => loadData());
             }
