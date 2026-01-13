@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,7 +28,7 @@ app.get('/api/chatwoot/sso', async (req, res) => {
         if (!PLATFORM_TOKEN) throw new Error('PLATFORM_TOKEN missing');
         const response = await axios.get(
             `${CHATWOOT_URL}/platform/api/v1/users/${CHATWOOT_USER_ID}/login`,
-            { headers: { api_access_token: PLATFORM_TOKEN }, timeout: 5000 }
+            { headers: { api_access_token: PLATFORM_TOKEN }, timeout: 8000 }
         );
         if (response.data && response.data.url) {
             const ssoUrl = response.data.url.replace(CHATWOOT_URL, '/chatwoot-proxy');
@@ -44,23 +44,32 @@ app.get('/api/chatwoot/sso', async (req, res) => {
 // 2. Arquivos estáticos do Dashboard
 app.use(express.static(__dirname));
 
-// 3. PROXY PARA ATIVOS (Conserta erros 404)
-const assetProxy = createProxyMiddleware({
+// 3. PROXY PARA ATIVOS E SISTEMA (Essencial para SPA)
+const commonProxyOptions = {
     target: CHATWOOT_URL,
     changeOrigin: true,
     secure: false,
     onProxyRes: (proxyRes) => {
+        // Limpa as travas de segurança em todas as chamadas
         delete proxyRes.headers['x-frame-options'];
         delete proxyRes.headers['content-security-policy'];
-    }
-});
+        proxyRes.headers['X-Frame-Options'] = 'ALLOWALL';
+        proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    },
+    cookieDomainRewrite: "" // Remove o domínio do cookie para aceitar como local
+};
 
+const assetProxy = createProxyMiddleware(commonProxyOptions);
+
+// Mapeia todas as pastas que o Chatwoot usa internamente
 app.use('/vite', assetProxy);
 app.use('/assets', assetProxy);
 app.use('/packs', assetProxy);
 app.use('/rails', assetProxy);
 app.use('/app', assetProxy);
-// Mapeamos o /api do Chatwoot apenas se não for pego pelas nossas rotas acima
+app.use('/dashboard', assetProxy);
+
+// Mapeia o /api do Chatwoot (exceto os nossos do dashboard)
 app.use('/api', (req, res, next) => {
     if (req.path.startsWith('/config') || req.path.startsWith('/chatwoot/sso')) return next();
     assetProxy(req, res, next);
@@ -68,42 +77,11 @@ app.use('/api', (req, res, next) => {
 
 // 4. PROXY PRINCIPAL (Túnel para o Iframe)
 app.use('/chatwoot-proxy', createProxyMiddleware({
-    target: CHATWOOT_URL,
-    changeOrigin: true,
+    ...commonProxyOptions,
     pathRewrite: { '^/chatwoot-proxy': '' },
-    selfHandleResponse: true, // Necessário para editar o HTML
-    onProxyReq: (proxyReq) => {
-        // Força o Chatwoot a enviar texto simples (sem GZIP) para podermos injetar a tag <base>
-        proxyReq.setHeader('accept-encoding', 'identity');
-    },
-    onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
-        // Limpa as travas de segurança
-        res.removeHeader('X-Frame-Options');
-        res.removeHeader('Content-Security-Policy');
-        res.setHeader('X-Frame-Options', 'ALLOWALL');
-
-        const contentType = proxyRes.headers['content-type'];
-        if (contentType && contentType.includes('text/html')) {
-            let html = responseBuffer.toString('utf8');
-
-            // A MÁGICA: Diz pro navegador buscar os ícones/js no servidor original
-            const baseTag = `<head><base href="${CHATWOOT_URL}/">`;
-
-            if (html.includes('<head>')) {
-                html = html.replace('<head>', baseTag);
-            } else if (html.includes('<html>')) {
-                html = html.replace('<html>', `<html>${baseTag}`);
-            }
-            return Buffer.from(html);
-        }
-        return responseBuffer;
-    }),
-    cookieDomainRewrite: "",
-    followRedirects: true,
-    ws: true,
-    secure: false
+    ws: true
 }));
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor Quantic Online na porta ${PORT}`);
+    console.log(`🚀 Quantic Dashboard Online na porta ${PORT}`);
 });
