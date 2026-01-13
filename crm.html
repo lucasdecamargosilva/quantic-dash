@@ -118,6 +118,121 @@
             border-radius: 4px;
         }
 
+        /* Channels Chart Refinement */
+        .channel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .channel-card-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .channel-card-item:hover {
+            border-color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.05);
+            transform: translateY(-4px);
+        }
+
+        .channel-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .channel-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-white);
+        }
+
+        .channel-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .channel-count {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        .channel-bar-bg {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .channel-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+        }
+
+        /* Channel Branded Gradients */
+        .bg-instagram {
+            background: linear-gradient(45deg, #f09433, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888);
+        }
+
+        .bg-facebook {
+            background: linear-gradient(45deg, #1877F2, #1059b5);
+        }
+
+        .bg-linkedin {
+            background: linear-gradient(45deg, #0077b5, #005a8a);
+        }
+
+        .bg-google {
+            background: linear-gradient(45deg, #4285F4, #34A853, #FBBC05, #EA4335);
+        }
+
+        .bg-generic {
+            background: linear-gradient(45deg, var(--primary-purple), #9333ea);
+        }
+
+        .icon-instagram {
+            color: #bc1888;
+            background: rgba(188, 24, 136, 0.1);
+        }
+
+        .icon-facebook {
+            color: #1877F2;
+            background: rgba(24, 119, 242, 0.1);
+        }
+
+        .icon-linkedin {
+            color: #0077b5;
+            background: rgba(0, 119, 181, 0.1);
+        }
+
+        .icon-google {
+            color: #FBBC05;
+            background: rgba(251, 188, 5, 0.1);
+        }
+
+        .icon-generic {
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
         .opportunity-card {
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
             border: 1px solid var(--border-color);
@@ -1179,9 +1294,13 @@
                     <!-- Columns will be injected here -->
                 </div>
 
-                <div class="section-header" style="margin-top: 48px;">
-                    <h3 style="font-size: 16px; color: var(--text-gray);"><i class="ph-fill ph-funnel"></i>
-                        Leads por Canal de Aquisição</h3>
+                <div class="section-header" style="margin-top: 64px; margin-bottom: 24px;">
+                    <h3
+                        style="font-size: 18px; color: var(--text-white); font-weight: 700; display: flex; align-items: center; gap: 12px;">
+                        <i class="ph-fill ph-funnel"
+                            style="color: var(--primary-purple); background: rgba(139, 92, 246, 0.1); padding: 8px; border-radius: 8px;"></i>
+                        Leads por Canal de Aquisição
+                    </h3>
                 </div>
 
                 <div class="pipeline-charts-grid" id="channels-chart-container"
@@ -1761,30 +1880,49 @@
             const card = document.createElement('div');
             card.className = 'chart-card';
 
-            let rowsHtml = '';
+            const getChannelConfig = (name) => {
+                const n = name.toLowerCase();
+                if (n.includes('instagram')) return { icon: 'ph-instagram-logo', class: 'instagram' };
+                if (n.includes('facebook')) return { icon: 'ph-facebook-logo', class: 'facebook' };
+                if (n.includes('linkedin')) return { icon: 'ph-linkedin-logo', class: 'linkedin' };
+                if (n.includes('google') || n.includes('maps')) return { icon: 'ph-google-logo', class: 'google' };
+                if (n.includes('site') || n.includes('web')) return { icon: 'ph-globe', class: 'generic' };
+                return { icon: 'ph-share-network', class: 'generic' };
+            };
+
+            let gridHtml = '';
             const sortedChannels = Object.entries(channelsData || {}).sort((a, b) => b[1] - a[1]);
             const maxCount = Math.max(...Object.values(channelsData || {}), 1);
 
             sortedChannels.forEach(([name, count]) => {
                 const percentage = (count / maxCount) * 100;
-                rowsHtml += `
-                    <div class="chart-row">
-                        <span class="chart-stage-name">${escapeHtml(name)}</span>
-                        <div class="chart-bar-bg">
-                            <div class="chart-bar-fill bar-starter" style="width: ${percentage}%"></div>
+                const config = getChannelConfig(name);
+
+                gridHtml += `
+                    <div class="channel-card-item">
+                        <div class="channel-info">
+                            <div class="channel-label">
+                                <div class="channel-icon-box icon-${config.class}">
+                                    <i class="ph-fill ${config.icon}"></i>
+                                </div>
+                                <span>${escapeHtml(name)}</span>
+                            </div>
+                            <span class="channel-count">${count}</span>
                         </div>
-                        <span class="chart-count">${count}</span>
+                        <div class="channel-bar-bg">
+                            <div class="channel-bar-fill bg-${config.class}" style="width: ${percentage}%"></div>
+                        </div>
                     </div>
                 `;
             });
 
             card.innerHTML = `
-                <div class="chart-header label-starter" style="background: rgba(139, 92, 246, 0.1); color: var(--primary-purple);">
+                <div class="chart-header label-starter" style="background: rgba(139, 92, 246, 0.05); color: var(--primary-purple); border-bottom: 1px solid var(--border-color); padding: 20px 24px;">
                     <i class="ph-fill ph-funnel"></i>
                     <span>Volume por Canal de Aquisição</span>
                 </div>
-                <div class="chart-body" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); display: grid; gap: 24px;">
-                    ${rowsHtml || '<div style="padding: 20px; text-align: center; color: var(--text-muted);">Nenhum dado disponível</div>'}
+                <div class="channel-grid">
+                    ${gridHtml || '<div style="padding: 40px; text-align: center; color: var(--text-muted); width: 100%;">Nenhum dado disponível</div>'}
                 </div>
             `;
             container.appendChild(card);
