@@ -48,10 +48,6 @@ app.get('/api/chatwoot/sso', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`🚀 Quantic Dashboard ativo`);
-});
-
-app.listen(PORT, () => {
-    console.log(`🚀 Quantic Dashboard ativo`);
     console.log(`🌍 Domínio: https://quanticsolutions.com.br`);
     console.log(`Local via: http://localhost:${PORT}`);
 });
