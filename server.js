@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,17 +34,37 @@ app.use('/assets', assetProxy);
 app.use('/packs', assetProxy);
 app.use('/rails', assetProxy);
 
-// Proxy para a página principal do Chatwoot
+// Proxy para a página principal do Chatwoot com Injeção de Tag Base
 app.use('/chatwoot-proxy', createProxyMiddleware({
     target: CHATWOOT_URL,
     changeOrigin: true,
     pathRewrite: { '^/chatwoot-proxy': '' },
-    onProxyRes: function (proxyRes, req, res) {
-        // Remove as travas de segurança do Chatwoot
-        delete proxyRes.headers['x-frame-options'];
-        delete proxyRes.headers['content-security-policy'];
-        res.setHeader('X-Frame-Options', 'ALLOWALL');
+    selfHandleResponse: true, // Necessário para o interceptor funcionar
+    onProxyReq: (proxyReq) => {
+        // Força a resposta a não vir compactada (GZIP) para podermos ler o HTML
+        proxyReq.setHeader('accept-encoding', 'identity');
     },
+    onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+        // Remove travas de segurança
+        res.removeHeader('X-Frame-Options');
+        res.removeHeader('Content-Security-Policy');
+        res.setHeader('X-Frame-Options', 'ALLOWALL');
+
+        // Conserta links internos do Chatwoot injetando a tag <base>
+        if (proxyRes.headers['content-type'] && proxyRes.headers['content-type'].includes('text/html')) {
+            let html = responseBuffer.toString('utf8');
+            const baseTag = `<head><base href="${CHATWOOT_URL}/">`;
+
+            if (html.includes('<head>')) {
+                html = html.replace('<head>', baseTag);
+            } else {
+                html = html.replace('<html>', `<html>${baseTag}`);
+            }
+            return Buffer.from(html);
+        }
+
+        return responseBuffer;
+    }),
     cookieDomainRewrite: "",
     followRedirects: true,
     secure: false
