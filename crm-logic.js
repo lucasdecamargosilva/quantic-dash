@@ -1,12 +1,19 @@
 // CRM Logic - Fetching and updating data from Supabase
 let crmClient;
 
-function initCrmSupabase() {
-    if (window.supabase && window.SUPABASE_CONFIG) {
-        crmClient = window.supabase.createClient(
-            window.SUPABASE_CONFIG.URL,
-            window.SUPABASE_CONFIG.KEY
-        );
+async function initCrmSupabase() {
+    // Wait for config to load
+    if (window.CONFIG_LOADED) {
+        await window.CONFIG_LOADED;
+    }
+
+    // Wait for auth client to be initialized
+    if (!window.supabaseClient) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    if (window.supabaseClient) {
+        crmClient = window.supabaseClient;
         return true;
     }
     return false;

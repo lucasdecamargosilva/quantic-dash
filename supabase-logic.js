@@ -6,8 +6,19 @@ if (!window.logDebug) {
 let supabaseClient;
 
 // Initialize Supabase using the global client from auth.js
-function initSupabase() {
+async function initSupabase() {
     try {
+        // Wait for config to load
+        if (window.CONFIG_LOADED) {
+            await window.CONFIG_LOADED;
+        }
+
+        // Wait for auth client to be initialized
+        if (!window.supabaseClient) {
+            // Give auth.js time to initialize
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
         if (window.supabaseClient) {
             supabaseClient = window.supabaseClient;
             window.logDebug("Using Global Supabase Client");
@@ -239,7 +250,8 @@ async function fetchClientes() {
 document.addEventListener('DOMContentLoaded', async () => {
     window.logDebug("DOM Loaded - Initializing...");
 
-    if (initSupabase()) {
+    const initialized = await initSupabase();
+    if (initialized) {
         // Period filter buttons
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.addEventListener('click', function () {
