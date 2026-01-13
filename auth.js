@@ -7,7 +7,6 @@
 let authClient = null;
 
 async function initAuthClient() {
-    // Wait for config to be loaded
     if (window.CONFIG_LOADED) {
         await window.CONFIG_LOADED;
     }
@@ -28,7 +27,6 @@ async function initAuthClient() {
 }
 
 const AUTH = {
-    // Current user session
     async getSession() {
         authClient = await initAuthClient();
         if (!authClient) return null;
@@ -41,7 +39,6 @@ const AUTH = {
         return session;
     },
 
-    // Login function
     async login(email, password) {
         authClient = await initAuthClient();
         if (!authClient) throw new Error('Supabase client not initialized');
@@ -55,7 +52,6 @@ const AUTH = {
         return data;
     },
 
-    // Logout function
     async logout() {
         authClient = await initAuthClient();
         if (!authClient) {
@@ -68,31 +64,38 @@ const AUTH = {
         window.location.href = 'login.html';
     },
 
-    // Check if session exists, redirect to login if not
     async protectPage() {
         const session = await this.getSession();
         const isLoginPage = window.location.pathname.includes('login.html');
 
         if (!session && !isLoginPage) {
             window.location.href = 'login.html';
+            return null;
         } else if (session && isLoginPage) {
             window.location.href = 'index.html';
+            return session;
         }
 
+        // Se está logado ou é página de login, remove o loader
+        this.removeLoader();
         return session;
     },
 
+    removeLoader() {
+        const loader = document.getElementById('quantic-auth-loader');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 400);
+        }
+    },
 
-    // Initialize sidebar logout button
     initLogoutButton(session) {
         const sidebarFooter = document.querySelector('.sidebar-footer');
         if (sidebarFooter && !document.getElementById('logout-btn')) {
-            // Add Welcome message
             const welcomeMsg = document.createElement('div');
             welcomeMsg.className = 'welcome-user';
             welcomeMsg.style.cssText = 'padding: 0 16px; margin-bottom: 8px; font-size: 13px; color: var(--text-gray); font-family: "Outfit", sans-serif;';
 
-            // Pega o nome do metadados
             const user = session.user;
             const nameMap = {
                 'lcamargo@quanticsolutions.com.br': 'Lucas de Camargo',
@@ -109,7 +112,7 @@ const AUTH = {
 
             const logoutBtn = document.createElement('button');
             logoutBtn.id = 'logout-btn';
-            logoutBtn.className = 'nav-link theme-btn'; // Use existing design system
+            logoutBtn.className = 'nav-link theme-btn';
             logoutBtn.style.marginTop = '4px';
             logoutBtn.style.width = '100%';
             logoutBtn.style.border = '1px solid var(--border-color)';
@@ -121,7 +124,6 @@ const AUTH = {
                 <span class="link-text" style="color: var(--text-gray);">Fazer Logout</span>
             `;
 
-            // Hover effects
             logoutBtn.onmouseenter = () => {
                 logoutBtn.style.background = 'rgba(239, 68, 68, 0.1)';
                 logoutBtn.style.borderColor = 'rgba(239, 68, 68, 0.2)';
@@ -139,9 +141,41 @@ const AUTH = {
     }
 };
 
-// Auto-protect and init
+// Injeção Imediata do Loader (Evita piscada da Dashboard)
+(function () {
+    if (window.location.pathname.includes('login.html')) return;
+
+    // Injetar estilos do loader
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #quantic-auth-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #070708; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 999999;
+            transition: opacity 0.4s ease;
+        }
+        .loader-logo { width: 120px; margin-bottom: 24px; animation: pulse 2s infinite; }
+        .loader-spinner {
+            width: 32px; height: 32px; border: 3px solid rgba(139, 92, 246, 0.1);
+            border-top-color: #8b5cf6; border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+    `;
+    document.head.appendChild(style);
+
+    // Injetar o elemento do loader
+    const loader = document.createElement('div');
+    loader.id = 'quantic-auth-loader';
+    loader.innerHTML = `
+        <img src="logo.png" class="loader-logo" alt="Quantic">
+        <div class="loader-spinner"></div>
+    `;
+    document.documentElement.appendChild(loader);
+})();
+
+// Auto-protect e init
 document.addEventListener('DOMContentLoaded', async () => {
-    // Only protect if not on login page
     const session = await AUTH.protectPage();
     if (session) {
         AUTH.initLogoutButton(session);

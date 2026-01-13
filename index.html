@@ -9,6 +9,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Supabase Core & Configuration (MUST BE IN HEAD) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+
     <!-- Icon library (using Phosphor Icons for similarity to design) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
@@ -462,13 +467,6 @@
             </div> <!-- end app-container -->
         </div> <!-- end main-content -->
     </div> <!-- end layout-wrapper -->
-
-    <!-- Supabase Core Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Supabase Configuration (Sensitive data) -->
-    <script src="supabase-config.js"></script>
-    <script src="auth.js"></script>
 
     <!-- Supabase Integration Logic (Modular) -->
     <script src="supabase-logic.js?v=2"></script>
