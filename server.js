@@ -41,52 +41,49 @@ app.get('/api/chatwoot/sso', async (req, res) => {
     }
 });
 
-// 2. Arquivos estáticos do Dashboard (JS, CSS local)
+// 2. Arquivos estáticos do Dashboard
 app.use(express.static(__dirname));
 
-// 3. PROXY INTELIGENTE (Túnel para o Chatwoot)
-// Esse proxy só cuida de remover as travas e avisar ao navegador onde os arquivos estão.
+// 3. PROXY PARA ATIVOS (Conserta erros 404)
+const assetProxy = createProxyMiddleware({
+    target: CHATWOOT_URL,
+    changeOrigin: true,
+    secure: false,
+    onProxyRes: (proxyRes) => {
+        delete proxyRes.headers['x-frame-options'];
+        delete proxyRes.headers['content-security-policy'];
+    }
+});
+
+app.use('/vite', assetProxy);
+app.use('/assets', assetProxy);
+app.use('/packs', assetProxy);
+app.use('/rails', assetProxy);
+app.use('/app', assetProxy);
+// Mapeamos o /api do Chatwoot apenas se não for pego pelas nossas rotas acima
+app.use('/api', (req, res, next) => {
+    if (req.path.startsWith('/config') || req.path.startsWith('/chatwoot/sso')) return next();
+    assetProxy(req, res, next);
+});
+
+// 4. PROXY PRINCIPAL (Túnel para o Iframe)
 app.use('/chatwoot-proxy', createProxyMiddleware({
     target: CHATWOOT_URL,
     changeOrigin: true,
     pathRewrite: { '^/chatwoot-proxy': '' },
-    selfHandleResponse: true, // Permite que a gente edite o HTML antes de entregar
-    onProxyReq: (proxyReq) => {
-        // Evita que o Chatwoot mande o arquivo compactado (GZIP), o que causaria o erro 500
-        proxyReq.setHeader('accept-encoding', 'identity');
+    onProxyRes: (proxyRes) => {
+        // Remove as travas de segurança
+        delete proxyRes.headers['x-frame-options'];
+        delete proxyRes.headers['content-security-policy'];
+        // Permite exibição em iframe
+        proxyRes.headers['X-Frame-Options'] = 'ALLOWALL';
     },
-    onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
-        // Remove as travas de segurança original do Chatwoot
-        res.removeHeader('X-Frame-Options');
-        res.removeHeader('Content-Security-Policy');
-        res.setHeader('X-Frame-Options', 'ALLOWALL');
-
-        // Se o que o Chatwoot mandou for uma página HTML, injetamos a correção de links
-        const contentType = proxyRes.headers['content-type'];
-        if (contentType && contentType.includes('text/html')) {
-            let html = responseBuffer.toString('utf8');
-
-            // Injetamos a tag <base> para que os ícones e JS carreguem do lugar certo
-            const baseTag = `<head><base href="${CHATWOOT_URL}/">`;
-
-            if (html.includes('<head>')) {
-                html = html.replace('<head>', baseTag);
-            } else if (html.includes('<html>')) {
-                html = html.replace('<html>', `<html>${baseTag}`);
-            }
-
-            return Buffer.from(html);
-        }
-
-        // Se for imagem ou outro arquivo, entrega sem mexer
-        return responseBuffer;
-    }),
-    cookieDomainRewrite: "",
+    cookieDomainRewrite: "", // Mantém os cookies no domínio local
     followRedirects: true,
     ws: true,
     secure: false
 }));
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor Quantic Online: Porto ${PORT}`);
+    console.log(`🚀 Servidor Quantic Online na porta ${PORT}`);
 });
