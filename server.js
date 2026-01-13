@@ -18,7 +18,7 @@ const CHATWOOT_USER_ID = process.env.CHATWOOT_USER_ID || 1;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jytsrxrmgvliyyuktxsd.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-// 1. PRIORIDADE: Rotas do Próprio Dashboard
+// 1. Endpoints do Dashboard (Devem vir PRIMEIRO)
 app.get('/api/config', (req, res) => {
     res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
 });
@@ -28,11 +28,12 @@ app.get('/api/chatwoot/sso', async (req, res) => {
         if (!PLATFORM_TOKEN) throw new Error('PLATFORM_TOKEN missing');
         const response = await axios.get(
             `${CHATWOOT_URL}/platform/api/v1/users/${CHATWOOT_USER_ID}/login`,
-            { headers: { api_access_token: PLATFORM_TOKEN }, timeout: 8000 }
+            { headers: { api_access_token: PLATFORM_TOKEN }, timeout: 10000 }
         );
         if (response.data && response.data.url) {
-            const ssoUrl = response.data.url.replace(CHATWOOT_URL, '/chatwoot-proxy');
-            return res.json({ success: true, ssoUrl });
+            // Retorna apenas o caminho relativo para o iframe usar o proxy do root
+            const ssoPath = response.data.url.replace(CHATWOOT_URL, '');
+            return res.json({ success: true, ssoUrl: ssoPath });
         }
         throw new Error('Invalid response from Chatwoot');
     } catch (error) {
@@ -41,47 +42,28 @@ app.get('/api/chatwoot/sso', async (req, res) => {
     }
 });
 
-// 2. Arquivos estáticos do Dashboard
+// 2. Servir arquivos estáticos do Dashboard
+// Se o arquivo existir na pasta local, ele será entregue.
 app.use(express.static(__dirname));
 
-// 3. PROXY PARA ATIVOS E SISTEMA (Essencial para SPA)
-const commonProxyOptions = {
+// 3. PROXY CATCH-ALL (O "Coringa")
+// Qualquer rota que não seja um arquivo local ou uma rota definida acima será enviada ao Chatwoot.
+// Isso resolve AUTOMATICAMENTE todos os erros 404 de ativos (/vite, /assets, /brand-assets, etc).
+app.use('/', createProxyMiddleware({
     target: CHATWOOT_URL,
     changeOrigin: true,
     secure: false,
+    ws: true, // Suporte a WebSockets para tempo real
     onProxyRes: (proxyRes) => {
-        // Limpa as travas de segurança em todas as chamadas
+        // Remove as travas de segurança de TODAS as respostas do Chatwoot
         delete proxyRes.headers['x-frame-options'];
         delete proxyRes.headers['content-security-policy'];
         proxyRes.headers['X-Frame-Options'] = 'ALLOWALL';
         proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     },
-    cookieDomainRewrite: "" // Remove o domínio do cookie para aceitar como local
-};
-
-const assetProxy = createProxyMiddleware(commonProxyOptions);
-
-// Mapeia todas as pastas que o Chatwoot usa internamente
-app.use('/vite', assetProxy);
-app.use('/assets', assetProxy);
-app.use('/packs', assetProxy);
-app.use('/rails', assetProxy);
-app.use('/app', assetProxy);
-app.use('/dashboard', assetProxy);
-
-// Mapeia o /api do Chatwoot (exceto os nossos do dashboard)
-app.use('/api', (req, res, next) => {
-    if (req.path.startsWith('/config') || req.path.startsWith('/chatwoot/sso')) return next();
-    assetProxy(req, res, next);
-});
-
-// 4. PROXY PRINCIPAL (Túnel para o Iframe)
-app.use('/chatwoot-proxy', createProxyMiddleware({
-    ...commonProxyOptions,
-    pathRewrite: { '^/chatwoot-proxy': '' },
-    ws: true
+    cookieDomainRewrite: "" // Reescreve os cookies para o domínio do seu dashboard
 }));
 
 app.listen(PORT, () => {
-    console.log(`🚀 Quantic Dashboard Online na porta ${PORT}`);
+    console.log(`🚀 Quantic Dashboard em modo Híbrido ativo na porta ${PORT}`);
 });
