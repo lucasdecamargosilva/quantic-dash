@@ -71,14 +71,34 @@ app.use('/chatwoot-proxy', createProxyMiddleware({
     target: CHATWOOT_URL,
     changeOrigin: true,
     pathRewrite: { '^/chatwoot-proxy': '' },
-    onProxyRes: (proxyRes) => {
-        // Remove as travas de segurança
-        delete proxyRes.headers['x-frame-options'];
-        delete proxyRes.headers['content-security-policy'];
-        // Permite exibição em iframe
-        proxyRes.headers['X-Frame-Options'] = 'ALLOWALL';
+    selfHandleResponse: true, // Necessário para editar o HTML
+    onProxyReq: (proxyReq) => {
+        // Força o Chatwoot a enviar texto simples (sem GZIP) para podermos injetar a tag <base>
+        proxyReq.setHeader('accept-encoding', 'identity');
     },
-    cookieDomainRewrite: "", // Mantém os cookies no domínio local
+    onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+        // Limpa as travas de segurança
+        res.removeHeader('X-Frame-Options');
+        res.removeHeader('Content-Security-Policy');
+        res.setHeader('X-Frame-Options', 'ALLOWALL');
+
+        const contentType = proxyRes.headers['content-type'];
+        if (contentType && contentType.includes('text/html')) {
+            let html = responseBuffer.toString('utf8');
+
+            // A MÁGICA: Diz pro navegador buscar os ícones/js no servidor original
+            const baseTag = `<head><base href="${CHATWOOT_URL}/">`;
+
+            if (html.includes('<head>')) {
+                html = html.replace('<head>', baseTag);
+            } else if (html.includes('<html>')) {
+                html = html.replace('<html>', `<html>${baseTag}`);
+            }
+            return Buffer.from(html);
+        }
+        return responseBuffer;
+    }),
+    cookieDomainRewrite: "",
     followRedirects: true,
     ws: true,
     secure: false
