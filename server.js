@@ -20,23 +20,32 @@ if (!PLATFORM_TOKEN) {
     process.exit(1);
 }
 
-// Proxy Inteligente: Remove bloqueios e conserta caminhos de arquivos
+// Proxy para os ativos internos do Chatwoot (conserta os erros 404 da imagem)
+const assetProxy = createProxyMiddleware({
+    target: CHATWOOT_URL,
+    changeOrigin: true,
+    secure: false
+});
+
+app.use('/vite', assetProxy);
+app.use('/assets', assetProxy);
+app.use('/packs', assetProxy);
+app.use('/rails', assetProxy);
+
+// Proxy Inteligente para a página de login/app
 app.use('/chatwoot-proxy', createProxyMiddleware({
     target: CHATWOOT_URL,
     changeOrigin: true,
     pathRewrite: { '^/chatwoot-proxy': '' },
     onProxyRes: function (proxyRes, req, res) {
-        // Remove as travas de segurança do Chatwoot
         delete proxyRes.headers['x-frame-options'];
         delete proxyRes.headers['content-security-policy'];
         res.setHeader('X-Frame-Options', 'ALLOWALL');
 
-        // Truque da Tag Base: Conserta links de CSS/JS/Imagens internos
         if (proxyRes.headers['content-type'] && proxyRes.headers['content-type'].includes('text/html')) {
             const originalWrite = res.write;
             const originalEnd = res.end;
             let body = '';
-
             res.write = function (chunk) { body += chunk; };
             res.end = function (chunk) {
                 if (chunk) body += chunk;
