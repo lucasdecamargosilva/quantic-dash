@@ -1177,144 +1177,128 @@
                 return;
             }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                .subscribe();                })                    loadCaptureMetrics();                    console.debug('[RT] Nova captura Maps');                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {                .channel('capture-maps-rt')            captureSupabase            // Real-time: Maps captures                .subscribe();                })                    loadCaptureMetrics();                    console.debug('[RT] Nova captura Instagram');                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {                .channel('capture-instagram-rt')            captureSupabase            // Real-time: Instagram captures            if (!captureSupabase) return;        async function subscribeCaptureMetrics() {        // Subscribe to real-time changes        }            }                console.error('[loadCaptureMetrics] ❌ Erro:', err);            } catch (err) {                });                    vendas: safeSales                    propostas: safeProposals,                    reunioes_realizadas: safeCompleted,                    reunioes_agendadas: safeScheduled,                    qualificados: safeQualified,                    maps: safeMaps,                    instagram: safeInstagram,                    total_capturados: totalCaptured,                console.debug('[loadCaptureMetrics] ✅ Todos os dados atualizados:', {                document.getElementById('kpi-sales-value').textContent = safeSales.toString();                document.getElementById('kpi-proposals-value').textContent = safeProposals.toString();                document.getElementById('kpi-meetings-completed-value').textContent = safeCompleted.toString();                document.getElementById('kpi-meetings-scheduled-value').textContent = safeScheduled.toString();                document.getElementById('kpi-qualified-value').textContent = safeQualified.toString();                document.getElementById('kpi-maps-value').textContent = safeMaps.toString();                document.getElementById('kpi-instagram-value').textContent = safeInstagram.toString();                document.getElementById('kpi-leads-captured-value').textContent = totalCaptured.toString();                const totalCaptured = safeInstagram + safeMaps;                // Update UI                console.debug('[loadCaptureMetrics] Vendas Realizadas:', safeSales, 'erro:', err7);                const safeSales = salesCount || 0;                    .eq('stage', 'Venda Realizada');                    .select('*', { count: 'exact', head: true })                    .from('opportunities')                const { count: salesCount, error: err7 } = await captureSupabase                // 7. Funil - Vendas Realizadas                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safeProposals, 'erro:', err6);                const safeProposals = proposalsCount || 0;                    .eq('stage', 'Proposta Enviada');                    .select('*', { count: 'exact', head: true })                    .from('opportunities')                const { count: proposalsCount, error: err6 } = await captureSupabase                // 6. Funil - Propostas Enviadas                console.debug('[loadCaptureMetrics] Reuniões Realizadas:', safeCompleted, 'erro:', err5);                const safeCompleted = completedCount || 0;                    .eq('stage', 'Reunião Realizada');                    .select('*', { count: 'exact', head: true })                    .from('opportunities')                const { count: completedCount, error: err5 } = await captureSupabase                // 5. Funil - Reuniões Realizadas                console.debug('[loadCaptureMetrics] Reuniões Agendadas:', safeScheduled, 'erro:', err4);                const safeScheduled = scheduledCount || 0;                    .eq('stage', 'Reunião Agendada');                    .select('*', { count: 'exact', head: true })                    .from('opportunities')                const { count: scheduledCount, error: err4 } = await captureSupabase                // 4. Funil - Reuniões Agendadas                console.debug('[loadCaptureMetrics] Qualified:', safeQualified, 'erro:', err3);                const safeQualified = qualifiedCount || 0;                    .select('*', { count: 'exact', head: true });                    .from('leads_qualificados')                const { count: qualifiedCount, error: err3 } = await captureSupabase                // 3. Leads Qualificados (leads_qualificados)                console.debug('[loadCaptureMetrics] Maps:', safeMaps, 'erro:', err2);                const safeMaps = mapsCount || 0;                    .select('*', { count: 'exact', head: true });                    .from('leads_google_maps')                const { count: mapsCount, error: err2 } = await captureSupabase                // 2. Leads Capturados - Google Maps (leads_google_maps)                console.debug('[loadCaptureMetrics] Instagram:', safeInstagram, 'erro:', err1);                const safeInstagram = instagramCount || 0;                    .select('*', { count: 'exact', head: true });                    .from('leads_capturados_posts')                const { count: instagramCount, error: err1 } = await captureSupabase                // 1. Leads Capturados - Instagram (leads_capturados_posts)                console.debug('[loadCaptureMetrics] Iniciando carregamento...');            try {            // Real-time: Qualified leads
-            captureSupabase
-                .channel('capture-qualified-rt')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_qualificados' }, () => {
-                    console.debug('[RT] Novo lead qualificado');
-                    loadCaptureMetrics();
-                })
-                .subscribe();
-
-            // Real-time: Opportunities changes
-            captureSupabase
-                .channel('capture-opportunities-rt')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'opportunities' }, () => {
-                    console.debug('[RT] Mudança em opportunities');
-                    loadCaptureMetrics();
-                })
-                .subscribe();
-        }
-
-        // Initialize quando o DOM estiver pronto
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.debug('[CaptureMetrics] Inicializando...');
-            if (await initCaptureSupabase()) {
-                await loadCaptureMetrics();
-                await subscribeCaptureMetrics();
+            try {
+                console.debug('[loadCaptureMetrics] Iniciando carregamento...');
+
+                // 1. Leads Capturados - Instagram (leads_capturados_posts)
+                const { count: instagramCount, error: err1 } = await captureSupabase
+                    .from('leads_capturados_posts')
+                    .select('*', { count: 'exact', head: true });
+
+                const safeInstagram = instagramCount || 0;
+                console.debug('[loadCaptureMetrics] Instagram:', safeInstagram, 'erro:', err1);
+
+                // 2. Leads Capturados - Google Maps (leads_google_maps)
+                const { count: mapsCount, error: err2 } = await captureSupabase
+                    .from('leads_google_maps')
+                    .select('*', { count: 'exact', head: true });
+
+                const safeMaps = mapsCount || 0;
+                console.debug('[loadCaptureMetrics] Maps:', safeMaps, 'erro:', err2);
+
+                // 3. Leads Qualificados (leads_qualificados)
+                const { count: qualifiedCount, error: err3 } = await captureSupabase
+                    .from('leads_qualificados')
+                    .select('*', { count: 'exact', head: true });
+
+                const safeQualified = qualifiedCount || 0;
+                console.debug('[loadCaptureMetrics] Qualified:', safeQualified, 'erro:', err3);
+
+                // 4. Funil - Reuniões Agendadas
+                const { count: scheduledCount, error: err4 } = await captureSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Reunião Agendada');
+
+                const safeScheduled = scheduledCount || 0;
+                console.debug('[loadCaptureMetrics] Reuniões Agendadas:', safeScheduled, 'erro:', err4);
+
+                // 5. Funil - Reuniões Realizadas
+                const { count: completedCount, error: err5 } = await captureSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Reunião Realizada');
+
+                const safeCompleted = completedCount || 0;
+                console.debug('[loadCaptureMetrics] Reuniões Realizadas:', safeCompleted, 'erro:', err5);
+
+                // 6. Funil - Propostas Enviadas
+                const { count: proposalsCount, error: err6 } = await captureSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Proposta Enviada');
+
+                const safeProposals = proposalsCount || 0;
+                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safeProposals, 'erro:', err6);
+
+                // 7. Funil - Vendas Realizadas
+                const { count: salesCount, error: err7 } = await captureSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Venda Realizada');
+
+                const safeSales = salesCount || 0;
+                console.debug('[loadCaptureMetrics] Vendas Realizadas:', safeSales, 'erro:', err7);
+
+                // Calculate total captured
+                const totalCaptured = safeInstagram + safeMaps;
+
+                // Update LEFT CARD (Leads Capturados + Qualificados)
+                const capturedEl = document.getElementById('kpi-leads-captured-value');
+                const instagramEl = document.getElementById('kpi-instagram-value');
+                const mapsEl = document.getElementById('kpi-maps-value');
+                const qualifiedEl = document.getElementById('kpi-qualified-value');
+
+                if (capturedEl) capturedEl.textContent = totalCaptured.toString();
+                if (instagramEl) instagramEl.textContent = safeInstagram.toString();
+                if (mapsEl) mapsEl.textContent = safeMaps.toString();
+                if (qualifiedEl) qualifiedEl.textContent = safeQualified.toString();
+
+                // Update RIGHT CARD (Funil - valores numéricos)
+                const scheduledCountEl = document.getElementById('kpi-meetings-scheduled-value');
+                const completedCountEl = document.getElementById('kpi-meetings-completed-value');
+                const proposalsCountEl = document.getElementById('kpi-propostas-value');
+                const salesCountEl = document.getElementById('kpi-sales-value');
+
+                if (scheduledCountEl) scheduledCountEl.textContent = safeScheduled.toString();
+                if (completedCountEl) completedCountEl.textContent = safeCompleted.toString();
+                if (proposalsCountEl) proposalsCountEl.textContent = safeProposals.toString();
+                if (salesCountEl) salesCountEl.textContent = safeSales.toString();
+
+                // Calcular percentuais para as barras do funil
+                const percentages = calculateFunnelPercentages(
+                    safeScheduled,
+                    safeCompleted,
+                    safeProposals,
+                    safeSales
+                );
+
+                // Atualizar largura das barras do funil
+                const bar1 = document.getElementById('funnel-bar-1');
+                const bar2 = document.getElementById('funnel-bar-2');
+                const bar3 = document.getElementById('funnel-bar-3');
+                const bar4 = document.getElementById('funnel-bar-4');
+
+                if (bar1) bar1.style.width = percentages.scheduled + '%';
+                if (bar2) bar2.style.width = percentages.completed + '%';
+                if (bar3) bar3.style.width = percentages.proposals + '%';
+                if (bar4) bar4.style.width = percentages.sales + '%';
+
+                console.debug('[loadCaptureMetrics] ✅ Todos os dados atualizados:', {
+                    total_capturados: totalCaptured,
+                    instagram: safeInstagram,
+                    maps: safeMaps,
+                    qualificados: safeQualified,
+                    reunioes_agendadas: safeScheduled,
+                    reunioes_realizadas: safeCompleted,
+                    propostas: safeProposals,
+                    vendas: safeSales,
+                    percentuais: percentages
+                });
+            } catch (err) {
+                console.error('[loadCaptureMetrics] ❌ Erro:', err);
             }
-        });
+        }
     </script>
     <!-- ===== FIM SCRIPT CAPTURA DE LEADS ===== -->
 
