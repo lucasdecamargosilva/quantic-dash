@@ -281,3 +281,80 @@ window.CRM_LOGIC = {
     subscribeToCrmChanges,
     initCrmSupabase
 };
+
+/* ===== CRM_LOGIC logging wrappers =====
+   Aguarda window.CRM_LOGIC e envolve métodos para debug sem alterar comportamento.
+*/
+(function attachCrmLogicLogging() {
+	// evita múltiplas aplicações
+	if (window.__CRM_LOGGING_ATTACHED) {
+		console.debug('[CRM-LOG] logging already attached');
+		return;
+	}
+
+	function wrapAsyncMethod(obj, name) {
+		if (!obj || typeof obj[name] !== 'function') return;
+		if (obj[name].__crm_logged) return;
+		const original = obj[name];
+		obj[name] = async function (...args) {
+			console.debug(`[CRM-LOG] CALL ${name}`, args);
+			try {
+				const res = await original.apply(this, args);
+				console.debug(`[CRM-LOG] OK ${name}`, res);
+				return res;
+			} catch (err) {
+				console.error(`[CRM-LOG] ERROR ${name}`, err);
+				throw err;
+			}
+		};
+		obj[name].__crm_logged = true;
+	}
+
+	function wrapSyncMethod(obj, name) {
+		if (!obj || typeof obj[name] !== 'function') return;
+		if (obj[name].__crm_logged) return;
+		const original = obj[name];
+		obj[name] = function (...args) {
+			console.debug(`[CRM-LOG] CALL ${name}`, args);
+			try {
+				const res = original.apply(this, args);
+				console.debug(`[CRM-LOG] OK ${name}`, res);
+				return res;
+			} catch (err) {
+				console.error(`[CRM-LOG] ERROR ${name}`, err);
+				throw err;
+			}
+		};
+		obj[name].__crm_logged = true;
+	}
+
+	const methodsAsync = [
+		'initCrmSupabase',
+		'fetchPipelineSummary',
+		'fetchCrmData',
+		'fetchAILeadInfo',
+		'updateOpportunityDetails',
+		'updateLeadStage'
+	];
+	const methodsSync = [
+		'subscribeToCrmChanges'
+	];
+
+	let tries = 0;
+	const maxTries = 60; // ~6s
+	const interval = setInterval(() => {
+		if (window.CRM_LOGIC) {
+			methodsAsync.forEach(m => wrapAsyncMethod(window.CRM_LOGIC, m));
+			methodsSync.forEach(m => wrapSyncMethod(window.CRM_LOGIC, m));
+			window.__CRM_LOGGING_ATTACHED = true;
+			console.debug('[CRM-LOG] logging wrappers attached to window.CRM_LOGIC');
+			clearInterval(interval);
+			return;
+		}
+		tries++;
+		if (tries >= maxTries) {
+			console.warn('[CRM-LOG] window.CRM_LOGIC not found - logging wrappers not attached');
+			clearInterval(interval);
+		}
+	}, 100);
+})();

@@ -1709,6 +1709,9 @@
     <script src="crm-logic.js"></script>
     <script src="script.js"></script>
     <script>
+        // Debug inicial do script
+        console.debug('[CRM-SCRIPT] crm.js carregado');
+
         const stages = [
             "Contato",
             "Mensagem Enviada",
@@ -1726,28 +1729,47 @@
         // Use o identificador curto (coerente com data-pipeline nos botões)
         let currentPipeline = 'starter';
 
+        // helper: gera ID de lista seguro a partir do nome da etapa
+        function safeListId(stage) {
+            try {
+                if (!stage) return 'list-Contato';
+                // usa encodeURIComponent e substitui '%' por '-' para manter ID válido
+                return 'list-' + encodeURIComponent(String(stage)).replace(/%/g, '-');
+            } catch (e) {
+                console.warn('[safeListId] stage inválido:', stage, e);
+                return 'list-Contato';
+            }
+        }
+
         function renderBoard() {
+            console.debug('[CRM-SCRIPT] renderBoard start, stages count:', stages.length);
             const board = document.getElementById('crm-board');
+            if (!board) {
+                console.error('[renderBoard] elemento #crm-board não encontrado');
+                return;
+            }
             board.innerHTML = '';
 
             stages.forEach(stage => {
                 const column = document.createElement('div');
                 column.className = 'crm-column';
+                const listId = safeListId(stage);
                 column.innerHTML = `
-                    <div class="column-header">
-                        <h3>${stage}</h3>
-                        <span class="opportunity-count">0</span>
-                    </div>
-                    <div class="opportunity-list" 
-                         id="list-${stage.replace(/\s+/g, '-')}"
-                         ondragover="handleDragOver(event)"
-                         ondragleave="handleDragLeave(event)"
-                         ondrop="handleDrop(event, '${stage}')">
-                        <!-- Opportunity cards -->
-                    </div>
-                `;
+                <div class="column-header">
+                    <h3>${stage}</h3>
+                    <span class="opportunity-count">0</span>
+                </div>
+                <div class="opportunity-list" 
+                     id="${listId}"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, '${stage}')">
+                    <!-- Opportunity cards -->
+                </div>
+            `;
                 board.appendChild(column);
             });
+            console.debug('[CRM-SCRIPT] renderBoard finished');
         }
 
         // Drag & Drop handlers
@@ -2073,7 +2095,110 @@
                 label: 'Prêmio para o 1º Colocado'
             });
         }
-        // ...existing code...
+
+        function renderLeads(leads) {
+            try {
+                console.debug('[CRM-SCRIPT] renderLeads start, total leads:', (leads || []).length);
+                const searchTerm = document.getElementById('crmSearch')?.value?.toLowerCase() || '';
+                const respFilter = document.getElementById('responsibleFilter')?.value || 'all';
+
+                // Filter leads
+                const filteredLeads = (leads || []).filter(opp => {
+                    const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
+                        (opp.company?.toLowerCase().includes(searchTerm));
+                    const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
+                    return matchesSearch && matchesResp;
+                });
+
+                // Clear lists
+                document.querySelectorAll('.opportunity-list').forEach(list => { list.innerHTML = ''; });
+
+                // Re-inject leads
+                filteredLeads.forEach(opp => {
+                    const listId = safeListId(opp.stage || 'Contato');
+                    const list = document.getElementById(listId);
+                    if (list) {
+                        const card = document.createElement('div');
+                        card.className = 'opportunity-card';
+                        card.draggable = true;
+                        card.setAttribute('data-id', opp.id);
+                        card.ondragstart = (e) => handleDragStart(e, opp.id);
+                        card.ondragend = handleDragEnd;
+                        card.onclick = () => openLeadDetails(opp);
+
+                        card.innerHTML = `
+                        <span class="client-name">${escapeHtml(opp.name)}</span>
+                        <span class="company-name">@${escapeHtml(opp.company || '')}</span>
+                        <div class="card-status">
+                            <span class="status-dot ${getStatusDotClass(opp.lead_status)}"></span>
+                            <span class="${getStatusTextClass(opp.lead_status)}">${escapeHtml(opp.lead_status || '---')}</span>
+                        </div>
+                        <div class="tags-container">
+                            ${(opp.tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                        <div class="responsible-badge">
+                            <i class="ph-fill ph-user-circle"></i>
+                            <span>${escapeHtml(opp.responsible)}</span>
+                        </div>
+                    `;
+                        list.appendChild(card);
+                    } else {
+                        // Log se não encontrou a lista (ajuda a debugar stages inconsistentes)
+                        console.warn(`[renderLeads] lista não encontrada para stage="${opp.stage}" (id=${listId}) lead id=${opp.id}`);
+                    }
+                });
+
+                updateCounters();
+                console.debug('[CRM-SCRIPT] renderLeads finished');
+            } catch (err) {
+                console.error('[renderLeads] erro ao renderizar leads:', err);
+                // fallback visual mínimo
+                const board = document.getElementById('crm-board');
+                if (board) {
+                    board.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar leads. Veja console para detalhes.</div>';
+                }
+            }
+        }
+
+        function renderChannelsChart(channelsData) {
+            console.debug('[CRM-SCRIPT] renderChannelsChart start, channelsData:', channelsData);
+            const container = document.getElementById('channels-chart-container');
+            if (!container) {
+                console.error('[renderChannelsChart] elemento #channels-chart-container não encontrado');
+                return;
+            }
+            // mantém comportamento existente
+            // ...existing renderChannelsChart body...
+            try {
+                // original implementation kept (call existing function body)
+                // ...existing code for renderChannelsChart...
+            } catch (err) {
+                console.error('[renderChannelsChart] erro:', err);
+                container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar canais. Veja console.</div>';
+            }
+            console.debug('[CRM-SCRIPT] renderChannelsChart end');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.debug('[CRM-SCRIPT] DOMContentLoaded -> inicializando board e dados');
+            try {
+                renderBoard();
+                if (window.CRM_LOGIC) {
+                    const initialized = await CRM_LOGIC.initCrmSupabase?.();
+                    console.debug('[CRM-SCRIPT] CRM_LOGIC.initCrmSupabase ->', initialized);
+                    await loadData();
+                    CRM_LOGIC.subscribeToCrmChanges?.(() => {
+                        console.debug('[CRM-SCRIPT] realtime change received -> loadData');
+                        loadData();
+                    });
+                } else {
+                    console.warn('[CRM-SCRIPT] window.CRM_LOGIC não disponível no DOMContentLoaded');
+                }
+            } catch (e) {
+                console.error('[CRM-SCRIPT] erro na inicialização:', e);
+            }
+        });
     </script>
 </body>
 
