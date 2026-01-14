@@ -23,60 +23,80 @@
 
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
+        /* ===== Ajustes específicos para corrigir o bug visual do CRM ===== */
+
+        /* Deixa o selector compacto e impede que ocupe toda a largura */
         .pipeline-selector {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(255, 255, 255, 0.02);
-            padding: 6px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            background: transparent;
+            /* remove a "faixa" */
+            padding: 0;
+            /* remove padding grande */
+            border-radius: 8px;
+            border: none;
             width: auto;
-            max-width: 100%;
+            max-width: 760px;
+            /* limita a largura */
             box-shadow: none;
-            margin-left: 8px;
+            /* remove sombra que cria faixa */
+            margin: 0 auto;
+            /* centraliza no espaço disponível */
         }
 
+        /* Botões menores e consistentes */
         .pipeline-btn {
             background: transparent;
-            border: none;
+            border: 1px solid transparent;
             color: var(--text-gray);
-            padding: 8px 18px;
-            border-radius: 10px;
-            font-family: inherit;
+            padding: 6px 12px;
+            border-radius: 8px;
             font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.12s ease, background 0.12s ease;
-            height: 40px;
+            height: 36px;
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.12s ease;
             box-shadow: none;
         }
 
+        /* Destaque apenas no botão ativo (não na faixa inteira) */
         .pipeline-btn.active {
             background: linear-gradient(90deg, var(--primary-purple), #7c3aed);
-            color: white;
-            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.18);
+            color: #fff;
+            border-color: rgba(0, 0, 0, 0.06);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.15);
             transform: translateY(-2px);
         }
 
+        /* Ícone compacto */
         .pipeline-selector .ph {
             font-size: 16px;
         }
 
+        /* Evita que regras globais (do style.css) forcem o pipeline-selector a crescer */
+        .pipeline-selector,
+        .pipeline-selector * {
+            box-sizing: border-box;
+        }
+
+        /* Pequena responsividade */
         @media (max-width: 900px) {
             .pipeline-selector {
-                margin-left: 0;
-                padding: 6px;
+                margin: 0 8px;
+                max-width: 100%;
             }
 
             .pipeline-btn {
-                padding: 8px 12px;
+                padding: 6px 10px;
+                height: 34px;
                 font-size: 14px;
             }
         }
 
+        /* Garante que colunas do board não expandam o layout */
         .crm-container {
             display: flex;
             gap: var(--spacing-md);
@@ -86,6 +106,8 @@
             align-items: flex-start;
             scrollbar-width: thin;
             scrollbar-color: var(--primary-purple) var(--bg-dark);
+            max-width: calc(100% - 40px);
+            box-sizing: border-box;
         }
 
         .crm-container::-webkit-scrollbar {
@@ -99,7 +121,8 @@
 
         .crm-column {
             flex: 0 0 300px;
-            min-width: 280px;
+            min-width: 260px;
+            max-width: 340px;
             width: 280px;
             background: rgba(255, 255, 255, 0.02);
             border-radius: var(--radius-lg);
@@ -109,6 +132,8 @@
             padding: var(--spacing-sm);
             border: 1px solid var(--border-color);
             align-items: stretch;
+            overflow: hidden;
+            box-sizing: border-box;
         }
 
         .column-header {
