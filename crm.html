@@ -1973,268 +1973,107 @@
         setupCopy('copy-email', 'email');
 
         async function loadData() {
+            // carrega summary padrão via CRM_LOGIC (mantém comportamento já existente)
             if (!window.CRM_LOGIC) return;
 
             // 1. Load Global Summary and Stage Distribution
             const summary = await CRM_LOGIC.fetchPipelineSummary();
-            document.getElementById('total-starter').textContent = summary.total.starter;
-            document.getElementById('total-growth').textContent = summary.total.growth;
-            document.getElementById('total-enterprise').textContent = summary.total.enterprise;
+            document.getElementById('total-starter').textContent = summary.total?.starter ?? 0;
+            document.getElementById('total-growth').textContent = summary.total?.growth ?? 0;
+            document.getElementById('total-enterprise').textContent = summary.total?.enterprise ?? 0;
 
             // Update responsible filter options
             updateResponsibleFilter(summary.salesByResponsible, summary.meetingsByResponsible);
 
-            // 2. Load Board for current pipeline
-            const leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
-            window.allLeads = leads;
-            renderLeads(leads);
+            // 2. Load Board for current pipeline (dados principais do pipeline)
+            let leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
+            console.debug('[loadData] leads from CRM_LOGIC:', leads?.length ?? 0);
 
-            // 3. Stage Distribution Charts
+            // 3. Complementar com leads_qualificados (Instagram) e leads_google_maps (Maps)
+            try {
+                if (window.supabaseClient) {
+                    // Instagram leads (leads_qualificados)
+                    const { data: igRows, error: igErr } = await window.supabaseClient
+                        .from('leads_qualificados')
+                        .select('*');
+                    if (igErr) console.warn('[loadData] erro ao buscar leads_qualificados:', igErr);
+                    else {
+                        console.debug('[loadData] leads_qualificados rows:', igRows?.length ?? 0);
+                        const igMapped = (igRows || []).map(r => ({
+                            // garantir id único prefixando para evitar colisões com opportunities
+                            id: `ig-${r.id}`,
+                            name: r.name || r.phone || 'Lead Instagram',
+                            company: r.username || r.source || 'instagram',
+                            stage: 'Contato',
+                            tags: r.tags ? (typeof r.tags === 'string' ? r.tags.split(',').map(t=>t.trim()) : r.tags) : [],
+                            responsible: r.responsible_name || 'Não atribuído',
+                            lead_status: r.status || 'Novo',
+                            email: r.email || '',
+                            phone: r.phone || '',
+                            channels: 'Instagram'
+                        }));
+                        leads = (leads || []).concat(igMapped);
+                    }
+
+                    // Maps leads (leads_google_maps)
+                    const { data: mapsRows, error: mapsErr } = await window.supabaseClient
+                        .from('leads_google_maps')
+                        .select('*');
+                    if (mapsErr) console.warn('[loadData] erro ao buscar leads_google_maps:', mapsErr);
+                    else {
+                        console.debug('[loadData] leads_google_maps rows:', mapsRows?.length ?? 0);
+                        const mapsMapped = (mapsRows || []).map(r => ({
+                            id: `gm-${r.id}`,
+                            name: r.name || r.phone || 'Lead Maps',
+                            company: r.company || r.source || 'maps',
+                            stage: 'Contato',
+                            tags: r.tags ? (typeof r.tags === 'string' ? r.tags.split(',').map(t=>t.trim()) : r.tags) : [],
+                            responsible: r.responsible_name || 'Não atribuído',
+                            lead_status: r.status || 'Novo',
+                            email: r.email || '',
+                            phone: r.phone || '',
+                            channels: 'Google Maps'
+                        }));
+                        leads = (leads || []).concat(mapsMapped);
+                    }
+                } else {
+                    console.debug('[loadData] supabaseClient não disponível — pulando fetch direto de leads_qualificados / leads_google_maps');
+                }
+            } catch (err) {
+                console.error('[loadData] erro ao buscar leads extras:', err);
+            }
+
+            // Expor globalmente para filtros/uso posterior
+            window.allLeads = leads || [];
+
+            // 4. Render board com leads combinados
+            renderLeads(window.allLeads);
+
+            // 5. Stage Distribution Charts (mantém summary original)
             renderChartsOnLoad(summary);
 
-            // 4. Leads by Channel Chart
-            renderChannelsChart(summary.channels);
+            // 6. Leads por Canal: computa base no summary.channels e incrementa com os leads novos
+            const channelsFromSummary = Object.assign({}, summary.channels || {});
+            (window.allLeads || []).forEach(l => {
+                const chan = (l.channels || l.source || 'Unknown').toString();
+                // normaliza nomes básicos
+                let key = chan;
+                if (/instagram/i.test(chan)) key = 'Instagram';
+                if (/map/i.test(chan) || /google/i.test(chan)) key = 'Google Maps';
+                if (!channelsFromSummary[key]) channelsFromSummary[key] = 0;
+                channelsFromSummary[key] += 1;
+            });
+            console.debug('[loadData] channels merged:', channelsFromSummary);
+            renderChannelsChart(channelsFromSummary);
 
-            // 5. Responsible Rankings
+            // 7. Responsible Rankings (mantém chamada original)
             renderRanking('sales-ranking-container', summary.salesByResponsible, 'Ranking de Vendas', 'ph-crown', 'label-growth', 'bar-growth', {
                 name: 'iPhone 17 Pro Max',
                 image: 'https://reidocelular.com.br/wp-content/uploads/2025/12/iphone-17-pro-max-3.png',
                 label: 'Prêmio para o 1º Colocado'
             });
         }
-
-        function updateResponsibleFilter(salesData, meetingData) {
-            const filter = document.getElementById('responsibleFilter');
-            const currentVal = filter.value;
-
-            // Get unique responsibles from both datasets
-            const responsibles = new Set();
-            if (salesData) Object.keys(salesData).forEach(r => responsibles.add(r));
-            if (meetingData) Object.keys(meetingData).forEach(r => responsibles.add(r));
-
-            filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
-            Array.from(responsibles).sort().forEach(resp => {
-                const option = document.createElement('option');
-                option.value = resp;
-                option.textContent = resp;
-                filter.appendChild(option);
-            });
-
-            filter.value = currentVal;
-        }
-
-        function renderLeads(leads) {
-            const searchTerm = document.getElementById('crmSearch').value.toLowerCase();
-            const respFilter = document.getElementById('responsibleFilter').value;
-
-            // Filter leads
-            const filteredLeads = leads.filter(opp => {
-                const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
-                    (opp.company?.toLowerCase().includes(searchTerm));
-                const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
-                return matchesSearch && matchesResp;
-            });
-
-            // Clear lists
-            document.querySelectorAll('.opportunity-list').forEach(list => {
-                list.innerHTML = '';
-            });
-
-            // Re-inject leads
-            filteredLeads.forEach(opp => {
-                const listId = `list-${opp.stage.replace(/\s+/g, '-')}`;
-                const list = document.getElementById(listId);
-                if (list) {
-                    const card = document.createElement('div');
-                    card.className = 'opportunity-card';
-                    card.draggable = true;
-                    card.setAttribute('data-id', opp.id);
-                    card.ondragstart = (e) => handleDragStart(e, opp.id);
-                    card.ondragend = handleDragEnd;
-                    card.onclick = () => openLeadDetails(opp);
-
-                    card.innerHTML = `
-                        <span class="client-name">${escapeHtml(opp.name)}</span>
-                        <span class="company-name">@${escapeHtml(opp.company)}</span>
-                        <div class="card-status">
-                            <span class="status-dot ${getStatusDotClass(opp.lead_status)}"></span>
-                            <span class="${getStatusTextClass(opp.lead_status)}">${escapeHtml(opp.lead_status || '---')}</span>
-                        </div>
-                        <div class="tags-container">
-                            ${(opp.tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
-                        </div>
-                        <div class="responsible-badge">
-                            <i class="ph-fill ph-user-circle"></i>
-                            <span>${escapeHtml(opp.responsible)}</span>
-                        </div>
-                    `;
-                    list.appendChild(card);
-                }
-            });
-
-            updateCounters();
-        }
-
-        function renderChartsOnLoad(summary) {
-            const chartsContainer = document.getElementById('pipeline-charts-container');
-            chartsContainer.innerHTML = '';
-
-            const pipelineConfig = [
-                { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
-                { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
-                { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
-            ];
-
-            pipelineConfig.forEach(pipe => {
-                const card = document.createElement('div');
-                card.className = 'chart-card';
-
-                let chartRowsHtml = '';
-                const pipeData = summary.stages[pipe.id] || {};
-
-                const maxCount = Math.max(...stages.map(s => pipeData[s] || 0), 1);
-
-                stages.forEach(stage => {
-                    const count = pipeData[stage] || 0;
-                    const percentage = (count / maxCount) * 100;
-
-                    chartRowsHtml += `
-                        <div class="chart-row">
-                            <span class="chart-stage-name">${stage}</span>
-                            <div class="chart-bar-bg">
-                                <div class="chart-bar-fill ${pipe.barClass}" style="width: ${percentage}%"></div>
-                            </div>
-                            <span class="chart-count">${count}</span>
-                        </div>
-                    `;
-                });
-
-                card.innerHTML = `
-                    <div class="chart-header ${pipe.class}">
-                        <i class="ph-fill ${pipe.icon}"></i>
-                        <span>${pipe.name}</span>
-                    </div>
-                    <div class="chart-body">
-                        ${chartRowsHtml}
-                    </div>
-                `;
-                chartsContainer.appendChild(card);
-            });
-        }
-
-        // Restaurada versão original de renderChannelsChart (sem botão / modal)
-        function renderChannelsChart(channelsData) {
-            const container = document.getElementById('channels-chart-container');
-            if (!container) return;
-            container.innerHTML = '';
-
-            const card = document.createElement('div');
-            card.className = 'chart-card';
-
-            const getChannelConfig = (name) => {
-                const n = name.toLowerCase();
-                if (n.includes('instagram')) return { icon: 'ph-instagram-logo', class: 'instagram' };
-                if (n.includes('facebook')) return { icon: 'ph-facebook-logo', class: 'facebook' };
-                if (n.includes('linkedin')) return { icon: 'ph-linkedin-logo', class: 'linkedin' };
-                if (n.includes('google') || n.includes('maps')) return { icon: 'ph-google-logo', class: 'google' };
-                if (n.includes('site') || n.includes('web')) return { icon: 'ph-globe', class: 'generic' };
-                return { icon: 'ph-share-network', class: 'generic' };
-            };
-
-            let gridHtml = '';
-            const sortedChannels = Object.entries(channelsData || {}).sort((a, b) => b[1] - a[1]);
-            const maxCount = Math.max(...Object.values(channelsData || {}), 1);
-
-            sortedChannels.forEach(([name, count]) => {
-                const percentage = (count / maxCount) * 100;
-                const config = getChannelConfig(name);
-
-                gridHtml += `
-                    <div class="channel-card-item">
-                        <div class="channel-info">
-                            <div class="channel-label">
-                                <div class="channel-icon-box icon-${config.class}">
-                                    <i class="ph-fill ${config.icon}"></i>
-                                </div>
-                                <span>${escapeHtml(name)}</span>
-                            </div>
-                            <span class="channel-count">${count}</span>
-                        </div>
-                        <div class="channel-bar-bg">
-                            <div class="channel-bar-fill bg-${config.class}" style="width: ${percentage}%"></div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            card.innerHTML = `
-                <div class="chart-header label-starter" style="background: rgba(139, 92, 246, 0.05); color: var(--primary-purple); border-bottom: 1px solid var(--border-color); padding: 20px 24px;">
-                    <i class="ph-fill ph-funnel"></i>
-                    <span>Volume por Canal de Aquisição</span>
-                </div>
-                <div class="channel-grid">
-                    ${gridHtml || '<div style="padding: 40px; text-align: center; color: var(--text-muted); width: 100%;">Nenhum dado disponível</div>'}
-                </div>
-            `;
-            container.appendChild(card);
-        }
-
-        // Helpers para modal de Maps
-        function openMapsModal(query) {
-            const modal = document.getElementById('mapsModal');
-            const iframe = document.getElementById('mapsModalIframe');
-            if (!modal || !iframe) return;
-            const q = query || 'Google Maps';
-            iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
-            modal.style.display = 'flex';
-            modal.setAttribute('aria-hidden', 'false');
-        }
-
-        function closeMapsModal() {
-            const modal = document.getElementById('mapsModal');
-            const iframe = document.getElementById('mapsModalIframe');
-            if (!modal || !iframe) return;
-            iframe.src = '';
-            modal.style.display = 'none';
-            modal.setAttribute('aria-hidden', 'true');
-        }
-
-        // Event listeners do modal (delegated no final do carregamento)
-        document.addEventListener('DOMContentLoaded', () => {
-            const closeBtn = document.getElementById('mapsModalClose');
-            const modal = document.getElementById('mapsModal');
-            if (closeBtn) closeBtn.addEventListener('click', closeMapsModal);
-            if (modal) modal.addEventListener('click', (e) => { if (e.target === modal || e.target.classList.contains('maps-modal-backdrop')) closeMapsModal(); });
-        });
-
-        // Add Event Listeners for filters
-        document.getElementById('crmSearch').addEventListener('input', () => {
-            if (window.allLeads) renderLeads(window.allLeads);
-        });
-        document.getElementById('responsibleFilter').addEventListener('change', () => {
-            if (window.allLeads) renderLeads(window.allLeads);
-        });
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async () => {
-            renderBoard();
-
-            if (window.CRM_LOGIC && await CRM_LOGIC.initCrmSupabase()) {
-                await loadData();
-                CRM_LOGIC.subscribeToCrmChanges(() => loadData());
-            }
-
-            // Use o atributo data-pipeline para definir qual pipeline carregar (mais confiável)
-            document.querySelectorAll('.pipeline-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    // data-pipeline contém: "starter", "growth", "enterprise"
-                    currentPipeline = btn.dataset.pipeline || btn.textContent.trim();
-                    await loadData();
-                });
-            });
-        });
+        // ...existing code...
     </script>
 </body>
 
