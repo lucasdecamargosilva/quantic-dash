@@ -21,35 +21,6 @@
     <script src="supabase-config.js"></script>
     <script src="auth.js"></script>
 
-    <!-- fallback pequeno para showToast (evita ReferenceError se utilitário não estiver presente) -->
-    <script>
-        if (!window.showToast) {
-            window.showToast = function(message = '', type = 'info') {
-                // Implementação mínima: loga no console e mostra um toast visual simples (se desejar)
-                console.debug('[showToast]', type, message);
-                // Cria um toast simples e autodestrói para evitar dependência externa
-                try {
-                    const t = document.createElement('div');
-                    t.textContent = message;
-                    t.style.position = 'fixed';
-                    t.style.right = '20px';
-                    t.style.bottom = '20px';
-                    t.style.padding = '10px 14px';
-                    t.style.background = (type === 'error') ? '#b91c1c' : (type === 'success') ? '#16a34a' : '#111827';
-                    t.style.color = 'white';
-                    t.style.borderRadius = '8px';
-                    t.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)';
-                    t.style.zIndex = 20000;
-                    document.body.appendChild(t);
-                    setTimeout(() => t.remove(), 3500);
-                } catch (e) {
-                    // se DOM não estiver pronto, falha silenciosa
-                }
-            };
-            console.debug('[auth] showToast fallback registered');
-        }
-    </script>
-
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         .pipeline-selector {
@@ -274,19 +245,15 @@
         }
 
         .opportunity-card {
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-            border: 1px solid rgba(139, 92, 246, 0.15);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+            border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 20px 16px;
+            padding: 16px;
             cursor: grab;
-            transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+            transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            min-height: 140px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         .opportunity-card::before {
@@ -295,17 +262,17 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 3px;
+            height: 2px;
             background: linear-gradient(90deg, var(--primary-purple), transparent);
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.2s;
         }
 
         .opportunity-card:hover {
-            border-color: rgba(139, 92, 246, 0.4);
-            transform: translateY(-6px);
-            box-shadow: 0 16px 32px rgba(139, 92, 246, 0.2);
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+            border-color: rgba(139, 92, 246, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
         }
 
         .opportunity-card:hover::before {
@@ -314,65 +281,31 @@
 
         .opportunity-card .client-name {
             font-weight: 700;
-            font-size: 15px;
-            margin: 0;
+            font-size: 16px;
+            margin-bottom: 2px;
             display: block;
             color: var(--text-white);
             letter-spacing: -0.01em;
-            line-height: 1.3;
         }
 
         .opportunity-card .company-name {
-            font-size: 12px;
-            color: var(--primary-purple);
-            margin: 0;
-            display: block;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-        }
-
-        .opportunity-card .card-status {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            padding: 6px 0;
-            font-weight: 600;
-            margin-top: 4px;
-        }
-
-        .opportunity-card .tags-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin: 8px 0 0 0;
-            min-height: 20px;
-        }
-
-        .opportunity-card .tag {
-            font-size: 10px;
-            font-weight: 700;
-            padding: 3px 9px;
-            border-radius: 4px;
-            background: var(--primary-purple);
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .opportunity-card .responsible-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
+            font-size: 13px;
             color: var(--text-gray);
-            margin-top: auto;
-            padding-top: 12px;
-            border-top: 1px solid rgba(139, 92, 246, 0.1);
+            margin-bottom: 12px;
+            display: block;
         }
 
-        .opportunity-card .responsible-badge i {
+        .opportunity-card .revenue {
             font-size: 14px;
+            font-weight: 600;
+            color: var(--secondary-green);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .opportunity-card .revenue i {
+            font-size: 12px;
         }
 
         .opportunity-card.dragging {
@@ -623,226 +556,927 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 16px;
-            transition: all 0.3s ease;
         }
 
-        .ai-box:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Enhanced Table Styles */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: var(--spacing-lg);
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 12px 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: left;
-            font-size: 14px;
-        }
-
-        .data-table th {
-            background: rgba(255, 255, 255, 0.03);
-            color: var(--text-muted);
-            font-weight: 700;
+        .ai-label {
+            display: block;
+            font-size: 11px;
             text-transform: uppercase;
+            color: var(--primary-purple);
+            font-weight: 700;
+            margin-bottom: 8px;
         }
 
-        .data-table tr {
-            transition: background 0.2s;
+        .ai-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-gray);
         }
 
-        .data-table tr:hover {
-            background: rgba(255, 255, 255, 0.05);
+        .ai-insight {
+            background: rgba(139, 92, 246, 0.08);
+            /* Purple tint */
+            border-color: rgba(139, 92, 246, 0.2);
         }
 
-        /* Tooltip Styles */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
+        .ai-insight .ai-content {
+            color: #E9D5FF;
         }
 
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            width: 120px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 8px;
-            position: absolute;
-            z-index: 100;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -60px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Button Styles */
-        .btn {
+        /* Card Status Pill */
+        .card-status {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
-        }
-
-        .btn-primary {
-            background: var(--primary-purple);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-purple-hover, #7c3aed);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--bg-card);
-            color: var(--text-gray);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        /* Card Styles */
-        .info-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 24px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .info-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        .info-card .card-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            color: var(--text-white);
-        }
-
-        .info-card .card-subtitle {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 16px;
-            color: var(--text-muted);
-        }
-
-        .info-card .card-content {
-            font-size: 15px;
-            color: var(--text-white);
-            line-height: 1.6;
-        }
-
-        /* Badge Styles */
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
+            gap: 6px;
             font-size: 12px;
+            padding: 4px 0;
             font-weight: 600;
-            text-transform: uppercase;
-            margin-right: 8px;
         }
 
-        .badge-primary {
-            background: var(--primary-purple);
-            color: white;
-        }
-
-        .badge-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-gray);
-        }
-
-        /* Avatar Styles */
-        .avatar {
-            width: 40px;
-            height: 40px;
+        .status-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            overflow: hidden;
-            display: inline-block;
-            position: relative;
         }
 
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .status-hot {
+            color: #4ade80;
         }
 
-        .avatar.online::after {
-            content: '';
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #4caf50;
-            border-radius: 50%;
-            bottom: 4px;
-            right: 4px;
+        .dot-hot {
+            background: #4ade80;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
         }
 
-        .avatar.offline::after {
-            content: '';
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #f44336;
-            border-radius: 50%;
-            bottom: 4px;
-            right: 4px;
+        .status-warm {
+            color: #fbbf24;
         }
 
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 16px;
+        .dot-warm {
+            background: #fbbf24;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
         }
 
-        .form-label {
+        .status-cold {
+            color: #9ca3af;
+        }
+
+        .dot-cold {
+            background: #9ca3af;
+        }
+
+        .modal-header-compact {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-profile {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .header-profile h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-white);
+        }
+
+        .header-profile .company {
+            color: var(--primary-purple);
             font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-muted);
+            font-weight: 600;
         }
 
-        .form-control {
+        .header-contact-info {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .contact-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-gray);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .contact-badge i.copy-icon {
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .contact-badge i.copy-icon:hover {
+            color: var(--primary-purple);
+        }
+
+        .header-crm-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 120px;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .crm-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .crm-input-group label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .crm-header-input {
             background: transparent;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px 12px;
-            color: var(--text-white);
-            font-size: 14px;
-            transition: border-color 0.2s;
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+            color: white;
+            font-family: inherit;
+            font-size: 13px;
+            width: 100%;
         }
 
-        .form-control:focus {
+        .crm-header-input:focus {
             border-color: var(--primary-purple);
             outline: none;
         }
+
+        .modal-body-full {
+            flex: 1;
+            overflow-y: auto;
+            /* Scroll only the body */
+            padding: var(--spacing-lg);
+            background: var(--bg-card);
+        }
+
+        /* AI Section Updates for full body usage */
+        .ia-section-full {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .ia-grid-full {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            /* 2 columns layout for AI data */
+            gap: var(--spacing-lg);
+        }
+
+        .ia-full-width-col {
+            grid-column: span 2;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-purple);
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ia-grid {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .ia-insight-box {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: #d8b4fe;
+            line-height: 1.5;
+        }
+
+        .ia-text {
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .ia-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .ia-list span {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--text-white);
+        }
+
+        .modal-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            color: white;
+            font-family: inherit;
+        }
+
+        .modal-input:focus {
+            border-color: var(--primary-purple);
+            outline: none;
+        }
+
+        .save-btn {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: var(--spacing-lg);
+            transition: opacity 0.2s;
+        }
+
+        .save-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Summary Dashboard */
+        .crm-summary {
+            margin-top: 48px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-lg);
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+            transition: transform 0.2s;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary-purple);
+        }
+
+        .summary-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .summary-icon.starter {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary-purple);
+        }
+
+        .summary-icon.growth {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--secondary-green);
+        }
+
+        .summary-icon.enterprise {
+            background: rgba(217, 70, 239, 0.1);
+            color: var(--accents-pink);
+        }
+
+        .summary-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .summary-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        /* Horizontal Bar Charts */
+        .pipeline-charts-grid {
+            margin-top: var(--spacing-md);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-lg);
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+        }
+
+        .chart-header {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .chart-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .chart-stage-name {
+            width: 100px;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chart-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chart-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            width: 0;
+            /* Animated */
+        }
+
+        .chart-count {
+            width: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-white);
+            text-align: right;
+        }
+
+        /* Pipeline specific bar colors */
+        .bar-starter {
+            background: var(--primary-purple);
+            box-shadow: 0 0 10px var(--primary-purple-glow);
+        }
+
+        .bar-growth {
+            background: var(--secondary-green);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .bar-enterprise {
+            background: var(--accents-pink);
+            box-shadow: 0 0 10px rgba(217, 70, 239, 0.3);
+        }
+
+        .label-starter {
+            color: var(--primary-purple);
+        }
+
+        .label-growth {
+            color: var(--secondary-green);
+        }
+
+        .label-enterprise {
+            color: var(--accents-pink);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Prize Card Styles */
+        .prize-card {
+            background: linear-gradient(135deg, #1e1e2d 0%, #151522 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highlight-card {
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2) !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .highlight-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.4) !important;
+            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
+        }
+
+        .ranking-prize-footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .prize-footer-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: #fff;
+            padding: 4px;
+            object-fit: contain;
+        }
+
+        .prize-footer-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prize-footer-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .prize-footer-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .prize-image-wrapper {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex-shrink: 0;
+        }
+
+        .prize-card:hover .prize-image-wrapper {
+            border-color: var(--primary-purple);
+            box-shadow: 0 12px 40px var(--primary-purple-glow);
+            transform: translateY(-8px) scale(1.05);
+        }
+
+        .prize-image {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .prize-card:hover .prize-image {
+            transform: scale(1.1) rotate(8deg);
+        }
+
+        .prize-info {
+            z-index: 1;
+        }
+
+        .prize-title {
+            font-size: 14px;
+            color: var(--text-gray);
+            margin-bottom: 4px;
+        }
+
+        .prize-name {
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
+            background: linear-gradient(to right, #fff, var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ranking-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            margin-right: 8px;
+        }
+
+        .ranking-row-1 .ranking-badge {
+            background: #ffd700;
+            color: #000;
+        }
+
+        .ranking-row-2 .ranking-badge {
+            background: #c0c0c0;
+            color: #000;
+        }
+
+        .ranking-row-3 .ranking-badge {
+            background: #cd7f32;
+            color: #000;
+        }
+
+        @keyframes animate-spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: animate-spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        .crm-filters {
+            display: flex;
+            gap: var(--spacing-md);
+            align-items: center;
+        }
+
+        .board-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            gap: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px 16px 10px 42px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-gray);
+            font-size: 18px;
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+        }
+
+        .filter-select option {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Prize Card Styles */
+        .prize-card {
+            background: linear-gradient(135deg, #1e1e2d 0%, #151522 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highlight-card {
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2) !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .highlight-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.4) !important;
+            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
+        }
+
+        .ranking-prize-footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .prize-footer-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: #fff;
+            padding: 4px;
+            object-fit: contain;
+        }
+
+        .prize-footer-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prize-footer-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .prize-footer-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .prize-image-wrapper {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex-shrink: 0;
+        }
+
+        .prize-card:hover .prize-image-wrapper {
+            border-color: var(--primary-purple);
+            box-shadow: 0 12px 40px var(--primary-purple-glow);
+            transform: translateY(-8px) scale(1.05);
+        }
+
+        .prize-image {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .prize-card:hover .prize-image {
+            transform: scale(1.1) rotate(8deg);
+        }
+
+        .prize-info {
+            z-index: 1;
+        }
+
+        .prize-title {
+            font-size: 14px;
+            color: var(--text-gray);
+            margin-bottom: 4px;
+        }
+
+        .prize-name {
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
+            background: linear-gradient(to right, #fff, var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ranking-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            margin-right: 8px;
+        }
+
+        .ranking-row-1 .ranking-badge {
+            background: #ffd700;
+            color: #000;
+        }
+
+        .ranking-row-2 .ranking-badge {
+            background: #c0c0c0;
+            color: #000;
+        }
+
+        .ranking-row-3 .ranking-badge {
+            background: #cd7f32;
+            color: #000;
+        }
+
+        @keyframes animate-spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: animate-spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        .crm-filters {
+            display: flex;
+            gap: var(--spacing-md);
+            align-items: center;
+        }
+
+        .board-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            gap: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px 16px 10px 42px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-gray);
+            font-size: 18px;
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+        }
+
+        .filter-select option {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        /* Removido: styles .maps-modal, .maps-modal-content, .maps-modal-backdrop, .maps-modal-close */
     </style>
 </head>
 
@@ -883,68 +1517,97 @@
 
         <div class="main-content">
             <div class="app-container">
-                <!-- Header -->
                 <header class="main-header">
                     <div class="header-left">
-                        <h1 class="page-title">CRM Quantic</h1>
-                    </div>
-
-                    <div class="board-controls">
-                        <div class="search-wrapper">
-                            <i class="ph-fill ph-magnifying-glass search-icon"></i>
-                            <input type="text" class="search-input" placeholder="Buscar oportunidades...">
-                        </div>
-                        <select class="filter-select">
-                            <option value="">Todos os Pipelines</option>
-                            <option value="starter">Quantic Starter</option>
-                            <option value="growth">Quantic Growth</option>
-                            <option value="enterprise">Quantic Enterprise</option>
-                        </select>
-                    </div>
-
-                    <div class="user-area">
-                        <button class="icon-btn"><i class="ph-fill ph-bell"></i></button>
+                        <h1 class="page-title">Relacionamento (CRM)</h1>
                     </div>
                 </header>
 
-                <!-- Main Content -->
-                <main class="dashboard-grid">
-                    <!-- Pipeline Selector -->
-                    <div style="grid-column: 1 / -1; margin-bottom: var(--spacing-lg);">
-                        <div class="pipeline-selector">
-                            <button class="pipeline-btn active" data-pipeline="Quantic Starter">
-                                <i class="ph-fill ph-rocket-launch"></i> Quantic Starter
-                            </button>
-                            <button class="pipeline-btn" data-pipeline="Quantic Growth">
-                                <i class="ph-fill ph-trending-up"></i> Quantic Growth
-                            </button>
-                            <button class="pipeline-btn" data-pipeline="Quantic Enterprise">
-                                <i class="ph-fill ph-crown"></i> Quantic Enterprise
-                            </button>
-                        </div>
+                <div class="board-controls">
+                    <div class="pipeline-selector">
+                        <button class="pipeline-btn active" data-pipeline="starter">Quantic Starter</button>
+                        <button class="pipeline-btn" data-pipeline="growth">Quantic Growth</button>
+                        <button class="pipeline-btn" data-pipeline="enterprise">Quantic Enterprise</button>
                     </div>
 
-                    <!-- CRM Board -->
-                    <div style="grid-column: 1 / -1;">
-                        <div class="crm-container" id="crmBoard">
-                            <!-- Columns will be generated by JavaScript -->
+                    <div class="crm-filters">
+                        <div class="search-wrapper">
+                            <i class="ph ph-magnifying-glass search-icon"></i>
+                            <input type="text" id="crmSearch" class="search-input"
+                                placeholder="Pesquisar por nome ou empresa...">
                         </div>
+                        <select id="responsibleFilter" class="filter-select">
+                            <option value="all">Todos os Responsáveis</option>
+                        </select>
                     </div>
+                </div>
 
-                    <!-- Summary Dashboard -->
-                    <div style="grid-column: 1 / -1; margin-top: var(--spacing-xl);">
-                        <div class="crm-summary" id="crmSummary">
-                            <!-- Summary cards will be generated by JavaScript -->
-                        </div>
-                    </div>
+                <div class="crm-container" id="crm-board">
+                    <!-- Columns will be injected here -->
+                </div>
 
-                    <!-- Pipeline Charts -->
-                    <div style="grid-column: 1 / -1;">
-                        <div class="pipeline-charts-grid" id="pipelineCharts">
-                            <!-- Charts will be generated by JavaScript -->
+                <div class="section-header" style="margin-top: 64px; margin-bottom: 24px;">
+                    <h3
+                        style="font-size: 18px; color: var(--text-white); font-weight: 700; display: flex; align-items: center; gap: 12px;">
+                        <i class="ph-fill ph-funnel"
+                            style="color: var(--primary-purple); background: rgba(139, 92, 246, 0.1); padding: 8px; border-radius: 8px;"></i>
+                        Leads por Canal de Aquisição
+                    </h3>
+                </div>
+
+                <div class="pipeline-charts-grid" id="channels-chart-container"
+                    style="margin-top: var(--spacing-md); grid-template-columns: 1fr;">
+                    <!-- Channels chart will be injected here -->
+                </div>
+
+                <div class="section-header" style="margin-top: 48px;">
+                    <h3 style="font-size: 16px; color: var(--text-gray);"><i class="ph-fill ph-trophy"></i>
+                        Performance da Equipe e Premiação</h3>
+                </div>
+
+                <div class="team-performance-section"
+                    style="display: grid; grid-template-columns: 1fr; gap: var(--spacing-xl); margin-top: var(--spacing-md);">
+                    <div id="sales-ranking-container">
+                        <!-- Sales Ranking will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Pipeline Summary Dashboard -->
+                <div class="section-header" style="margin-top: 48px;">
+                    <h2><i class="ph-fill ph-presentation-chart"></i> Resumo de Pipelines</h2>
+                </div>
+                <div class="crm-summary">
+                    <div class="summary-card">
+                        <div class="summary-icon starter"><i class="ph-fill ph-rocket"></i></div>
+                        <div class="summary-info">
+                            <span class="summary-label">Quantic Starter</span>
+                            <span class="summary-value" id="total-starter">0</span>
                         </div>
                     </div>
-                </main>
+                    <div class="summary-card">
+                        <div class="summary-icon growth"><i class="ph-fill ph-chart-line-up"></i></div>
+                        <div class="summary-info">
+                            <span class="summary-label">Quantic Growth</span>
+                            <span class="summary-value" id="total-growth">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon enterprise"><i class="ph-fill ph-buildings"></i></div>
+                        <div class="summary-info">
+                            <span class="summary-label">Quantic Enterprise</span>
+                            <span class="summary-value" id="total-enterprise">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-header" style="margin-top: 32px;">
+                    <h3 style="font-size: 16px; color: var(--text-gray);"><i class="ph-fill ph-chart-bar"></i>
+                        Distribuição por Etapas (Gráficos)</h3>
+                </div>
+
+                <div class="pipeline-charts-grid" id="pipeline-charts-container">
+                    <!-- Charts will be injected here -->
+                </div>
 
                 <footer class="main-footer">
                     <div class="footer-logo">
@@ -956,209 +1619,622 @@
         </div>
     </div>
 
-    <!-- Modal para detalhes da oportunidade -->
-    <div class="modal-overlay" id="opportunityModal">
+
+    <!-- Modal for Lead Details -->
+    <div class="modal-overlay" id="leadModal">
         <div class="modal-content">
-            <button class="modal-close" id="closeModal">&times;</button>
-            <div class="modal-body-full" id="modalBody">
-                <!-- Conteúdo será preenchido por JavaScript -->
+            <!-- Compact Header (Slim) -->
+            <div class="modal-header-compact">
+                <div class="header-profile">
+                    <h2 id="modal-client-name">Nome do Cliente</h2>
+                    <span class="company" id="modal-company-name">@username</span>
+                </div>
+                <button class="modal-close" id="closeModal" style="position: static;"><i class="ph ph-x"></i></button>
+            </div>
+
+            <!-- Split Body: Sidebar (CRM) + Main (AI) -->
+            <div class="modal-body-split">
+                <!-- Sidebar: Contact Info & CRM Controls -->
+                <div class="modal-sidebar">
+                    <!-- Contact Info Block -->
+                    <div class="sidebar-group">
+                        <span class="sidebar-label">Contato</span>
+                        <div class="contact-row">
+                            <span class="contact-val" id="modal-phone">---</span>
+                            <i class="ph ph-copy copy-btn-mini" id="copy-phone"></i>
+                        </div>
+                        <div class="contact-row">
+                            <span class="contact-val" id="modal-email">---</span>
+                            <i class="ph ph-copy copy-btn-mini" id="copy-email"></i>
+                        </div>
+                    </div>
+
+                    <!-- CRM Controls Block -->
+                    <div class="sidebar-group">
+                        <span class="sidebar-label">Gestão</span>
+                        <input type="text" id="modal-responsible" class="crm-input-compact" placeholder="Responsável">
+                        <input type="text" id="modal-tags" class="crm-input-compact" placeholder="Tags (separar por ,)">
+                        <input type="text" id="modal-channels" class="crm-input-compact"
+                            placeholder="Fonte da Oportunidade">
+                    </div>
+
+                    <button class="save-btn-sidebar" id="saveLeadDetails">Salvar Alterações</button>
+                </div>
+
+                <!-- Main Area: AI Analysis -->
+                <div class="modal-main-area">
+                    <div id="ia-info-loading"
+                        style="display: none; padding: 40px; text-align: center; color: var(--text-muted);">
+                        <i class="ph ph-circle-notch animate-spin" style="font-size: 24px;"></i>
+                        <p style="margin-top: 8px;">Analisando dados...</p>
+                    </div>
+
+                    <div id="ia-info-content">
+                        <div class="ai-grid-compact">
+                            <!-- Insight (Full Width Top) -->
+                            <div class="ai-box ai-insight ai-full-row">
+                                <span class="ai-label"><i class="ph-fill ph-sparkle"></i> Insight da IA</span>
+                                <div class="ai-content" id="modal-ia-insight">---</div>
+                            </div>
+
+                            <!-- Observações -->
+                            <div class="ai-box">
+                                <span class="ai-label">Observações</span>
+                                <p class="ai-content" id="modal-ia-obs">---</p>
+                            </div>
+
+                            <!-- Status -->
+                            <div class="ai-box">
+                                <span class="ai-label">Status Detectado</span>
+                                <span class="status-pill" id="modal-ia-status" style="display: inline-block;">---</span>
+                            </div>
+
+                            <!-- Signals & Snippets -->
+                            <div class="ai-box ai-full-row">
+                                <span class="ai-label">Sinais de Compra</span>
+                                <div class="ia-list" id="modal-ia-signals">---</div>
+                            </div>
+
+                            <div class="ai-box ai-full-row">
+                                <span class="ai-label">Trechos da Conversa</span>
+                                <div class="ia-list" id="modal-ia-snippets">---</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Supabase Integration -->
-    <!-- Supabase + CRM logic (não duplicar inclusões já no head) -->
-    <script src="supabase-logic.js?v=2"></script>
     <script src="crm-logic.js"></script>
+    <script src="script.js"></script>
     <script>
-        (async function CRM_AutoInit_and_Logger() {
-            // Espera CRM_LOGIC disponível
-            let tries = 0;
-            while ((!window.CRM_LOGIC || !window.CRM_LOGIC.initCrmSupabase) && tries < 50) {
-                await new Promise(r => setTimeout(r, 100));
-                tries++;
+        const stages = [
+            "Contato",
+            "Mensagem Enviada",
+            "Mensagem Enviada 2",
+            "Mensagem Enviada 3",
+            "Conexão",
+            "Reunião Agendada",
+            "Reunião Realizada",
+            "Proposta Enviada",
+            "Venda Realizada",
+            "Perdida"
+        ];
+
+        let draggedLeadId = null;
+        // Use o identificador curto (coerente com data-pipeline nos botões)
+        let currentPipeline = 'starter';
+
+        function renderBoard() {
+            const board = document.getElementById('crm-board');
+            board.innerHTML = '';
+
+            stages.forEach(stage => {
+                const column = document.createElement('div');
+                column.className = 'crm-column';
+                column.innerHTML = `
+                    <div class="column-header">
+                        <h3>${stage}</h3>
+                        <span class="opportunity-count">0</span>
+                    </div>
+                    <div class="opportunity-list" 
+                         id="list-${stage.replace(/\s+/g, '-')}"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event, '${stage}')">
+                        <!-- Opportunity cards -->
+                    </div>
+                `;
+                board.appendChild(column);
+            });
+        }
+
+        // Drag & Drop handlers
+        function handleDragStart(event, leadId) {
+            draggedLeadId = leadId;
+            event.target.classList.add('dragging');
+            event.dataTransfer.setData('text/plain', leadId);
+        }
+
+        let scrollInterval;
+        function startAutoScroll(direction) {
+            if (scrollInterval) return;
+            const board = document.getElementById('crm-board');
+            scrollInterval = setInterval(() => {
+                board.scrollLeft += direction * 15;
+            }, 16);
+        }
+
+        function stopAutoScroll() {
+            clearInterval(scrollInterval);
+            scrollInterval = null;
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('dragging');
+            stopAutoScroll();
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            if (event.currentTarget.classList.contains('opportunity-list')) {
+                event.currentTarget.classList.add('drag-over');
             }
-            if (!window.CRM_LOGIC) {
-                console.error('[CRM-AUTO] CRM_LOGIC não disponível after wait');
-                return;
+
+            // Auto-scroll board if near edges
+            const board = document.getElementById('crm-board');
+            const rect = board.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const threshold = 150;
+
+            if (x < threshold) {
+                startAutoScroll(-1);
+            } else if (x > rect.width - threshold) {
+                startAutoScroll(1);
+            } else {
+                stopAutoScroll();
             }
+        }
 
-            console.debug('[CRM-AUTO] iniciando initCrmSupabase...');
-            try {
-                const ok = await window.CRM_LOGIC.initCrmSupabase();
-                if (!ok) {
-                    console.error('[CRM-AUTO] Falha ao inicializar Supabase');
-                    return;
-                }
-                console.debug('[CRM-AUTO] Supabase inicializado');
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
 
-                // Ordem fixa de etapas (para manter colunas consistentes como no design)
-                const STAGE_ORDER = [
-                    'Contato',
-                    'Mensagem Enviada',
-                    'Mensagem Enviada 2',
-                    'Mensagem Enviada 3',
-                    'Conexão',
-                    'Reunião Agendada',
-                    'Reunião Realizada',
-                    'Proposta Enviada',
-                    'Venda Realizada',
-                    'Perdida'
-                ];
+        async function handleDrop(event, newStage) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            stopAutoScroll();
 
-                // Mapeamento simples de nomes de botão -> chave de pipeline usada por fetchCrmData
-                function pipelineKeyFromLabel(label) {
-                    const l = (label || '').toLowerCase();
-                    if (l.includes('starter')) return 'starter';
-                    if (l.includes('growth')) return 'growth';
-                    if (l.includes('enterprise')) return 'enterprise';
-                    return 'starter';
-                }
+            const leadId = event.dataTransfer.getData('text/plain');
+            const card = document.querySelector(`[data-id="${leadId}"]`);
+            const newList = event.currentTarget;
 
-                // Render Summary com ícones e número grande (similar ao print)
-                function renderSummary(summary) {
-                    console.debug('[CRM-AUTO] renderSummary:', summary);
-                    const el = document.getElementById('crmSummary');
-                    if (!el) return;
-                    el.innerHTML = '';
-                    const cards = [
-                        { label: 'Quantic Starter', icon: '🚀', value: summary.total?.starter || 0 },
-                        { label: 'Quantic Growth', icon: '📈', value: summary.total?.growth || 0 },
-                        { label: 'Quantic Enterprise', icon: '🏢', value: summary.total?.enterprise || 0 }
-                    ];
-                    cards.forEach(c => {
-                        const d = document.createElement('div');
-                        d.className = 'summary-card';
-                        d.innerHTML = `
-					<div class="summary-icon" aria-hidden>${c.icon}</div>
-					<div class="summary-info">
-						<h3>${c.label}</h3>
-						<div class="value">${c.value}</div>
-					</div>
-				`;
-                        el.appendChild(d);
-                    });
-                }
+            if (card && newList) {
+                const oldList = card.parentElement;
+                if (oldList !== newList) {
+                    newList.appendChild(card);
+                    updateCounters();
 
-                // Render charts simples a partir do summary (mantém visual de 3 painéis)
-                function renderCharts(summary) {
-                    console.debug('[CRM-AUTO] renderCharts:', summary);
-                    const el = document.getElementById('pipelineCharts');
-                    if (!el) return;
-                    el.innerHTML = '';
-                    const stagesObj = summary.stages || {};
-                    ['starter', 'growth', 'enterprise'].forEach(pipe => {
-                        const card = document.createElement('div');
-                        card.className = 'chart-card';
-                        let html = `<div class="chart-header">${(pipe === 'starter' ? 'Quantic Starter' : pipe === 'growth' ? 'Quantic Growth' : 'Quantic Enterprise')}</div>`;
-                        const sObj = stagesObj[pipe] || {};
-                        // mostra todas as etapas na ordem definida
-                        STAGE_ORDER.forEach(stageName => {
-                            const cnt = sObj[stageName] || 0;
-                            const pct = 0; // barra proporcional pode ser ajustada conforme necessidade
-                            html += `<div class="chart-row">
-						<div class="chart-stage-name">${stageName}</div>
-						<div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%"></div></div>
-						<div class="chart-count">${cnt}</div>
-					</div>`;
-                        });
-                        card.innerHTML = html;
-                        el.appendChild(card);
-                    });
-                }
-
-                // Render board com colunas na ordem STAGE_ORDER (cria colunas vazias quando necessário)
-                function renderBoard(items) {
-                    console.debug('[CRM-AUTO] renderBoard items count:', items.length);
-                    const board = document.getElementById('crmBoard');
-                    if (!board) return;
-                    board.innerHTML = '';
-
-                    // Agrupa por etapa
-                    const groups = {};
-                    items.forEach(i => {
-                        const s = i.stage || 'Contato';
-                        (groups[s] = groups[s] || []).push(i);
-                    });
-
-                    STAGE_ORDER.forEach(stage => {
-                        const col = document.createElement('div');
-                        col.className = 'crm-column';
-                        const count = (groups[stage] || []).length;
-                        col.innerHTML = `<div class="column-header"><h3>${stage}</h3><div class="opportunity-count">${count}</div></div>`;
-                        const list = document.createElement('div');
-                        list.className = 'opportunity-list';
-                        (groups[stage] || []).forEach(op => {
-                            const card = document.createElement('div');
-                            card.className = 'opportunity-card';
-                            card.innerHTML = `
-						<div>
-							<span class="client-name">${op.name || 'Sem Nome'}</span>
-							<span class="company-name">${op.company || ''}</span>
-						</div>
-						<div class="tags-container">${(op.tags || []).slice(0,3).map(t => `<span class="tag">${t}</span>`).join('')}</div>
-						<div class="responsible-badge"><i class="ph-fill ph-user"></i> ${op.responsible || 'Não atribuído'}</div>
-					`;
-                            list.appendChild(card);
-                        });
-                        col.appendChild(list);
-                        board.appendChild(col);
-                    });
-                }
-
-                // Função principal de load para um pipeline
-                async function loadPipeline(pipelineLabelOrKey) {
-                    const key = pipelineKeyFromLabel(pipelineLabelOrKey);
-                    console.debug('[CRM-AUTO] carregando pipeline:', pipelineLabelOrKey, '-> key:', key);
-                    try {
-                        const summary = await window.CRM_LOGIC.fetchPipelineSummary();
-                        console.debug('[CRM-AUTO] summary ->', summary);
-                        renderSummary(summary);
-                        renderCharts(summary);
-
-                        const items = await window.CRM_LOGIC.fetchCrmData(key);
-                        console.debug(`[CRM-AUTO] items (${key}) ->`, items);
-                        renderBoard(items);
-                    } catch (e) {
-                        console.error('[CRM-AUTO] erro loadPipeline', e);
+                    // Update in Supabase via CRM_LOGIC
+                    if (window.CRM_LOGIC) {
+                        await CRM_LOGIC.updateLeadStage(leadId, newStage);
                     }
                 }
+            }
+        }
 
-                // Inicial load (starter)
-                await loadPipeline('Quantic Starter');
+        function updateCounters() {
+            document.querySelectorAll('.crm-column').forEach(col => {
+                const list = col.querySelector('.opportunity-list');
+                const count = list ? list.children.length : 0;
+                const countSpan = col.querySelector('.opportunity-count');
+                if (countSpan) countSpan.textContent = count;
+            });
+        }
 
-                // Hook: pipeline buttons
-                document.querySelectorAll('.pipeline-btn').forEach(btn => {
-                    btn.addEventListener('click', async (ev) => {
-                        document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        const label = btn.dataset.pipeline || btn.textContent;
-                        console.debug('[CRM-AUTO] pipeline button clicked:', label);
-                        await loadPipeline(label);
-                    });
+        // Modal Logic
+        const modal = document.getElementById('leadModal');
+        const closeModal = document.getElementById('closeModal');
+
+        if (closeModal) {
+            closeModal.onclick = () => modal.style.display = 'none';
+        }
+        window.onclick = (event) => {
+            if (event.target == modal) modal.style.display = 'none';
+        }
+
+        let currentLeadId = null;
+        let currentContactId = null;
+
+        async function openLeadDetails(lead) {
+            currentLeadId = lead.id;
+            currentContactId = lead.contactId;
+
+            document.getElementById('modal-client-name').textContent = lead.name;
+            const displayUser = lead.company.startsWith('@') ? lead.company : '@' + lead.company;
+            document.getElementById('modal-company-name').textContent = displayUser;
+            document.getElementById('modal-email').textContent = lead.email || '---';
+            document.getElementById('modal-phone').textContent = lead.phone || '---';
+
+            // Now 'channels' maps to 'Fonte da Oportunidade'
+            document.getElementById('modal-channels').value = (lead.channels && lead.channels !== '---') ? lead.channels : '';
+
+            document.getElementById('modal-responsible').value = lead.responsible !== 'Não atribuído' ? lead.responsible : '';
+            document.getElementById('modal-tags').value = lead.tags ? lead.tags.join(', ') : '';
+
+            modal.style.display = 'flex';
+
+            await loadAIInfo(lead.company);
+        }
+
+        async function loadAIInfo(username) {
+            const loading = document.getElementById('ia-info-loading');
+            const content = document.getElementById('ia-info-content');
+
+            if (loading) loading.style.display = 'block';
+            if (content) content.style.display = 'none';
+
+            try {
+                const aiInfo = await CRM_LOGIC.fetchAILeadInfo(username);
+
+                if (aiInfo) {
+                    if (document.getElementById('modal-ia-status')) document.getElementById('modal-ia-status').textContent = aiInfo.status || '---';
+                    if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = aiInfo.observacoes || 'Sem observações';
+                    if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = aiInfo.insight_ia || 'Nenhum insight disponível';
+
+                    const formatList = (containerId, data) => {
+                        const container = document.getElementById(containerId);
+                        if (!container) return;
+                        container.innerHTML = '';
+                        let items = [];
+                        try {
+                            items = typeof data === 'string' ? JSON.parse(data) : (data || []);
+                        } catch (e) { items = [data]; }
+
+                        if (Array.isArray(items) && items.length > 0) {
+                            items.forEach(item => {
+                                const span = document.createElement('span');
+                                span.textContent = item;
+                                container.appendChild(span);
+                            });
+                        } else {
+                            container.textContent = '---';
+                        }
+                    };
+
+                    formatList('modal-ia-signals', aiInfo.sinais_detectados);
+                    formatList('modal-ia-snippets', aiInfo.trechos_relevantes);
+                } else {
+                    if (document.getElementById('modal-ia-status')) document.getElementById('modal-ia-status').textContent = '---';
+                    if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = '---';
+                    if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = 'Nenhum dado de IA encontrado para este usuário.';
+                    if (document.getElementById('modal-ia-signals')) document.getElementById('modal-ia-signals').textContent = '---';
+                    if (document.getElementById('modal-ia-snippets')) document.getElementById('modal-ia-snippets').textContent = '---';
+                }
+            } catch (err) {
+                console.error("Erro ao carregar IA info:", err);
+            } finally {
+                if (loading) loading.style.display = 'none';
+                if (content) content.style.display = 'block';
+            }
+        }
+
+        document.getElementById('saveLeadDetails').onclick = async () => {
+            if (!currentLeadId || !window.CRM_LOGIC) return;
+
+            // Opp Data
+            const responsible = document.getElementById('modal-responsible').value;
+            const tagsRaw = document.getElementById('modal-tags').value;
+            const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
+
+            // Contact Data
+            const channels = document.getElementById('modal-channels').value;
+
+            const saveBtn = document.getElementById('saveLeadDetails');
+            const originalText = saveBtn.innerHTML;
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Salvando dados...';
+
+            await CRM_LOGIC.updateOpportunityDetails(currentLeadId, currentContactId, {
+                oppData: {
+                    responsible_name: responsible,
+                    tags: tags
+                },
+                contactData: {
+                    acquisition_channels: channels,
+                }
+            });
+
+            // Explicitly reload
+            await loadData();
+
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+            modal.style.display = 'none';
+        };
+
+        // Add copy listeners
+        function setupCopy(id, type) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.onclick = () => {
+                    const content = document.getElementById('modal-' + type).textContent;
+                    if (content && content !== '---') {
+                        navigator.clipboard.writeText(content).then(() => {
+                            if (window.showToast) window.showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' copiado!', 'success');
+                        });
+                    }
+                }
+            }
+        }
+        setupCopy('copy-phone', 'phone');
+        setupCopy('copy-email', 'email');
+
+        async function loadData() {
+            if (!window.CRM_LOGIC) return;
+
+            // 1. Load Global Summary and Stage Distribution
+            const summary = await CRM_LOGIC.fetchPipelineSummary();
+            document.getElementById('total-starter').textContent = summary.total.starter;
+            document.getElementById('total-growth').textContent = summary.total.growth;
+            document.getElementById('total-enterprise').textContent = summary.total.enterprise;
+
+            // Update responsible filter options
+            updateResponsibleFilter(summary.salesByResponsible, summary.meetingsByResponsible);
+
+            // 2. Load Board for current pipeline
+            const leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
+            window.allLeads = leads;
+            renderLeads(leads);
+
+            // 3. Stage Distribution Charts
+            renderChartsOnLoad(summary);
+
+            // 4. Leads by Channel Chart
+            renderChannelsChart(summary.channels);
+
+            // 5. Responsible Rankings
+            renderRanking('sales-ranking-container', summary.salesByResponsible, 'Ranking de Vendas', 'ph-crown', 'label-growth', 'bar-growth', {
+                name: 'iPhone 17 Pro Max',
+                image: 'https://reidocelular.com.br/wp-content/uploads/2025/12/iphone-17-pro-max-3.png',
+                label: 'Prêmio para o 1º Colocado'
+            });
+        }
+
+        function updateResponsibleFilter(salesData, meetingData) {
+            const filter = document.getElementById('responsibleFilter');
+            const currentVal = filter.value;
+
+            // Get unique responsibles from both datasets
+            const responsibles = new Set();
+            if (salesData) Object.keys(salesData).forEach(r => responsibles.add(r));
+            if (meetingData) Object.keys(meetingData).forEach(r => responsibles.add(r));
+
+            filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
+            Array.from(responsibles).sort().forEach(resp => {
+                const option = document.createElement('option');
+                option.value = resp;
+                option.textContent = resp;
+                filter.appendChild(option);
+            });
+
+            filter.value = currentVal;
+        }
+
+        function renderLeads(leads) {
+            const searchTerm = document.getElementById('crmSearch').value.toLowerCase();
+            const respFilter = document.getElementById('responsibleFilter').value;
+
+            // Filter leads
+            const filteredLeads = leads.filter(opp => {
+                const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
+                    (opp.company?.toLowerCase().includes(searchTerm));
+                const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
+                return matchesSearch && matchesResp;
+            });
+
+            // Clear lists
+            document.querySelectorAll('.opportunity-list').forEach(list => {
+                list.innerHTML = '';
+            });
+
+            // Re-inject leads
+            filteredLeads.forEach(opp => {
+                const listId = `list-${opp.stage.replace(/\s+/g, '-')}`;
+                const list = document.getElementById(listId);
+                if (list) {
+                    const card = document.createElement('div');
+                    card.className = 'opportunity-card';
+                    card.draggable = true;
+                    card.setAttribute('data-id', opp.id);
+                    card.ondragstart = (e) => handleDragStart(e, opp.id);
+                    card.ondragend = handleDragEnd;
+                    card.onclick = () => openLeadDetails(opp);
+
+                    card.innerHTML = `
+                        <span class="client-name">${escapeHtml(opp.name)}</span>
+                        <span class="company-name">@${escapeHtml(opp.company)}</span>
+                        <div class="card-status">
+                            <span class="status-dot ${getStatusDotClass(opp.lead_status)}"></span>
+                            <span class="${getStatusTextClass(opp.lead_status)}">${escapeHtml(opp.lead_status || '---')}</span>
+                        </div>
+                        <div class="tags-container">
+                            ${(opp.tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                        <div class="responsible-badge">
+                            <i class="ph-fill ph-user-circle"></i>
+                            <span>${escapeHtml(opp.responsible)}</span>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                }
+            });
+
+            updateCounters();
+        }
+
+        function renderChartsOnLoad(summary) {
+            const chartsContainer = document.getElementById('pipeline-charts-container');
+            chartsContainer.innerHTML = '';
+
+            const pipelineConfig = [
+                { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
+                { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
+                { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
+            ];
+
+            pipelineConfig.forEach(pipe => {
+                const card = document.createElement('div');
+                card.className = 'chart-card';
+
+                let chartRowsHtml = '';
+                const pipeData = summary.stages[pipe.id] || {};
+
+                const maxCount = Math.max(...stages.map(s => pipeData[s] || 0), 1);
+
+                stages.forEach(stage => {
+                    const count = pipeData[stage] || 0;
+                    const percentage = (count / maxCount) * 100;
+
+                    chartRowsHtml += `
+                        <div class="chart-row">
+                            <span class="chart-stage-name">${stage}</span>
+                            <div class="chart-bar-bg">
+                                <div class="chart-bar-fill ${pipe.barClass}" style="width: ${percentage}%"></div>
+                            </div>
+                            <span class="chart-count">${count}</span>
+                        </div>
+                    `;
                 });
 
-                // Recarrega quando houver mudanças realtime
-                const reloadAndRender = async () => {
-                    console.debug('[CRM-AUTO] reloadAndRender acionado');
-                    await loadPipeline(document.querySelector('.pipeline-btn.active')?.dataset?.pipeline || 'Quantic Starter');
-                };
+                card.innerHTML = `
+                    <div class="chart-header ${pipe.class}">
+                        <i class="ph-fill ${pipe.icon}"></i>
+                        <span>${pipe.name}</span>
+                    </div>
+                    <div class="chart-body">
+                        ${chartRowsHtml}
+                    </div>
+                `;
+                chartsContainer.appendChild(card);
+            });
+        }
 
-                if (window.CRM_LOGIC.subscribeToCrmChanges) {
-                    window.CRM_LOGIC.subscribeToCrmChanges(() => {
-                        console.debug('[CRM-AUTO] realtime change detected, atualizando...');
-                        reloadAndRender();
-                    });
-                    console.debug('[CRM-AUTO] inscrito em realtime changes');
-                } else {
-                    console.warn('[CRM-AUTO] subscribeToCrmChanges não disponível');
-                }
+        // Restaurada versão original de renderChannelsChart (sem botão / modal)
+        function renderChannelsChart(channelsData) {
+            const container = document.getElementById('channels-chart-container');
+            if (!container) return;
+            container.innerHTML = '';
 
-                console.debug('[CRM-AUTO] inicialização e render concluídos com sucesso.');
-            } catch (err) {
-                console.error('[CRM-AUTO] Erro na inicialização automática:', err);
+            const card = document.createElement('div');
+            card.className = 'chart-card';
+
+            const getChannelConfig = (name) => {
+                const n = name.toLowerCase();
+                if (n.includes('instagram')) return { icon: 'ph-instagram-logo', class: 'instagram' };
+                if (n.includes('facebook')) return { icon: 'ph-facebook-logo', class: 'facebook' };
+                if (n.includes('linkedin')) return { icon: 'ph-linkedin-logo', class: 'linkedin' };
+                if (n.includes('google') || n.includes('maps')) return { icon: 'ph-google-logo', class: 'google' };
+                if (n.includes('site') || n.includes('web')) return { icon: 'ph-globe', class: 'generic' };
+                return { icon: 'ph-share-network', class: 'generic' };
+            };
+
+            let gridHtml = '';
+            const sortedChannels = Object.entries(channelsData || {}).sort((a, b) => b[1] - a[1]);
+            const maxCount = Math.max(...Object.values(channelsData || {}), 1);
+
+            sortedChannels.forEach(([name, count]) => {
+                const percentage = (count / maxCount) * 100;
+                const config = getChannelConfig(name);
+
+                gridHtml += `
+                    <div class="channel-card-item">
+                        <div class="channel-info">
+                            <div class="channel-label">
+                                <div class="channel-icon-box icon-${config.class}">
+                                    <i class="ph-fill ${config.icon}"></i>
+                                </div>
+                                <span>${escapeHtml(name)}</span>
+                            </div>
+                            <span class="channel-count">${count}</span>
+                        </div>
+                        <div class="channel-bar-bg">
+                            <div class="channel-bar-fill bg-${config.class}" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            card.innerHTML = `
+                <div class="chart-header label-starter" style="background: rgba(139, 92, 246, 0.05); color: var(--primary-purple); border-bottom: 1px solid var(--border-color); padding: 20px 24px;">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span>Volume por Canal de Aquisição</span>
+                </div>
+                <div class="channel-grid">
+                    ${gridHtml || '<div style="padding: 40px; text-align: center; color: var(--text-muted); width: 100%;">Nenhum dado disponível</div>'}
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        // Helpers para modal de Maps
+        function openMapsModal(query) {
+            const modal = document.getElementById('mapsModal');
+            const iframe = document.getElementById('mapsModalIframe');
+            if (!modal || !iframe) return;
+            const q = query || 'Google Maps';
+            iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeMapsModal() {
+            const modal = document.getElementById('mapsModal');
+            const iframe = document.getElementById('mapsModalIframe');
+            if (!modal || !iframe) return;
+            iframe.src = '';
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        // Event listeners do modal (delegated no final do carregamento)
+        document.addEventListener('DOMContentLoaded', () => {
+            const closeBtn = document.getElementById('mapsModalClose');
+            const modal = document.getElementById('mapsModal');
+            if (closeBtn) closeBtn.addEventListener('click', closeMapsModal);
+            if (modal) modal.addEventListener('click', (e) => { if (e.target === modal || e.target.classList.contains('maps-modal-backdrop')) closeMapsModal(); });
+        });
+
+        // Add Event Listeners for filters
+        document.getElementById('crmSearch').addEventListener('input', () => {
+            if (window.allLeads) renderLeads(window.allLeads);
+        });
+        document.getElementById('responsibleFilter').addEventListener('change', () => {
+            if (window.allLeads) renderLeads(window.allLeads);
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderBoard();
+
+            if (window.CRM_LOGIC && await CRM_LOGIC.initCrmSupabase()) {
+                await loadData();
+                CRM_LOGIC.subscribeToCrmChanges(() => loadData());
             }
-        })();
+
+            // Use o atributo data-pipeline para definir qual pipeline carregar (mais confiável)
+            document.querySelectorAll('.pipeline-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    // data-pipeline contém: "starter", "growth", "enterprise"
+                    currentPipeline = btn.dataset.pipeline || btn.textContent.trim();
+                    await loadData();
+                });
+            });
+        });
     </script>
 </body>
 
