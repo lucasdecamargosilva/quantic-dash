@@ -1214,12 +1214,25 @@
             if (lastJob.status === 'finished') return;
             if (lastJob.status === 'failed') throw new Error("O último job está com status failed.");
 
-            // 3) Aguarda UPDATE do job até finished/failed via Realtime
+            // 3) Aguarda UPDATE do job até finished/failed via Realtime (com timeout de segurança de 10 min)
             await new Promise((resolve, reject) => {
                 stopWatchingJob();
 
+                const timeout = setTimeout(() => {
+                    stopWatchingJob();
+                    resolve(); // Libera após 10 min de qualquer jeito
+                }, 600000);
+
                 jobChannel = supabaseClient
                     .channel(`captura-job-${lastJob.job_id}`)
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'leads_google_maps', // Monitorar também a tabela de dados como "trigger"
+                    }, (payload) => {
+                        // Se houver qualquer mudança na tabela de dados, já ajuda a saber que está rodando
+                        fetchRawHistory();
+                    })
                     .on('postgres_changes', {
                         event: 'UPDATE',
                         schema: 'public',
@@ -1227,10 +1240,18 @@
                         filter: `job_id=eq.${lastJob.job_id}`,
                     }, (payload) => {
                         const status = payload?.new?.status;
-                        if (status === 'finished') resolve();
-                        if (status === 'failed') reject(new Error(payload?.new?.message || "Extração falhou."));
+                        if (status === 'finished') {
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                        if (status === 'failed') {
+                            clearTimeout(timeout);
+                            reject(new Error(payload?.new?.message || "Extração falhou."));
+                        }
                     })
-                    .subscribe();
+                    .subscribe((status) => {
+                        console.log(`Realtime Subscription [Job ${lastJob.job_id}]:`, status);
+                    });
             });
 
             stopWatchingJob();
@@ -1334,13 +1355,16 @@
                 // Real-time: Captured (Raw Maps)
                 supabaseClient
                     .channel('maps-leads-realtime')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, payload => {
-                        if (activeHistoryFilter === 'maps') {
-                            fetchRawHistory();
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_google_maps' }, payload => {
+                        console.log("Realtime Maps Change:", payload);
+                        fetchRawHistory();
+                        if (payload.event === 'INSERT') {
+                            showToast("Novo lead do Google Maps capturado!");
                         }
-                        showToast("Novo lead do Google Maps capturado!");
                     })
-                    .subscribe();
+                    .subscribe((status) => {
+                        console.log("Realtime Subscription [Maps]:", status);
+                    });
 
                 // Real-time: IA Qualified
                 supabaseClient
