@@ -254,11 +254,24 @@
             position: relative;
             overflow: hidden;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            /* Prevent squeezing when many items exist */
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
             gap: 4px;
+            border-right: 4px solid transparent;
+            /* Side indicator */
+        }
+
+        .opportunity-card.strip-starter {
+            border-right-color: var(--primary-purple);
+        }
+
+        .opportunity-card.strip-growth {
+            border-right-color: var(--secondary-green, #10b981);
+        }
+
+        .opportunity-card.strip-enterprise {
+            border-right-color: #3b82f6;
         }
 
         .opportunity-card::before {
@@ -462,14 +475,19 @@
         }
 
         .tag-hot {
-            background: #065f46 !important;
-            /* Verde mais escuro */
-            color: white !important;
+            background: #dcfce7 !important;
+            /* Lighter green background */
+            color: #166534 !important;
+            /* Dark green text */
+            border: 1px solid rgba(22, 101, 52, 0.1);
         }
 
         .tag-maps {
-            background: #fbbf24 !important;
-            color: #0b0b15 !important;
+            background: #fef3c7 !important;
+            /* Lighter yellow background */
+            color: #92400e !important;
+            /* Dark amber text */
+            border: 1px solid rgba(146, 64, 14, 0.1);
         }
 
         /* Updated Modal Layout - Split View */
@@ -2119,7 +2137,20 @@
                     const list = document.getElementById(listId);
                     if (list) {
                         const card = document.createElement('div');
-                        card.className = 'opportunity-card';
+                        const pipelineClass = `strip-${currentPipeline || 'starter'}`;
+
+                        // Normalização do Status (Sincronizar Dot/Text com Tags se estiver vazio)
+                        let effectiveStatus = opp.lead_status || '---';
+                        const tags = opp.tags || [];
+                        if ((effectiveStatus === '---') && tags.some(t => t.toLowerCase().includes('quente'))) {
+                            effectiveStatus = 'Quente 🔥';
+                        }
+
+                        // Normalização do Display da Empresa (Evitar @@)
+                        const rawCompany = opp.company || '';
+                        const companyDisplay = rawCompany.startsWith('@') ? rawCompany : '@' + rawCompany;
+
+                        card.className = `opportunity-card ${pipelineClass}`;
                         card.draggable = true;
                         card.setAttribute('data-id', opp.id);
                         card.ondragstart = (e) => handleDragStart(e, opp.id);
@@ -2128,13 +2159,13 @@
 
                         card.innerHTML = `
                         <span class="client-name">${escapeHtml(opp.name)}</span>
-                        <span class="company-name">@${escapeHtml(opp.company || '')}</span>
+                        <span class="company-name">${escapeHtml(companyDisplay)}</span>
                         <div class="card-status">
-                            <span class="status-dot ${getStatusDotClass(opp.lead_status)}"></span>
-                            <span class="${getStatusTextClass(opp.lead_status)}">${escapeHtml(opp.lead_status || '---')}</span>
+                            <span class="status-dot ${getStatusDotClass(effectiveStatus)}"></span>
+                            <span class="${getStatusTextClass(effectiveStatus)}">${escapeHtml(effectiveStatus)}</span>
                         </div>
                         <div class="tags-container">
-                            ${(opp.tags || []).map(tag => {
+                            ${tags.map(tag => {
                             const tagLower = tag.toLowerCase();
                             let typeClass = '';
                             if (tagLower.includes('quente')) typeClass = 'tag-hot';
