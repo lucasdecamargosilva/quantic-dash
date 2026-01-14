@@ -5,6 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantic CRM</title>
+
+    <!-- Favicons / theme -->
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <meta name="theme-color" content="#8b5cf6">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1226,6 +1232,250 @@
             background: #1a1a1a;
             color: white;
         }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Prize Card Styles */
+        .prize-card {
+            background: linear-gradient(135deg, #1e1e2d 0%, #151522 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highlight-card {
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2) !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .highlight-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.4) !important;
+            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
+        }
+
+        .ranking-prize-footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .prize-footer-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: #fff;
+            padding: 4px;
+            object-fit: contain;
+        }
+
+        .prize-footer-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prize-footer-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .prize-footer-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .prize-image-wrapper {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex-shrink: 0;
+        }
+
+        .prize-card:hover .prize-image-wrapper {
+            border-color: var(--primary-purple);
+            box-shadow: 0 12px 40px var(--primary-purple-glow);
+            transform: translateY(-8px) scale(1.05);
+        }
+
+        .prize-image {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .prize-card:hover .prize-image {
+            transform: scale(1.1) rotate(8deg);
+        }
+
+        .prize-info {
+            z-index: 1;
+        }
+
+        .prize-title {
+            font-size: 14px;
+            color: var(--text-gray);
+            margin-bottom: 4px;
+        }
+
+        .prize-name {
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
+            background: linear-gradient(to right, #fff, var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ranking-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            margin-right: 8px;
+        }
+
+        .ranking-row-1 .ranking-badge {
+            background: #ffd700;
+            color: #000;
+        }
+
+        .ranking-row-2 .ranking-badge {
+            background: #c0c0c0;
+            color: #000;
+        }
+
+        .ranking-row-3 .ranking-badge {
+            background: #cd7f32;
+            color: #000;
+        }
+
+        @keyframes animate-spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: animate-spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        .crm-filters {
+            display: flex;
+            gap: var(--spacing-md);
+            align-items: center;
+        }
+
+        .board-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            gap: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px 16px 10px 42px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-gray);
+            font-size: 18px;
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+        }
+
+        .filter-select option {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        /* Removido: styles .maps-modal, .maps-modal-content, .maps-modal-backdrop, .maps-modal-close */
     </style>
 </head>
 
@@ -1870,6 +2120,7 @@
             });
         }
 
+        // Restaurada versão original de renderChannelsChart (sem botão / modal)
         function renderChannelsChart(channelsData) {
             const container = document.getElementById('channels-chart-container');
             if (!container) return;
@@ -1926,72 +2177,33 @@
             container.appendChild(card);
         }
 
-
-        function getStatusDotClass(status) {
-            if (!status) return 'dot-cold';
-            const s = status.toLowerCase();
-            if (s.includes('quente') || s.includes('qualificado')) return 'dot-hot';
-            if (s.includes('morno')) return 'dot-warm';
-            return 'dot-cold';
+        // Helpers para modal de Maps
+        function openMapsModal(query) {
+            const modal = document.getElementById('mapsModal');
+            const iframe = document.getElementById('mapsModalIframe');
+            if (!modal || !iframe) return;
+            const q = query || 'Google Maps';
+            iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
         }
 
-        function getStatusTextClass(status) {
-            if (!status) return 'status-cold';
-            const s = status.toLowerCase();
-            if (s.includes('quente') || s.includes('qualificado')) return 'status-hot';
-            if (s.includes('morno')) return 'status-warm';
-            return 'status-cold';
+        function closeMapsModal() {
+            const modal = document.getElementById('mapsModal');
+            const iframe = document.getElementById('mapsModalIframe');
+            if (!modal || !iframe) return;
+            iframe.src = '';
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
         }
 
-        function renderRanking(containerId, data, title, icon, labelClass, barClass, prize) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-
-            const card = document.createElement('div');
-            card.className = 'chart-card highlight-card';
-
-            let rowsHtml = '';
-            const rankingData = data || {};
-            const resps = Object.keys(rankingData).sort((a, b) => rankingData[b] - rankingData[a]);
-            const maxCount = Math.max(...Object.values(rankingData), 1);
-
-            resps.forEach((resp, index) => {
-                const count = rankingData[resp];
-                const percentage = (count / maxCount) * 100;
-                const rankClass = index < 3 ? `ranking-row-${index + 1}` : '';
-
-                rowsHtml += `
-                    <div class="chart-row ${rankClass}">
-                        <div class="ranking-badge">${index + 1}</div>
-                        <span class="chart-stage-name" title="${resp}">${resp}</span>
-                        <div class="chart-bar-bg">
-                            <div class="chart-bar-fill ${barClass}" style="width: ${percentage}%"></div>
-                        </div>
-                        <span class="chart-count">${count}</span>
-                    </div>
-                `;
-            });
-
-            card.innerHTML = `
-                <div class="chart-header ${labelClass}">
-                    <i class="ph-fill ${icon}"></i>
-                    <span>${title}</span>
-                </div>
-                <div class="chart-body">
-                    ${rowsHtml || `<div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 20px;">Nenhum registro encontrado ainda</div>`}
-                </div>
-                ${prize ? `
-                <div class="ranking-prize-footer">
-                    <img src="${prize.image}" class="prize-footer-image">
-                    <div class="prize-footer-info">
-                        <span class="prize-footer-label">${prize.label}</span>
-                        <span class="prize-footer-name">${prize.name}</span>
-                    </div>
-                </div>
-                ` : ''}
-            `;
-            container.appendChild(card);
-        }
+        // Event listeners do modal (delegated no final do carregamento)
+        document.addEventListener('DOMContentLoaded', () => {
+            const closeBtn = document.getElementById('mapsModalClose');
+            const modal = document.getElementById('mapsModal');
+            if (closeBtn) closeBtn.addEventListener('click', closeMapsModal);
+            if (modal) modal.addEventListener('click', (e) => { if (e.target === modal || e.target.classList.contains('maps-modal-backdrop')) closeMapsModal(); });
+        });
 
         // Add Event Listeners for filters
         document.getElementById('crmSearch').addEventListener('input', () => {
