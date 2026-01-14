@@ -335,19 +335,24 @@
         }
 
         /* Modal Styles */
+        /* Prevent background scroll when modal is open */
+        html.modal-open,
+        body.modal-open {
+            overflow: hidden !important;
+            height: 100% !important;
+        }
+
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            inset: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(10px);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 10000;
-            /* Super high z-index */
             animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -616,11 +621,6 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-        }
-
-        /* Prevent background scroll when modal is open */
-        body.modal-open {
-            overflow: hidden !important;
         }
 
         .status-hot {
@@ -1704,6 +1704,7 @@
             if (modal) {
                 modal.style.display = 'none';
                 document.body.classList.remove('modal-open');
+                document.documentElement.classList.remove('modal-open');
             }
         }
 
@@ -1735,6 +1736,7 @@
 
             modal.style.display = 'flex';
             document.body.classList.add('modal-open');
+            document.documentElement.classList.add('modal-open');
 
             await loadAIInfo(lead.company);
         }
@@ -2057,85 +2059,22 @@
             // Update responsible filter options
             updateResponsibleFilter(summary.salesByResponsible, summary.meetingsByResponsible);
 
-            // 2. Load Board for current pipeline (dados principais do pipeline)
+            // 2. Load Board for current pipeline (Ponto único de verdade: tabela opportunities)
             let leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
             console.debug('[loadData] leads from CRM_LOGIC:', leads?.length ?? 0);
-
-            // 3. Complementar com leads_qualificados (Instagram) e leads_google_maps (Maps)
-            try {
-                if (window.supabaseClient) {
-                    // Instagram leads (leads_qualificados)
-                    const { data: igRows, error: igErr } = await window.supabaseClient
-                        .from('leads_qualificados')
-                        .select('*');
-                    if (igErr) console.warn('[loadData] erro ao buscar leads_qualificados:', igErr);
-                    else {
-                        console.debug('[loadData] leads_qualificados rows:', igRows?.length ?? 0);
-                        const igMapped = (igRows || []).map(r => ({
-                            // garantir id único prefixando para evitar colisões com opportunities
-                            id: `ig-${r.id}`,
-                            name: r.name || r.phone || 'Lead Instagram',
-                            company: r.username || r.source || 'instagram',
-                            stage: 'Contato',
-                            tags: r.tags ? (typeof r.tags === 'string' ? r.tags.split(',').map(t => t.trim()) : r.tags) : [],
-                            responsible: r.responsible_name || 'Não atribuído',
-                            lead_status: r.status || 'Novo',
-                            email: r.email || '',
-                            phone: r.phone || '',
-                            channels: 'Instagram'
-                        }));
-                        leads = (leads || []).concat(igMapped);
-                    }
-
-                    // Maps leads (leads_google_maps)
-                    const { data: mapsRows, error: mapsErr } = await window.supabaseClient
-                        .from('leads_google_maps')
-                        .select('*');
-                    if (mapsErr) console.warn('[loadData] erro ao buscar leads_google_maps:', mapsErr);
-                    else {
-                        console.debug('[loadData] leads_google_maps rows:', mapsRows?.length ?? 0);
-                        const mapsMapped = (mapsRows || []).map(r => ({
-                            id: `gm-${r.id}`,
-                            name: r.name || r.phone || 'Lead Maps',
-                            company: r.company || r.source || 'maps',
-                            stage: 'Contato',
-                            tags: r.tags ? (typeof r.tags === 'string' ? r.tags.split(',').map(t => t.trim()) : r.tags) : [],
-                            responsible: r.responsible_name || 'Não atribuído',
-                            lead_status: r.status || 'Novo',
-                            email: r.email || '',
-                            phone: r.phone || '',
-                            channels: 'Google Maps'
-                        }));
-                        leads = (leads || []).concat(mapsMapped);
-                    }
-                } else {
-                    console.debug('[loadData] supabaseClient não disponível — pulando fetch direto de leads_qualificados / leads_google_maps');
-                }
-            } catch (err) {
-                console.error('[loadData] erro ao buscar leads extras:', err);
-            }
 
             // Expor globalmente para filtros/uso posterior
             window.allLeads = leads || [];
 
-            // 4. Render board com leads combinados
+            // 3. Render board com leads da tabela opportunities
             renderLeads(window.allLeads);
 
-            // 5. Stage Distribution Charts (mantém summary original)
+            // 4. Stage Distribution Charts (mantém summary original)
             renderChartsOnLoad(summary);
 
-            // 6. Leads por Canal: computa base no summary.channels e incrementa com os leads novos
+            // 5. Leads por Canal: computa baseado no summary.channels (vindo de opportunities)
             const channelsFromSummary = Object.assign({}, summary.channels || {});
-            (window.allLeads || []).forEach(l => {
-                const chan = (l.channels || l.source || 'Unknown').toString();
-                // normaliza nomes básicos
-                let key = chan;
-                if (/instagram/i.test(chan)) key = 'Instagram';
-                if (/map/i.test(chan) || /google/i.test(chan)) key = 'Google Maps';
-                if (!channelsFromSummary[key]) channelsFromSummary[key] = 0;
-                channelsFromSummary[key] += 1;
-            });
-            console.debug('[loadData] channels merged:', channelsFromSummary);
+            console.debug('[loadData] channels from opportunities:', channelsFromSummary);
             renderChannelsChart(channelsFromSummary);
 
             // 7. Responsible Rankings (mantém chamada original)
