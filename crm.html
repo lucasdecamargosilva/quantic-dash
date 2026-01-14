@@ -286,20 +286,28 @@
 
         .opportunity-card .client-name {
             font-weight: 700;
-            font-size: 13.5px;
+            font-size: 15px;
             margin-bottom: 0;
             display: block;
             color: var(--text-white);
             letter-spacing: -0.01em;
             line-height: 1.2;
+            /* Truncate long names */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .opportunity-card .company-name {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--text-gray);
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             display: block;
-            opacity: 0.6;
+            opacity: 0.7;
+            /* Truncate long company names/usernames */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .opportunity-card .revenue {
