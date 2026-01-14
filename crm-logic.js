@@ -22,12 +22,16 @@ async function initCrmSupabase() {
 }
 
 async function fetchCrmData(pipelineName = 'Quantic Starter') {
-    if (!crmClient) return [];
+	if (!crmClient) return [];
 
-    try {
-        const { data, error } = await crmClient
-            .from('opportunities')
-            .select(`
+	try {
+		// Use ILIKE com wildcard para ser tolerante a variações no campo "pipeline"
+		// Ex: 'starter' deve casar com 'Quantic Starter' e vice-versa
+		const pipelineFilter = `%${pipelineName}%`;
+
+		const { data, error } = await crmClient
+			.from('opportunities')
+			.select(`
                 id,
                 stage,
                 pipeline,
@@ -47,50 +51,50 @@ async function fetchCrmData(pipelineName = 'Quantic Starter') {
                     biggest_difficulty
                 )
             `)
-            .eq('pipeline', pipelineName);
+			.ilike('pipeline', pipelineFilter); // <-- ALTERAÇÃO: antes .eq('pipeline', pipelineName);
 
-        if (error) {
-            console.error('Error fetching CRM data:', error);
-            return [];
-        }
+		if (error) {
+			console.error('Error fetching CRM data:', error);
+			return [];
+		}
 
-        // Extract usernames to fetch statuses
-        const usernames = data
-            .map(o => o.contacts ? o.contacts.company_name : null)
-            .filter(u => u != null);
+		// Extract usernames to fetch statuses
+		const usernames = data
+			.map(o => o.contacts ? o.contacts.company_name : null)
+			.filter(u => u != null);
 
-        // Fetch statuses from leads_qualificados
-        let statusMap = {};
-        if (usernames.length > 0) {
-            const { data: leadsData } = await crmClient
-                .from('leads_qualificados')
-                .select('usuario, status')
-                .in('usuario', usernames);
+		// Fetch statuses from leads_qualificados
+		let statusMap = {};
+		if (usernames.length > 0) {
+			const { data: leadsData } = await crmClient
+				.from('leads_qualificados')
+				.select('usuario, status')
+				.in('usuario', usernames);
 
-            if (leadsData) {
-                leadsData.forEach(l => {
-                    statusMap[l.usuario] = l.status;
-                });
-            }
-        }
+			if (leadsData) {
+				leadsData.forEach(l => {
+					statusMap[l.usuario] = l.status;
+				});
+			}
+		}
 
-        return data.map(opp => ({
-            id: opp.id,
-            contactId: opp.contacts ? opp.contacts.id : null,
-            name: opp.contacts ? opp.contacts.full_name : 'Sem Nome',
-            company: opp.contacts ? opp.contacts.company_name : 'Sem Empresa',
-            phone: opp.contacts ? opp.contacts.phone : '---',
-            email: opp.contacts ? opp.contacts.email : '---',
-            stage: opp.stage,
-            lead_status: opp.contacts ? (statusMap[opp.contacts.company_name] || '---') : '---', // New Field
-            channels: opp.contacts ? opp.contacts.acquisition_channels : '---',
-            responsible: opp.responsible_name || 'Não atribuído',
-            tags: opp.tags || []
-        }));
-    } catch (err) {
-        console.error('Fetch CRM data catch error:', err);
-        return [];
-    }
+		return data.map(opp => ({
+			id: opp.id,
+			contactId: opp.contacts ? opp.contacts.id : null,
+			name: opp.contacts ? opp.contacts.full_name : 'Sem Nome',
+			company: opp.contacts ? opp.contacts.company_name : 'Sem Empresa',
+			phone: opp.contacts ? opp.contacts.phone : '---',
+			email: opp.contacts ? opp.contacts.email : '---',
+			stage: opp.stage,
+			lead_status: opp.contacts ? (statusMap[opp.contacts.company_name] || '---') : '---',
+			channels: opp.contacts ? opp.contacts.acquisition_channels : '---',
+			responsible: opp.responsible_name || 'Não atribuído',
+			tags: opp.tags || []
+		}));
+	} catch (err) {
+		console.error('Fetch CRM data catch error:', err);
+		return [];
+	}
 }
 
 async function updateOpportunityDetails(oppId, contactId, details) {
