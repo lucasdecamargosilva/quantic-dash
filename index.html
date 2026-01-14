@@ -898,7 +898,7 @@
                     .eq('stage', 'Proposta Enviada');
 
                 const safeProposals = proposalsCount || 0;
-                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safePropostas, 'erro:', err6);
+                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safeProposals, 'erro:', err6);
 
                 // 7. Funil - Vendas Realizadas
                 const { count: salesCount, error: err7 } = await captureSupabase
@@ -917,7 +917,7 @@
                 document.getElementById('kpi-qualified-value').textContent = safeQualified.toString();
                 document.getElementById('kpi-meetings-scheduled-value').textContent = safeScheduled.toString();
                 document.getElementById('kpi-meetings-completed-value').textContent = safeCompleted.toString();
-                document.getElementById('kpi-propostas-value').textContent = safePropostas.toString();
+                document.getElementById('kpi-proposals-value').textContent = safeProposals.toString();
                 document.getElementById('kpi-sales-value').textContent = safeSales.toString();
 
                 console.debug('[loadCaptureMetrics] ✅ Todos os dados atualizados:', {
@@ -927,7 +927,7 @@
                     qualificados: safeQualified,
                     reunioes_agendadas: safeScheduled,
                     reunioes_realizadas: safeCompleted,
-                    propostas: safePropostas,
+                    propostas: safeProposals,
                     vendas: safeSales
                 });
             } catch (err) {
