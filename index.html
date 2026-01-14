@@ -23,6 +23,128 @@
 
     <!-- Icon library (using Phosphor Icons for similarity to design) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* ...existing styles... */
+
+        /* Novo: Capture KPI Grid (3 cards grandes consolidados) */
+        .capture-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .capture-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .capture-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(139, 92, 246, 0.1);
+        }
+
+        /* Channel Breakdown */
+        .channel-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .breakdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+
+        .breakdown-item i {
+            font-size: 16px;
+            color: var(--primary-purple);
+        }
+
+        .breakdown-label {
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .breakdown-value {
+            font-weight: 700;
+            color: var(--text-white);
+            margin-left: auto;
+        }
+
+        /* Funnel Progress */
+        .funnel-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: var(--spacing-md);
+        }
+
+        .funnel-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .funnel-item:hover {
+            background: rgba(139, 92, 246, 0.05);
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+
+        .funnel-stage {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .funnel-count {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 12px;
+            border-radius: 6px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        /* Responsivo */
+        @media (max-width: 1400px) {
+            .capture-kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .capture-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -96,9 +218,9 @@
                             <h2><i class="ph-fill ph-lightning"></i> Captura de Leads</h2>
                         </div>
 
-                        <div class="kpi-grid">
-                            <!-- KPI Card 1: Leads Capturados Total -->
-                            <div class="card kpi-card">
+                        <div class="capture-kpi-grid">
+                            <!-- CARD ÚNICO 1: Leads Capturados (com breakdown por canal) -->
+                            <div class="card capture-card">
                                 <div class="card-top">
                                     <div class="icon-box"><i class="ph-fill ph-funnel"></i></div>
                                     <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> Total</span>
@@ -106,38 +228,23 @@
                                 <div class="card-content">
                                     <span class="label">Leads Capturados</span>
                                     <h3 id="kpi-leads-captured-value" class="value">0</h3>
-                                    <span class="subtext">Instagram + Google Maps</span>
+                                    <div class="channel-breakdown">
+                                        <div class="breakdown-item">
+                                            <i class="ph-fill ph-instagram-logo"></i>
+                                            <span class="breakdown-label">Instagram:</span>
+                                            <span id="kpi-instagram-value" class="breakdown-value">0</span>
+                                        </div>
+                                        <div class="breakdown-item">
+                                            <i class="ph-fill ph-map-pin"></i>
+                                            <span class="breakdown-label">Google Maps:</span>
+                                            <span id="kpi-maps-value" class="breakdown-value">0</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- KPI Card 2: Instagram Captures -->
-                            <div class="card kpi-card">
-                                <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-instagram-logo"></i></div>
-                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
-                                </div>
-                                <div class="card-content">
-                                    <span class="label">Leads Instagram</span>
-                                    <h3 id="kpi-instagram-value" class="value">0</h3>
-                                    <span class="subtext">Posts & Perfis capturados</span>
-                                </div>
-                            </div>
-
-                            <!-- KPI Card 3: Google Maps Captures -->
-                            <div class="card kpi-card">
-                                <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-map-pin"></i></div>
-                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
-                                </div>
-                                <div class="card-content">
-                                    <span class="label">Leads Google Maps</span>
-                                    <h3 id="kpi-maps-value" class="value">0</h3>
-                                    <span class="subtext">Empresas & Negócios</span>
-                                </div>
-                            </div>
-
-                            <!-- KPI Card 4: Leads Qualificados -->
-                            <div class="card kpi-card">
+                            <!-- CARD ÚNICO 2: Leads Qualificados -->
+                            <div class="card capture-card">
                                 <div class="card-top">
                                     <div class="icon-box"><i class="ph-fill ph-robot"></i></div>
                                     <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
@@ -149,55 +256,32 @@
                                 </div>
                             </div>
 
-                            <!-- KPI Card 5: Reuniões Agendadas -->
-                            <div class="card kpi-card">
+                            <!-- CARD ÚNICO 3: Pipeline Progress (Reuniões + Propostas + Vendas) -->
+                            <div class="card capture-card">
                                 <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-calendar"></i></div>
+                                    <div class="icon-box"><i class="ph-fill ph-chart-line-up"></i></div>
                                     <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
                                 </div>
                                 <div class="card-content">
-                                    <span class="label">Reuniões Agendadas</span>
-                                    <h3 id="kpi-meetings-scheduled-value" class="value">0</h3>
-                                    <span class="subtext">Próximas oportunidades</span>
-                                </div>
-                            </div>
-
-                            <!-- KPI Card 6: Reuniões Realizadas -->
-                            <div class="card kpi-card">
-                                <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-check-circle"></i></div>
-                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
-                                </div>
-                                <div class="card-content">
-                                    <span class="label">Reuniões Realizadas</span>
-                                    <h3 id="kpi-meetings-completed-value" class="value">0</h3>
-                                    <span class="subtext">Executadas este período</span>
-                                </div>
-                            </div>
-
-                            <!-- KPI Card 7: Propostas Enviadas -->
-                            <div class="card kpi-card">
-                                <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-file-text"></i></div>
-                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
-                                </div>
-                                <div class="card-content">
-                                    <span class="label">Propostas Enviadas</span>
-                                    <h3 id="kpi-proposals-value" class="value">0</h3>
-                                    <span class="subtext">Aguardando aprovação</span>
-                                </div>
-                            </div>
-
-                            <!-- KPI Card 8: Vendas Realizadas -->
-                            <div class="card kpi-card">
-                                <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-handshake"></i></div>
-                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
-                                </div>
-                                <div class="card-content">
-                                    <span class="label">Vendas Realizadas</span>
-                                    <h3 id="kpi-sales-value" class="value">0</h3>
-                                    <span class="subtext">Contratos fechados</span>
+                                    <span class="label">Progresso do Funil</span>
+                                    <div class="funnel-progress">
+                                        <div class="funnel-item">
+                                            <span class="funnel-stage">Reuniões Agendadas</span>
+                                            <span id="kpi-meetings-scheduled-value" class="funnel-count">0</span>
+                                        </div>
+                                        <div class="funnel-item">
+                                            <span class="funnel-stage">Reuniões Realizadas</span>
+                                            <span id="kpi-meetings-completed-value" class="funnel-count">0</span>
+                                        </div>
+                                        <div class="funnel-item">
+                                            <span class="funnel-stage">Propostas Enviadas</span>
+                                            <span id="kpi-proposals-value" class="funnel-count">0</span>
+                                        </div>
+                                        <div class="funnel-item">
+                                            <span class="funnel-stage">Vendas Realizadas</span>
+                                            <span id="kpi-sales-value" class="funnel-count">0</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
