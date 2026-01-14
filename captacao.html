@@ -1196,16 +1196,19 @@
         }
 
         async function waitLastJobFinished() {
-            // 1) Espera existir pelo menos 1 job (até 60s)
+            // 1) Espera existir pelo menos 1 job (reduzido para 10s para não travar se o n8n não usar esta tabela)
             let lastJob = await getLastJob();
             const start = Date.now();
 
-            while (!lastJob && (Date.now() - start) < 60000) {
+            while (!lastJob && (Date.now() - start) < 10000) {
                 await new Promise(r => setTimeout(r, 1500));
                 lastJob = await getLastJob();
             }
 
-            if (!lastJob) throw new Error("Nenhum job apareceu em 60s (verifique se o n8n está inserindo capturas_jobs).");
+            if (!lastJob) {
+                console.log("Nenhum job encontrado em 10s. Prosseguindo com monitoramento de dados...");
+                return;
+            }
 
             // 2) Se já terminou, encerra
             if (lastJob.status === 'finished') return;
@@ -1285,20 +1288,27 @@
 
                 showToast("Busca de Leads em andamento...");
 
-                // 4) Espera o ÚLTIMO job da tabela aparecer e virar finished/failed
-                await waitLastJobFinished();
+                // 4) Inicia um polling de segurança (caso o Realtime esteja desativado no Supabase)
+                const pollingInterval = setInterval(() => {
+                    fetchRawHistory();
+                }, 5000);
 
-                // 5) Finalizou: destrava e carrega tabelas
-                showToast("A extração foi finalizada.");
+                // 5) Espera o ÚLTIMO job da tabela aparecer e virar finished/failed
+                try {
+                    await waitLastJobFinished();
+                } catch (e) {
+                    console.warn("Aviso no waitLastJobFinished:", e);
+                }
+
+                // 6) Finalizou: limpa polling, destrava e carrega tabelas
+                clearInterval(pollingInterval);
+                showToast("Processo de extração concluído.");
                 setCaptureButtonState('idle');
                 fetchRawHistory();
                 fetchIAHistory();
             } catch (error) {
                 console.error('Start/wait error:', error);
-
                 showToast(error?.message || "Erro ao iniciar/aguardar.");
-
-                // destrava e recarrega para não ficar travado pra sempre
                 setCaptureButtonState('idle');
                 fetchRawHistory();
                 fetchIAHistory();
