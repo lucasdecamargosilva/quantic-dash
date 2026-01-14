@@ -12,9 +12,10 @@ DECLARE
   default_stage text := 'Contato';
 BEGIN
   -- Tenta encontrar um contato existente por telefone ou empresa
+  -- Usamos ::text em ambos os lados para evitar erros se as colunas forem numéricas
   SELECT id INTO new_contact_id FROM contacts 
-  WHERE (phone = NEW.telefone::text AND NEW.telefone IS NOT NULL AND NEW.telefone != '') 
-     OR (company_name = NEW.empresa AND NEW.empresa IS NOT NULL AND NEW.empresa != '');
+  WHERE (phone::text = NEW.telefone::text AND NEW.telefone::text IS NOT NULL AND NEW.telefone::text != '') 
+     OR (company_name::text = NEW.empresa::text AND NEW.empresa IS NOT NULL AND NEW.empresa != '');
 
   -- Se não existir contato, cria um novo
   IF new_contact_id IS NULL THEN
@@ -30,7 +31,7 @@ BEGIN
     VALUES (
       COALESCE(NEW.empresa, 'Lead Google Maps'),
       NEW.empresa,
-      NEW.telefone::text,
+      CASE WHEN NEW.telefone::text = '' THEN NULL ELSE NEW.telefone::text END,
       NULL,
       NEW.categoria_negocio,
       'Google Maps',
@@ -86,10 +87,10 @@ BEGIN
     
     new_contact_id := NULL;
 
-    -- Procura contato existente
+    -- Procura contato existente com conversão para text para evitar erros de tipo numérico
     SELECT id INTO new_contact_id FROM contacts 
-    WHERE (phone = r.telefone::text AND r.telefone IS NOT NULL AND r.telefone != '') 
-       OR (company_name = r.empresa AND r.empresa IS NOT NULL AND r.empresa != '');
+    WHERE (phone::text = r.telefone::text AND r.telefone::text IS NOT NULL AND r.telefone::text != '') 
+       OR (company_name::text = r.empresa::text AND r.empresa IS NOT NULL AND r.empresa != '');
 
     -- Se não existir, cria novo
     IF new_contact_id IS NULL THEN
@@ -105,7 +106,7 @@ BEGIN
       VALUES (
         COALESCE(r.empresa, 'Lead Google Maps'),
         r.empresa,
-        r.telefone::text,
+        CASE WHEN r.telefone::text = '' THEN NULL ELSE r.telefone::text END,
         NULL,
         r.categoria_negocio,
         'Google Maps',
