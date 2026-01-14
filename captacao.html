@@ -501,6 +501,13 @@
                             </div>
                         </div>
                         <div class="header-actions">
+                            <div style="background: rgba(255,255,255,0.05); border-radius: var(--radius-md); padding: 4px; display: flex; gap: 4px; margin-right: 12px;"
+                                onclick="event.stopPropagation();">
+                                <button id="filterInstagram" class="pipeline-btn active"
+                                    style="padding: 6px 12px; font-size: 11px;">Instagram</button>
+                                <button id="filterMaps" class="pipeline-btn"
+                                    style="padding: 6px 12px; font-size: 11px;">Google Maps</button>
+                            </div>
                             <button id="refreshRawHistory" class="pipeline-btn active"
                                 style="padding: 8px 16px; font-size: 12px;" onclick="event.stopPropagation();">
                                 <i class="ph ph-arrows-clockwise"></i> Atualizar
@@ -511,7 +518,7 @@
                     <div class="table-content" id="rawLeadsContent">
                         <table class="leads-table">
                             <thead>
-                                <tr>
+                                <tr id="raw-history-headers">
                                     <th>Lead</th>
                                     <th>Perfil/Username</th>
                                     <th>Bio / Descrição</th>
@@ -595,6 +602,7 @@
     <script>
         const btnCapture = document.getElementById('startCapture');
         let activeChannel = 'instagram';
+        let activeHistoryFilter = 'instagram';
 
         // Lógica de troca de canais
         document.getElementById('channel-instagram').onclick = () => {
@@ -611,6 +619,21 @@
             document.getElementById('channel-instagram').classList.remove('active');
             document.getElementById('instagramInputs').style.display = 'none';
             document.getElementById('mapsInputs').style.display = 'flex';
+        };
+
+        // Lógica de filtro de histórico
+        document.getElementById('filterInstagram').onclick = () => {
+            activeHistoryFilter = 'instagram';
+            document.getElementById('filterInstagram').classList.add('active');
+            document.getElementById('filterMaps').classList.remove('active');
+            fetchRawHistory();
+        };
+
+        document.getElementById('filterMaps').onclick = () => {
+            activeHistoryFilter = 'maps';
+            document.getElementById('filterMaps').classList.add('active');
+            document.getElementById('filterInstagram').classList.remove('active');
+            fetchRawHistory();
         };
 
         // Toggle para expandir/recolher histórico de leads brutos
@@ -731,50 +754,110 @@
             }
         }
 
-        // 1. Fetch Raw History (leads_capturados_posts)
+        // 1. Fetch Raw History
         async function fetchRawHistory() {
             if (!supabaseClient) return;
 
             const tbody = document.getElementById('history-raw-body');
+            const thead = document.getElementById('raw-history-headers');
+
+            // Set Loading state
+            setRawHistoryLoading(true);
 
             try {
-                const { data, error } = await supabaseClient
-                    .from('leads_capturados_posts')
-                    .select('id, created_at, nome_cliente, usuario, bio, email, telefone')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead encontrado.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = '';
-                data.forEach(lead => {
-                    const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
-                    const name = lead.nome_cliente || 'Sem nome';
-                    const username = lead.usuario || 'unknown';
-                    const profileUrl = username !== 'unknown' ? `https://instagram.com/${username.replace('@', '')}` : '#';
-                    const bio = lead.bio || '';
-                    const email = lead.email || '---';
-                    const phone = lead.telefone || '---';
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>
-                            <div class="profile-info">
-                                <div class="profile-avatar" style="background: var(--text-gray);">${escapeHtml(name[0])}</div>
-                                <strong>${escapeHtml(name)}</strong>
-                            </div>
-                        </td>
-                        <td><a href="${profileUrl}" target="_blank" class="profile-link">@${escapeHtml(username)}</a></td>
-                        <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${escapeHtml(bio.substring(0, 60))}...</td>
-                        <td><div style="font-size: 13px;">${escapeHtml(email)}<br>${escapeHtml(phone)}</div></td>
-                        <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
+                if (activeHistoryFilter === 'instagram') {
+                    thead.innerHTML = `
+                        <th>Lead</th>
+                        <th>Perfil/Username</th>
+                        <th>Bio / Descrição</th>
+                        <th>Contato</th>
+                        <th>Data</th>
                     `;
-                    tbody.appendChild(tr);
-                });
+
+                    const { data, error } = await supabaseClient
+                        .from('leads_capturados_posts')
+                        .select('id, created_at, nome_cliente, usuario, bio, email, telefone')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead encontrado.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = '';
+                    data.forEach(lead => {
+                        const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
+                        const name = lead.nome_cliente || 'Sem nome';
+                        const username = lead.usuario || 'unknown';
+                        const profileUrl = username !== 'unknown' ? `https://instagram.com/${username.replace('@', '')}` : '#';
+                        const bio = lead.bio || '';
+                        const email = lead.email || '---';
+                        const phone = lead.telefone || '---';
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>
+                                <div class="profile-info">
+                                    <div class="profile-avatar" style="background: var(--text-gray);">${escapeHtml(name[0])}</div>
+                                    <strong>${escapeHtml(name)}</strong>
+                                </div>
+                            </td>
+                            <td><a href="${profileUrl}" target="_blank" class="profile-link">@${escapeHtml(username)}</a></td>
+                            <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${escapeHtml(bio.substring(0, 60))}...</td>
+                            <td><div style="font-size: 13px;">${escapeHtml(email)}<br>${escapeHtml(phone)}</div></td>
+                            <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    // Google Maps
+                    thead.innerHTML = `
+                        <th>Empresa</th>
+                        <th>Categoria</th>
+                        <th>Site</th>
+                        <th>Telefone</th>
+                        <th>Data</th>
+                    `;
+
+                    const { data, error } = await supabaseClient
+                        .from('leads_google_maps')
+                        .select('id, created_at, empresa, "categoria do negócio", site, telefone')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead de Maps encontrado.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = '';
+                    data.forEach(lead => {
+                        const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
+                        const empresa = lead.empresa || 'Sem nome';
+                        const categoria = lead["categoria do negócio"] || '---';
+                        const site = lead.site || '---';
+                        const phone = lead.telefone || '---';
+                        const siteUrl = site !== '---' ? (site.startsWith('http') ? site : `https://${site}`) : '#';
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>
+                                <div class="profile-info">
+                                    <div class="profile-avatar" style="background: var(--primary-purple);">${escapeHtml(empresa[0])}</div>
+                                    <strong>${escapeHtml(empresa)}</strong>
+                                </div>
+                            </td>
+                            <td style="font-size: 13px; color: var(--text-gray);">${escapeHtml(categoria)}</td>
+                            <td>${site !== '---' ? `<a href="${siteUrl}" target="_blank" class="profile-link">${escapeHtml(site)}</a>` : '---'}</td>
+                            <td style="font-size: 13px;">${escapeHtml(phone)}</td>
+                            <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
             } catch (err) {
                 console.error("Error fetching raw history:", err);
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar dados.</td></tr>';
@@ -1084,12 +1167,25 @@
                 fetchRawHistory();
                 fetchIAHistory();
 
-                // Real-time: Captured (Raw)
+                // Real-time: Captured (Raw Instagram)
                 supabaseClient
                     .channel('raw-leads-realtime')
                     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, payload => {
-                        fetchRawHistory();
-                        showToast("Novo lead bruto capturado!");
+                        if (activeHistoryFilter === 'instagram') {
+                            fetchRawHistory();
+                        }
+                        showToast("Novo lead do Instagram capturado!");
+                    })
+                    .subscribe();
+
+                // Real-time: Captured (Raw Maps)
+                supabaseClient
+                    .channel('maps-leads-realtime')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, payload => {
+                        if (activeHistoryFilter === 'maps') {
+                            fetchRawHistory();
+                        }
+                        showToast("Novo lead do Google Maps capturado!");
                     })
                     .subscribe();
 
