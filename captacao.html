@@ -956,7 +956,10 @@
                         .select('id, created_at, empresa, "categoria do negócio", site, telefone')
                         .order('created_at', { ascending: false });
 
-                    if (error) throw error;
+                    if (error) {
+                        console.error("Supabase Error (Google Maps):", error);
+                        throw error;
+                    }
 
                     if (!data || data.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead de Maps encontrado.</td></tr>';
