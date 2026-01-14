@@ -1476,7 +1476,52 @@
             color: white;
         }
 
-        /* Removido: styles .maps-modal, .maps-modal-content, .maps-modal-backdrop, .maps-modal-close */
+        /* Add/update responsible filter helper */
+        function updateResponsibleFilter(salesData, meetingData) {
+            try {
+                console.debug('[CRM-SCRIPT] updateResponsibleFilter chamado', {
+                    salesData,
+                    meetingData
+                });
+                const filter = document.getElementById('responsibleFilter');
+                if (!filter) {
+                    console.warn('[updateResponsibleFilter] #responsibleFilter não encontrado');
+                    return;
+                }
+                const currentVal = filter.value || 'all';
+                const responsibles = new Set();
+
+                if (salesData && typeof salesData === 'object') {
+                    Object.keys(salesData).forEach(r => {
+                        if (r) responsibles.add(r);
+                    });
+                }
+                if (meetingData && typeof meetingData === 'object') {
+                    Object.keys(meetingData).forEach(r => {
+                        if (r) responsibles.add(r);
+                    });
+                }
+
+                // Limpa e re-popula mantendo ordenação alfabética
+                filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
+                Array.from(responsibles).sort((a, b) => a.localeCompare(b)).forEach(resp => {
+                    const option = document.createElement('option');
+                    option.value = resp;
+                    option.textContent = resp;
+                    filter.appendChild(option);
+                });
+
+                // Restaura valor anterior se ainda existir
+                if (Array.from(filter.options).some(o => o.value === currentVal)) {
+                    filter.value = currentVal;
+                } else {
+                    filter.value = 'all';
+                }
+            } catch (err) {
+                console.error('[updateResponsibleFilter] erro:', err);
+            }
+        }
+
     </style>
 </head>
 
@@ -1994,6 +2039,52 @@
         setupCopy('copy-phone', 'phone');
         setupCopy('copy-email', 'email');
 
+        // Add/update responsible filter helper
+        function updateResponsibleFilter(salesData, meetingData) {
+            try {
+                console.debug('[CRM-SCRIPT] updateResponsibleFilter chamado', {
+                    salesData,
+                    meetingData
+                });
+                const filter = document.getElementById('responsibleFilter');
+                if (!filter) {
+                    console.warn('[updateResponsibleFilter] #responsibleFilter não encontrado');
+                    return;
+                }
+                const currentVal = filter.value || 'all';
+                const responsibles = new Set();
+
+                if (salesData && typeof salesData === 'object') {
+                    Object.keys(salesData).forEach(r => {
+                        if (r) responsibles.add(r);
+                    });
+                }
+                if (meetingData && typeof meetingData === 'object') {
+                    Object.keys(meetingData).forEach(r => {
+                        if (r) responsibles.add(r);
+                    });
+                }
+
+                // Limpa e re-popula mantendo ordenação alfabética
+                filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
+                Array.from(responsibles).sort((a, b) => a.localeCompare(b)).forEach(resp => {
+                    const option = document.createElement('option');
+                    option.value = resp;
+                    option.textContent = resp;
+                    filter.appendChild(option);
+                });
+
+                // Restaura valor anterior se ainda existir
+                if (Array.from(filter.options).some(o => o.value === currentVal)) {
+                    filter.value = currentVal;
+                } else {
+                    filter.value = 'all';
+                }
+            } catch (err) {
+                console.error('[updateResponsibleFilter] erro:', err);
+            }
+        }
+
         async function loadData() {
             // carrega summary padrão via CRM_LOGIC (mantém comportamento já existente)
             if (!window.CRM_LOGIC) return;
@@ -2121,7 +2212,7 @@
                         const card = document.createElement('div');
                         card.className = 'opportunity-card';
                         card.draggable = true;
-                        card.setAttribute('data-id', opp.id);
+                                               card.setAttribute('data-id', opp.id);
                         card.ondragstart = (e) => handleDragStart(e, opp.id);
                         card.ondragend = handleDragEnd;
                         card.onclick = () => openLeadDetails(opp);
