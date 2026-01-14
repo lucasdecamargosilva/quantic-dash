@@ -24,31 +24,57 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         .pipeline-selector {
-            display: flex;
-            gap: var(--spacing-md);
-            background: var(--bg-card);
-            padding: 8px;
-            border-radius: var(--radius-lg);
-            width: fit-content;
-            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            width: auto;
+            max-width: 100%;
+            box-shadow: none;
+            margin-left: 8px;
         }
 
         .pipeline-btn {
             background: transparent;
             border: none;
             color: var(--text-gray);
-            padding: 10px 24px;
-            border-radius: var(--radius-md);
+            padding: 8px 18px;
+            border-radius: 10px;
             font-family: inherit;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.12s ease, background 0.12s ease;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: none;
         }
 
         .pipeline-btn.active {
-            background: var(--primary-purple);
+            background: linear-gradient(90deg, var(--primary-purple), #7c3aed);
             color: white;
-            box-shadow: 0 4px 12px var(--primary-purple-glow);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.18);
+            transform: translateY(-2px);
+        }
+
+        .pipeline-selector .ph {
+            font-size: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .pipeline-selector {
+                margin-left: 0;
+                padding: 6px;
+            }
+
+            .pipeline-btn {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
         }
 
         .crm-container {
