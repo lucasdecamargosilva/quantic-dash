@@ -297,50 +297,308 @@
             text-align: center;
         }
 
-        /* Mini Funnel */
-        .funnel-mini {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+        /* Funnel Horizontal Bars */
+        .funnel-horizontal {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .funnel-row {
+            display: flex;
+            align-items: center;
             gap: 12px;
         }
 
-        .funnel-mini-item {
+        .funnel-row-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            min-width: 140px;
+        }
+
+        .funnel-bar-container {
+            flex: 1;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .funnel-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-purple), rgba(139, 92, 246, 0.6));
+            border-radius: 8px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 16px rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 12px;
+        }
+
+        .capture-card-right:hover .funnel-bar {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .funnel-row-count {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 12px;
+            border-radius: 6px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        @media (max-width: 1200px) {
+            .capture-cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* ===== FIM CAPTURE CARDS GRID ===== */
+
+        /* NOVO: Painel de Captura de Leads (PRIMEIRO) */
+        .capture-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .capture-card-left,
+        .capture-card-right {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 50%, rgba(255, 255, 255, 0.01) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .capture-card-left::before,
+        .capture-card-right::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .capture-card-left:hover,
+        .capture-card-right:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 50%, rgba(255, 255, 255, 0.02) 100%);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .capture-left-content,
+        .capture-right-content {
+            display: flex;
+            width: 100%;
+            gap: var(--spacing-xl);
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .capture-left-content {
+            flex-direction: row;
+        }
+
+        .capture-right-content {
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .capture-left-section {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            align-items: center;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(139, 92, 246, 0.1);
-            border-radius: 10px;
+            gap: 16px;
+        }
+
+        .capture-divider-vertical {
+            width: 1px;
+            height: 80px;
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.05) 100%);
             transition: all 0.3s ease;
         }
 
-        .capture-card-single:hover .funnel-mini-item {
-            background: rgba(139, 92, 246, 0.08);
-            border-color: rgba(139, 92, 246, 0.2);
+        .capture-card-left:hover .capture-divider-vertical {
+            height: 100px;
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.5) 0%, rgba(139, 92, 246, 0.1) 100%);
         }
 
-        .funnel-mini-label {
+        .capture-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             font-size: 11px;
             color: var(--text-muted);
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
         }
 
-        .funnel-mini-count {
-            font-size: 24px;
-            font-weight: 900;
+        .capture-section-header i {
+            font-size: 18px;
             color: var(--primary-purple);
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08));
-            padding: 6px 14px;
+            background: rgba(139, 92, 246, 0.15);
+            padding: 8px;
             border-radius: 8px;
-            min-width: 60px;
-            text-align: center;
-            border: 1px solid rgba(139, 92, 246, 0.2);
+            transition: all 0.3s ease;
         }
-        /* ===== FIM CAPTURE CARD HORIZONTAL ===== */
+
+        .capture-card-left:hover .capture-section-header i,
+        .capture-card-right:hover .capture-section-header i {
+            background: rgba(139, 92, 246, 0.25);
+            transform: scale(1.1);
+        }
+
+        .capture-value {
+            font-size: 42px;
+            font-weight: 900;
+            color: var(--text-white);
+            line-height: 1;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .capture-subtext {
+            font-size: 12px;
+            color: var(--text-gray);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .capture-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .capture-card-left:hover .breakdown-row {
+            background: rgba(139, 92, 246, 0.05);
+            border-color: rgba(139, 92, 246, 0.2);
+            transform: translateX(4px);
+        }
+
+        .breakdown-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .breakdown-label i {
+            font-size: 16px;
+            color: var(--primary-purple);
+        }
+
+        .breakdown-count {
+            font-weight: 800;
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.15);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* Funnel Horizontal Bars */
+        .funnel-horizontal {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .funnel-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .funnel-row-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            min-width: 140px;
+        }
+
+        .funnel-bar-container {
+            flex: 1;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .funnel-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-purple), rgba(139, 92, 246, 0.6));
+            border-radius: 8px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 16px rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 12px;
+        }
+
+        .capture-card-right:hover .funnel-bar {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .funnel-row-count {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 12px;
+            border-radius: 6px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        @media (max-width: 1200px) {
+            .capture-cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* ===== FIM CAPTURE CARDS GRID ===== */
     </style>
 </head>
 
@@ -415,66 +673,80 @@
                             <h2><i class="ph-fill ph-lightning"></i> Captura de Leads</h2>
                         </div>
 
-                        <!-- CARD ÚNICO HORIZONTAL -->
-                        <div class="card capture-card-single">
-                            <div class="capture-content">
-                                <!-- Seção 1: Leads Capturados -->
-                                <div class="capture-section">
-                                    <div class="capture-section-header">
-                                        <i class="ph-fill ph-funnel"></i>
-                                        <span class="section-title">Leads Capturados</span>
+                        <!-- GRID 2 COLUNAS -->
+                        <div class="capture-cards-grid">
+                            <!-- CARD 1: Leads Capturados + Qualificados -->
+                            <div class="card capture-card-left">
+                                <div class="capture-left-content">
+                                    <!-- Seção: Leads Capturados -->
+                                    <div class="capture-left-section">
+                                        <div class="capture-section-header">
+                                            <i class="ph-fill ph-funnel"></i>
+                                            <span class="section-title">Leads Capturados</span>
+                                        </div>
+                                        <div class="capture-value" id="kpi-leads-captured-value">0</div>
+                                        <div class="capture-breakdown">
+                                            <div class="breakdown-row">
+                                                <span class="breakdown-label"><i class="ph-fill ph-instagram-logo"></i> Instagram</span>
+                                                <span id="kpi-instagram-value" class="breakdown-count">0</span>
+                                            </div>
+                                            <div class="breakdown-row">
+                                                <span class="breakdown-label"><i class="ph-fill ph-map-pin"></i> Maps</span>
+                                                <span id="kpi-maps-value" class="breakdown-count">0</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="capture-value" id="kpi-leads-captured-value">0</div>
-                                    <div class="capture-breakdown">
-                                        <div class="breakdown-row">
-                                            <span class="breakdown-label"><i class="ph-fill ph-instagram-logo"></i> Instagram</span>
-                                            <span id="kpi-instagram-value" class="breakdown-count">0</span>
+
+                                    <!-- Divisor -->
+                                    <div class="capture-divider-vertical"></div>
+
+                                    <!-- Seção: Leads Qualificados -->
+                                    <div class="capture-left-section">
+                                        <div class="capture-section-header">
+                                            <i class="ph-fill ph-robot"></i>
+                                            <span class="section-title">Qualificados</span>
                                         </div>
-                                        <div class="breakdown-row">
-                                            <span class="breakdown-label"><i class="ph-fill ph-map-pin"></i> Maps</span>
-                                            <span id="kpi-maps-value" class="breakdown-count">0</span>
-                                        </div>
+                                        <div class="capture-value" id="kpi-qualified-value">0</div>
+                                        <span class="capture-subtext">Processados por IA</span>
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Divisor -->
-                                <div class="capture-divider"></div>
-
-                                <!-- Seção 2: Leads Qualificados -->
-                                <div class="capture-section">
-                                    <div class="capture-section-header">
-                                        <i class="ph-fill ph-robot"></i>
-                                        <span class="section-title">Qualificados</span>
-                                    </div>
-                                    <div class="capture-value" id="kpi-qualified-value">0</div>
-                                    <span class="capture-subtext">Processados por IA</span>
-                                </div>
-
-                                <!-- Divisor -->
-                                <div class="capture-divider"></div>
-
-                                <!-- Seção 3: Funil de Vendas -->
-                                <div class="capture-section">
+                            <!-- CARD 2: Funil de Vendas -->
+                            <div class="card capture-card-right">
+                                <div class="capture-right-content">
                                     <div class="capture-section-header">
                                         <i class="ph-fill ph-chart-line-up"></i>
-                                        <span class="section-title">Funil</span>
+                                        <span class="section-title">Funil de Vendas</span>
                                     </div>
-                                    <div class="funnel-mini">
-                                        <div class="funnel-mini-item">
-                                            <span class="funnel-mini-label">Reuniões</span>
-                                            <span id="kpi-meetings-scheduled-value" class="funnel-mini-count">0</span>
+                                    <div class="funnel-horizontal">
+                                        <div class="funnel-row">
+                                            <span class="funnel-row-label">Reuniões Agendadas</span>
+                                            <div class="funnel-bar-container">
+                                                <div class="funnel-bar" id="funnel-bar-1" style="width: 0%"></div>
+                                            </div>
+                                            <span class="funnel-row-count" id="kpi-meetings-scheduled-value">0</span>
                                         </div>
-                                        <div class="funnel-mini-item">
-                                            <span class="funnel-mini-label">Realizadas</span>
-                                            <span id="kpi-meetings-completed-value" class="funnel-mini-count">0</span>
+                                        <div class="funnel-row">
+                                            <span class="funnel-row-label">Reuniões Realizadas</span>
+                                            <div class="funnel-bar-container">
+                                                <div class="funnel-bar" id="funnel-bar-2" style="width: 0%"></div>
+                                            </div>
+                                            <span class="funnel-row-count" id="kpi-meetings-completed-value">0</span>
                                         </div>
-                                        <div class="funnel-mini-item">
-                                            <span class="funnel-mini-label">Propostas</span>
-                                            <span id="kpi-proposals-value" class="funnel-mini-count">0</span>
+                                        <div class="funnel-row">
+                                            <span class="funnel-row-label">Propostas Enviadas</span>
+                                            <div class="funnel-bar-container">
+                                                <div class="funnel-bar" id="funnel-bar-3" style="width: 0%"></div>
+                                            </div>
+                                            <span class="funnel-row-count" id="kpi-proposals-value">0</span>
                                         </div>
-                                        <div class="funnel-mini-item">
-                                            <span class="funnel-mini-label">Vendas</span>
-                                            <span id="kpi-sales-value" class="funnel-mini-count">0</span>
+                                        <div class="funnel-row">
+                                            <span class="funnel-row-label">Vendas Realizadas</span>
+                                            <div class="funnel-bar-container">
+                                                <div class="funnel-bar" id="funnel-bar-4" style="width: 0%"></div>
+                                            </div>
+                                            <span class="funnel-row-count" id="kpi-sales-value">0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -905,118 +1177,118 @@
                 return;
             }
 
-            try {
-                console.debug('[loadCaptureMetrics] Iniciando carregamento...');
 
-                // 1. Leads Capturados - Instagram (leads_capturados_posts)
-                const { count: instagramCount, error: err1 } = await captureSupabase
-                    .from('leads_capturados_posts')
-                    .select('*', { count: 'exact', head: true });
 
-                const safeInstagram = instagramCount || 0;
-                console.debug('[loadCaptureMetrics] Instagram:', safeInstagram, 'erro:', err1);
 
-                // 2. Leads Capturados - Google Maps (leads_google_maps)
-                const { count: mapsCount, error: err2 } = await captureSupabase
-                    .from('leads_google_maps')
-                    .select('*', { count: 'exact', head: true });
 
-                const safeMaps = mapsCount || 0;
-                console.debug('[loadCaptureMetrics] Maps:', safeMaps, 'erro:', err2);
 
-                // 3. Leads Qualificados (leads_qualificados)
-                const { count: qualifiedCount, error: err3 } = await captureSupabase
-                    .from('leads_qualificados')
-                    .select('*', { count: 'exact', head: true });
 
-                const safeQualified = qualifiedCount || 0;
-                console.debug('[loadCaptureMetrics] Qualified:', safeQualified, 'erro:', err3);
 
-                // 4. Funil - Reuniões Agendadas
-                const { count: scheduledCount, error: err4 } = await captureSupabase
-                    .from('opportunities')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('stage', 'Reunião Agendada');
 
-                const safeScheduled = scheduledCount || 0;
-                console.debug('[loadCaptureMetrics] Reuniões Agendadas:', safeScheduled, 'erro:', err4);
 
-                // 5. Funil - Reuniões Realizadas
-                const { count: completedCount, error: err5 } = await captureSupabase
-                    .from('opportunities')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('stage', 'Reunião Realizada');
 
-                const safeCompleted = completedCount || 0;
-                console.debug('[loadCaptureMetrics] Reuniões Realizadas:', safeCompleted, 'erro:', err5);
 
-                // 6. Funil - Propostas Enviadas
-                const { count: proposalsCount, error: err6 } = await captureSupabase
-                    .from('opportunities')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('stage', 'Proposta Enviada');
 
-                const safeProposals = proposalsCount || 0;
-                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safeProposals, 'erro:', err6);
 
-                // 7. Funil - Vendas Realizadas
-                const { count: salesCount, error: err7 } = await captureSupabase
-                    .from('opportunities')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('stage', 'Venda Realizada');
 
-                const safeSales = salesCount || 0;
-                console.debug('[loadCaptureMetrics] Vendas Realizadas:', safeSales, 'erro:', err7);
 
-                // Update UI
-                const totalCaptured = safeInstagram + safeMaps;
-                document.getElementById('kpi-leads-captured-value').textContent = totalCaptured.toString();
-                document.getElementById('kpi-instagram-value').textContent = safeInstagram.toString();
-                document.getElementById('kpi-maps-value').textContent = safeMaps.toString();
-                document.getElementById('kpi-qualified-value').textContent = safeQualified.toString();
-                document.getElementById('kpi-meetings-scheduled-value').textContent = safeScheduled.toString();
-                document.getElementById('kpi-meetings-completed-value').textContent = safeCompleted.toString();
-                document.getElementById('kpi-proposals-value').textContent = safeProposals.toString();
-                document.getElementById('kpi-sales-value').textContent = safeSales.toString();
 
-                console.debug('[loadCaptureMetrics] ✅ Todos os dados atualizados:', {
-                    total_capturados: totalCaptured,
-                    instagram: safeInstagram,
-                    maps: safeMaps,
-                    qualificados: safeQualified,
-                    reunioes_agendadas: safeScheduled,
-                    reunioes_realizadas: safeCompleted,
-                    propostas: safeProposals,
-                    vendas: safeSales
-                });
-            } catch (err) {
-                console.error('[loadCaptureMetrics] ❌ Erro:', err);
-            }
-        }
 
-        // Subscribe to real-time changes
-        async function subscribeCaptureMetrics() {
-            if (!captureSupabase) return;
 
-            // Real-time: Instagram captures
-            captureSupabase
-                .channel('capture-instagram-rt')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {
-                    console.debug('[RT] Nova captura Instagram');
-                    loadCaptureMetrics();
-                })
-                .subscribe();
 
-            // Real-time: Maps captures
-            captureSupabase
-                .channel('capture-maps-rt')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {
-                    console.debug('[RT] Nova captura Maps');
-                    loadCaptureMetrics();
-                })
-                .subscribe();
 
-            // Real-time: Qualified leads
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                .subscribe();                })                    loadCaptureMetrics();                    console.debug('[RT] Nova captura Maps');                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {                .channel('capture-maps-rt')            captureSupabase            // Real-time: Maps captures                .subscribe();                })                    loadCaptureMetrics();                    console.debug('[RT] Nova captura Instagram');                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {                .channel('capture-instagram-rt')            captureSupabase            // Real-time: Instagram captures            if (!captureSupabase) return;        async function subscribeCaptureMetrics() {        // Subscribe to real-time changes        }            }                console.error('[loadCaptureMetrics] ❌ Erro:', err);            } catch (err) {                });                    vendas: safeSales                    propostas: safeProposals,                    reunioes_realizadas: safeCompleted,                    reunioes_agendadas: safeScheduled,                    qualificados: safeQualified,                    maps: safeMaps,                    instagram: safeInstagram,                    total_capturados: totalCaptured,                console.debug('[loadCaptureMetrics] ✅ Todos os dados atualizados:', {                document.getElementById('kpi-sales-value').textContent = safeSales.toString();                document.getElementById('kpi-proposals-value').textContent = safeProposals.toString();                document.getElementById('kpi-meetings-completed-value').textContent = safeCompleted.toString();                document.getElementById('kpi-meetings-scheduled-value').textContent = safeScheduled.toString();                document.getElementById('kpi-qualified-value').textContent = safeQualified.toString();                document.getElementById('kpi-maps-value').textContent = safeMaps.toString();                document.getElementById('kpi-instagram-value').textContent = safeInstagram.toString();                document.getElementById('kpi-leads-captured-value').textContent = totalCaptured.toString();                const totalCaptured = safeInstagram + safeMaps;                // Update UI                console.debug('[loadCaptureMetrics] Vendas Realizadas:', safeSales, 'erro:', err7);                const safeSales = salesCount || 0;                    .eq('stage', 'Venda Realizada');                    .select('*', { count: 'exact', head: true })                    .from('opportunities')                const { count: salesCount, error: err7 } = await captureSupabase                // 7. Funil - Vendas Realizadas                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safeProposals, 'erro:', err6);                const safeProposals = proposalsCount || 0;                    .eq('stage', 'Proposta Enviada');                    .select('*', { count: 'exact', head: true })                    .from('opportunities')                const { count: proposalsCount, error: err6 } = await captureSupabase                // 6. Funil - Propostas Enviadas                console.debug('[loadCaptureMetrics] Reuniões Realizadas:', safeCompleted, 'erro:', err5);                const safeCompleted = completedCount || 0;                    .eq('stage', 'Reunião Realizada');                    .select('*', { count: 'exact', head: true })                    .from('opportunities')                const { count: completedCount, error: err5 } = await captureSupabase                // 5. Funil - Reuniões Realizadas                console.debug('[loadCaptureMetrics] Reuniões Agendadas:', safeScheduled, 'erro:', err4);                const safeScheduled = scheduledCount || 0;                    .eq('stage', 'Reunião Agendada');                    .select('*', { count: 'exact', head: true })                    .from('opportunities')                const { count: scheduledCount, error: err4 } = await captureSupabase                // 4. Funil - Reuniões Agendadas                console.debug('[loadCaptureMetrics] Qualified:', safeQualified, 'erro:', err3);                const safeQualified = qualifiedCount || 0;                    .select('*', { count: 'exact', head: true });                    .from('leads_qualificados')                const { count: qualifiedCount, error: err3 } = await captureSupabase                // 3. Leads Qualificados (leads_qualificados)                console.debug('[loadCaptureMetrics] Maps:', safeMaps, 'erro:', err2);                const safeMaps = mapsCount || 0;                    .select('*', { count: 'exact', head: true });                    .from('leads_google_maps')                const { count: mapsCount, error: err2 } = await captureSupabase                // 2. Leads Capturados - Google Maps (leads_google_maps)                console.debug('[loadCaptureMetrics] Instagram:', safeInstagram, 'erro:', err1);                const safeInstagram = instagramCount || 0;                    .select('*', { count: 'exact', head: true });                    .from('leads_capturados_posts')                const { count: instagramCount, error: err1 } = await captureSupabase                // 1. Leads Capturados - Instagram (leads_capturados_posts)                console.debug('[loadCaptureMetrics] Iniciando carregamento...');            try {            // Real-time: Qualified leads
             captureSupabase
                 .channel('capture-qualified-rt')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_qualificados' }, () => {
