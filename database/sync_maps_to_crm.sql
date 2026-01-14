@@ -13,7 +13,7 @@ DECLARE
 BEGIN
   -- Tenta encontrar um contato existente por telefone ou empresa
   SELECT id INTO new_contact_id FROM contacts 
-  WHERE (phone = NEW.telefone::text AND NEW.telefone IS NOT NULL) 
+  WHERE (phone = NEW.telefone::text AND NEW.telefone IS NOT NULL AND NEW.telefone != '') 
      OR (company_name = NEW.empresa AND NEW.empresa IS NOT NULL AND NEW.empresa != '');
 
   -- Se não existir contato, cria um novo
@@ -39,28 +39,30 @@ BEGIN
     RETURNING id INTO new_contact_id;
   END IF;
 
-  -- Verifica se já existe uma oportunidade para este contato
-  IF NOT EXISTS (SELECT 1 FROM opportunities WHERE contact_id = new_contact_id) THEN
-    INSERT INTO opportunities (
-      contact_id, 
-      stage, 
-      pipeline, 
-      responsible_name, 
-      tags,
-      lead_status,
-      created_at,
-      updated_at
-    )
-    VALUES (
-      new_contact_id,
-      default_stage,
-      default_pipeline,
-      'Sistema',
-      'Lead Google Maps,Automático,quente',
-      'Quente',
-      NOW(),
-      NOW()
-    );
+  -- Verifica se já existe uma oportunidade para este contato (apenas se tivermos um ID válido)
+  IF new_contact_id IS NOT NULL AND new_contact_id != '00000000-0000-0000-0000-000000000000'::uuid THEN
+    IF NOT EXISTS (SELECT 1 FROM opportunities WHERE contact_id = new_contact_id) THEN
+      INSERT INTO opportunities (
+        contact_id, 
+        stage, 
+        pipeline, 
+        responsible_name, 
+        tags,
+        lead_status,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        new_contact_id,
+        default_stage,
+        default_pipeline,
+        'Sistema',
+        ARRAY['Lead Google Maps', 'Automático', 'quente']::text[],
+        'Quente',
+        NOW(),
+        NOW()
+      );
+    END IF;
   END IF;
 
   RETURN NEW;
@@ -82,9 +84,11 @@ DECLARE
 BEGIN
   FOR r IN SELECT * FROM leads_google_maps LOOP
     
+    new_contact_id := NULL;
+
     -- Procura contato existente
     SELECT id INTO new_contact_id FROM contacts 
-    WHERE (phone = r.telefone::text AND r.telefone IS NOT NULL) 
+    WHERE (phone = r.telefone::text AND r.telefone IS NOT NULL AND r.telefone != '') 
        OR (company_name = r.empresa AND r.empresa IS NOT NULL AND r.empresa != '');
 
     -- Se não existir, cria novo
@@ -110,28 +114,30 @@ BEGIN
       RETURNING id INTO new_contact_id;
     END IF;
 
-    -- Se não existir opportunity, cria uma
-    IF NOT EXISTS (SELECT 1 FROM opportunities WHERE contact_id = new_contact_id) THEN
-      INSERT INTO opportunities (
-        contact_id, 
-        stage, 
-        pipeline, 
-        responsible_name, 
-        tags,
-        lead_status,
-        created_at,
-        updated_at
-      )
-      VALUES (
-        new_contact_id,
-        'Contato',
-        'Quantic Starter',
-        'Sistema',
-        'Lead Google Maps,Backfill,quente',
-        'Quente',
-        NOW(),
-        NOW()
-      );
+    -- Se não existir opportunity, cria uma (apenas se tivermos um ID válido)
+    IF new_contact_id IS NOT NULL AND new_contact_id != '00000000-0000-0000-0000-000000000000'::uuid THEN
+      IF NOT EXISTS (SELECT 1 FROM opportunities WHERE contact_id = new_contact_id) THEN
+        INSERT INTO opportunities (
+          contact_id, 
+          stage, 
+          pipeline, 
+          responsible_name, 
+          tags,
+          lead_status,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          new_contact_id,
+          'Contato',
+          'Quantic Starter',
+          'Sistema',
+          ARRAY['Lead Google Maps', 'Backfill', 'quente']::text[],
+          'Quente',
+          NOW(),
+          NOW()
+        );
+      END IF;
     END IF;
     
   END LOOP;
