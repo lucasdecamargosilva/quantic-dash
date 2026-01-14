@@ -2293,6 +2293,15 @@
                 };
             });
 
+            // Search and Filter listeners
+            document.getElementById('crmSearch')?.addEventListener('input', () => {
+                renderLeads(window.allLeads || []);
+            });
+
+            document.getElementById('responsibleFilter')?.addEventListener('change', () => {
+                renderLeads(window.allLeads || []);
+            });
+
             try {
                 renderBoard();
                 if (window.CRM_LOGIC) {
