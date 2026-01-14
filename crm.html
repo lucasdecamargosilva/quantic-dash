@@ -618,6 +618,11 @@
             border-radius: 50%;
         }
 
+        /* Prevent background scroll when modal is open */
+        body.modal-open {
+            overflow: hidden !important;
+        }
+
         .status-hot {
             color: #4ade80;
         }
@@ -1695,11 +1700,18 @@
         const modal = document.getElementById('leadModal');
         const closeModal = document.getElementById('closeModal');
 
+        function closeModalFunc() {
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+        }
+
         if (closeModal) {
-            closeModal.onclick = () => modal.style.display = 'none';
+            closeModal.onclick = closeModalFunc;
         }
         window.onclick = (event) => {
-            if (event.target == modal) modal.style.display = 'none';
+            if (event.target == modal) closeModalFunc();
         }
 
         let currentLeadId = null;
@@ -1722,6 +1734,7 @@
             document.getElementById('modal-tags').value = lead.tags ? lead.tags.join(', ') : '';
 
             modal.style.display = 'flex';
+            document.body.classList.add('modal-open');
 
             await loadAIInfo(lead.company);
         }
@@ -1810,7 +1823,7 @@
 
             saveBtn.disabled = false;
             saveBtn.innerHTML = originalText;
-            modal.style.display = 'none';
+            closeModalFunc();
         };
 
         // Add copy listeners
