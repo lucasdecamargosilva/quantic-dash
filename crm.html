@@ -1476,52 +1476,103 @@
             color: white;
         }
 
-        /* Add/update responsible filter helper */
-        function updateResponsibleFilter(salesData, meetingData) {
+        /* Helpers adicionados para evitar ReferenceError e fornecer logs */
+        function escapeHtml(input) {
             try {
-                console.debug('[CRM-SCRIPT] updateResponsibleFilter chamado', {
-                    salesData,
-                    meetingData
+                if (input === null || input === undefined) return '';
+                return String(input).replace(/[&<>"'\/]/g, function (s) {
+                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' }[s]);
                 });
-                const filter = document.getElementById('responsibleFilter');
-                if (!filter) {
-                    console.warn('[updateResponsibleFilter] #responsibleFilter não encontrado');
-                    return;
-                }
-                const currentVal = filter.value || 'all';
-                const responsibles = new Set();
-
-                if (salesData && typeof salesData === 'object') {
-                    Object.keys(salesData).forEach(r => {
-                        if (r) responsibles.add(r);
-                    });
-                }
-                if (meetingData && typeof meetingData === 'object') {
-                    Object.keys(meetingData).forEach(r => {
-                        if (r) responsibles.add(r);
-                    });
-                }
-
-                // Limpa e re-popula mantendo ordenação alfabética
-                filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
-                Array.from(responsibles).sort((a, b) => a.localeCompare(b)).forEach(resp => {
-                    const option = document.createElement('option');
-                    option.value = resp;
-                    option.textContent = resp;
-                    filter.appendChild(option);
-                });
-
-                // Restaura valor anterior se ainda existir
-                if (Array.from(filter.options).some(o => o.value === currentVal)) {
-                    filter.value = currentVal;
-                } else {
-                    filter.value = 'all';
-                }
-            } catch (err) {
-                console.error('[updateResponsibleFilter] erro:', err);
+            } catch (e) {
+                console.warn('[escapeHtml] falha ao escapar:', e);
+                return String(input);
             }
         }
 
+        function getStatusDotClass(status) {
+            try {
+                if (!status) return 'dot-cold';
+                const s = String(status).toLowerCase();
+                if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'dot-hot';
+                if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'dot-warm';
+                return 'dot-cold';
+            } catch (e) {
+                console.warn('[getStatusDotClass] erro:', e);
+                return 'dot-cold';
+            }
+        }
+
+        function getStatusTextClass(status) {
+            try {
+                if (!status) return 'status-cold';
+                const s = String(status).toLowerCase();
+                if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'status-hot';
+                if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'status-warm';
+                return 'status-cold';
+            } catch (e) {
+                console.warn('[getStatusTextClass] erro:', e);
+                return 'status-cold';
+            }
+        }
+
+        /* Renderização dos gráficos por pipeline (usada por loadData) */
+        function renderChartsOnLoad(summary) {
+            try {
+                console.debug('[CRM-SCRIPT] renderChartsOnLoad', summary);
+                const container = document.getElementById('pipeline-charts-container');
+                if (!container) {
+                    console.warn('[renderChartsOnLoad] container não encontrado');
+                    return;
+                }
+                container.innerHTML = '';
+
+                const pipelineConfig = [
+                    { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
+                    { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
+                    { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
+                ];
+
+                const stagesOrder = (typeof stages !== 'undefined' && Array.isArray(stages)) ? stages : Object.keys((summary && summary.stages && summary.stages.starter) || {});
+
+                pipelineConfig.forEach(pipe => {
+                    const card = document.createElement('div');
+                    card.className = 'chart-card';
+
+                    const pipeData = (summary && summary.stages && summary.stages[pipe.id]) || {};
+                    const maxCount = Math.max(...stagesOrder.map(s => pipeData[s] || 0), 1);
+
+                    let chartRowsHtml = '';
+                    stagesOrder.forEach(stage => {
+                        const count = pipeData[stage] || 0;
+                        const percentage = Math.round((count / maxCount) * 100);
+                        chartRowsHtml += `
+					<div class="chart-row">
+						<span class="chart-stage-name">${escapeHtml(stage)}</span>
+						<div class="chart-bar-bg">
+							<div class="chart-bar-fill ${pipe.barClass}" style="width: ${percentage}%"></div>
+						</div>
+						<span class="chart-count">${count}</span>
+					</div>
+				`;
+                    });
+
+                    card.innerHTML = `
+				<div class="chart-header ${pipe.class}">
+					<i class="ph-fill ${pipe.icon}"></i>
+					<span>${pipe.name}</span>
+				</div>
+				<div class="chart-body">
+					${chartRowsHtml}
+				</div>
+			`;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                console.error('[renderChartsOnLoad] erro ao renderizar charts:', err);
+                const container = document.getElementById('pipeline-charts-container');
+                if (container) container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar gráficos. Veja console.</div>';
+            }
+        }
     </style>
 </head>
 
