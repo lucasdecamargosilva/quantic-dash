@@ -475,19 +475,20 @@
         }
 
         .tag-hot {
-            background: #dcfce7 !important;
-            /* Lighter green background */
-            color: #166534 !important;
-            /* Dark green text */
-            border: 1px solid rgba(22, 101, 52, 0.1);
+            background: #065f46 !important;
+            /* Verde sólido escuro */
+            color: white !important;
         }
 
         .tag-maps {
-            background: #fef3c7 !important;
-            /* Lighter yellow background */
-            color: #92400e !important;
-            /* Dark amber text */
-            border: 1px solid rgba(146, 64, 14, 0.1);
+            background: #fbbf24 !important;
+            /* Amarelo sólido */
+            color: #0b0b15 !important;
+        }
+
+        .tag-instagram {
+            background: linear-gradient(45deg, #f09433, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888) !important;
+            color: white !important;
         }
 
         /* Updated Modal Layout - Split View */
@@ -2146,7 +2147,7 @@
                             effectiveStatus = 'Quente 🔥';
                         }
 
-                        // Normalização do Display da Empresa (Evitar @@)
+                        // Normalização do Display da Empresa (Evitar @ extras)
                         const rawCompany = opp.company || '';
                         const companyDisplay = rawCompany.startsWith('@') ? rawCompany : '@' + rawCompany;
 
@@ -2160,16 +2161,13 @@
                         card.innerHTML = `
                         <span class="client-name">${escapeHtml(opp.name)}</span>
                         <span class="company-name">${escapeHtml(companyDisplay)}</span>
-                        <div class="card-status">
-                            <span class="status-dot ${getStatusDotClass(effectiveStatus)}"></span>
-                            <span class="${getStatusTextClass(effectiveStatus)}">${escapeHtml(effectiveStatus)}</span>
-                        </div>
                         <div class="tags-container">
                             ${tags.map(tag => {
                             const tagLower = tag.toLowerCase();
                             let typeClass = '';
                             if (tagLower.includes('quente')) typeClass = 'tag-hot';
                             if (tagLower.includes('maps')) typeClass = 'tag-maps';
+                            if (tagLower.includes('instagram')) typeClass = 'tag-instagram';
                             return `<span class="tag ${typeClass}">${escapeHtml(tag)}</span>`;
                         }).join('')}
                         </div>
