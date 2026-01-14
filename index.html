@@ -1148,6 +1148,7 @@
     <!-- ===== SCRIPT 1: Carregamento de Dados de Captura de Leads ===== -->
     <script>
         let captureSupabase;
+        let captureMetricsInitialized = false;
 
         async function initCaptureSupabase() {
             // Wait for config to load
@@ -1157,7 +1158,7 @@
 
             // Robust waiting for supabaseClient
             let attempts = 0;
-            while (!window.supabaseClient && attempts < 50) {
+            while (!window.supabaseClient && attempts < 100) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 attempts++;
             }
@@ -1167,7 +1168,7 @@
                 console.debug('[initCaptureSupabase] ✅ Supabase inicializado');
                 return true;
             }
-            console.error('[initCaptureSupabase] ❌ Supabase não disponível');
+            console.error('[initCaptureSupabase] ❌ Supabase não disponível após 10s');
             return false;
         }
 
@@ -1269,7 +1270,7 @@
                 const percentages = calculateFunnelPercentages(
                     safeScheduled,
                     safeCompleted,
-                    safeProposals,
+                    safePropostas,
                     safeSales
                 );
 
@@ -1291,7 +1292,7 @@
                     qualificados: safeQualified,
                     reunioes_agendadas: safeScheduled,
                     reunioes_realizadas: safeCompleted,
-                    propostas: safeProposals,
+                    propostas: safePropostas,
                     vendas: safeSales,
                     percentuais: percentages
                 });
@@ -1299,6 +1300,71 @@
                 console.error('[loadCaptureMetrics] ❌ Erro:', err);
             }
         }
+
+        // Subscribe to real-time changes
+        async function subscribeCaptureMetrics() {
+            if (!captureSupabase) return;
+
+            // Real-time: Instagram captures
+            captureSupabase
+                .channel('capture-instagram-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {
+                    console.debug('[RT] Nova captura Instagram');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Maps captures
+            captureSupabase
+                .channel('capture-maps-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {
+                    console.debug('[RT] Nova captura Maps');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Qualified leads
+            captureSupabase
+                .channel('capture-qualified-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_qualificados' }, () => {
+                    console.debug('[RT] Novo lead qualificado');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Opportunities changes
+            captureSupabase
+                .channel('capture-opportunities-rt')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'opportunities' }, () => {
+                    console.debug('[RT] Mudança em opportunities');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+        }
+
+        // Função auxiliar para calcular percentuais do funil
+        function calculateFunnelPercentages(scheduled, completed, proposals, sales) {
+            const maxValue = Math.max(scheduled, completed, proposals, sales, 1);
+            return {
+                scheduled: (scheduled / maxValue) * 100,
+                completed: (completed / maxValue) * 100,
+                proposals: (proposals / maxValue) * 100,
+                sales: (sales / maxValue) * 100
+            };
+        }
+
+        // Initialize quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.debug('[CaptureMetrics] Inicializando...');
+            if (await initCaptureSupabase()) {
+                console.debug('[CaptureMetrics] ✅ Supabase inicializado com sucesso');
+                await loadCaptureMetrics();
+                await subscribeCaptureMetrics();
+                captureMetricsInitialized = true;
+            } else {
+                console.error('[CaptureMetrics] ❌ Falha ao inicializar Supabase');
+            }
+        });
     </script>
     <!-- ===== FIM SCRIPT CAPTURA DE LEADS ===== -->
 
