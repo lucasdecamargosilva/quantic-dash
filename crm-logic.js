@@ -7,9 +7,11 @@ async function initCrmSupabase() {
         await window.CONFIG_LOADED;
     }
 
-    // Wait for auth client to be initialized
-    if (!window.supabaseClient) {
+    // Robust waiting for supabaseClient (up to 5 seconds)
+    let attempts = 0;
+    while (!window.supabaseClient && attempts < 50) {
         await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
     }
 
     if (window.supabaseClient) {

@@ -280,7 +280,8 @@
             try {
                 // AUTH object is defined in auth.js
                 await AUTH.login(email, password);
-                // Success! Redirecting...
+                // Success! Signal that we want to show the loader on the next page
+                sessionStorage.setItem('quantic_show_loader', 'true');
                 window.location.href = 'index.html';
             } catch (err) {
                 console.error(err);

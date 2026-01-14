@@ -13,10 +13,11 @@ async function initSupabase() {
             await window.CONFIG_LOADED;
         }
 
-        // Wait for auth client to be initialized
-        if (!window.supabaseClient) {
-            // Give auth.js time to initialize
+        // Robust waiting for supabaseClient (up to 5 seconds)
+        let attempts = 0;
+        while (!window.supabaseClient && attempts < 50) {
             await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
         }
 
         if (window.supabaseClient) {
@@ -24,7 +25,8 @@ async function initSupabase() {
             window.logDebug("Using Global Supabase Client");
             return true;
         } else {
-            window.logDebug("FAILED: Global Supabase Client missing!");
+            window.logDebug("FAILED: Global Supabase Client missing after 5s!");
+            showToast("Erro de Conexão: Cliente não inicializado", "error");
             return false;
         }
     } catch (e) {
