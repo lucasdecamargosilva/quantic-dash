@@ -2276,6 +2276,23 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             console.debug('[CRM-SCRIPT] DOMContentLoaded -> inicializando board e dados');
+
+            // Pipeline selector listeners
+            document.querySelectorAll('.pipeline-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    const newPipeline = btn.getAttribute('data-pipeline');
+                    if (newPipeline === currentPipeline) return;
+
+                    // UI Update
+                    document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    // Data Update
+                    currentPipeline = newPipeline;
+                    await loadData();
+                };
+            });
+
             try {
                 renderBoard();
                 if (window.CRM_LOGIC) {
