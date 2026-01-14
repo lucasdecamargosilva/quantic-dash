@@ -2231,6 +2231,7 @@
                     btn.classList.add('active');
                     // data-pipeline contém: "starter", "growth", "enterprise"
                     currentPipeline = btn.dataset.pipeline || btn.textContent.trim();
+                    console.debug('Pipeline selecionado:', currentPipeline); // <-- Debug
                     await loadData();
                 });
             });

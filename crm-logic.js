@@ -21,13 +21,19 @@ async function initCrmSupabase() {
     return false;
 }
 
-async function fetchCrmData(pipelineName = 'Quantic Starter') {
+async function fetchCrmData(pipelineName = 'starter') {
 	if (!crmClient) return [];
 
 	try {
-		// Use ILIKE com wildcard para ser tolerante a variações no campo "pipeline"
-		// Ex: 'starter' deve casar com 'Quantic Starter' e vice-versa
-		const pipelineFilter = `%${pipelineName}%`;
+		// Mapeia identificadores curtos para nomes completos do pipeline
+		const pipelineMap = {
+			'starter': 'Quantic Starter',
+			'growth': 'Quantic Growth',
+			'enterprise': 'Quantic Enterprise'
+		};
+
+		// Se receber um identificador curto, converte para nome completo
+		const fullPipelineName = pipelineMap[pipelineName.toLowerCase()] || pipelineName;
 
 		const { data, error } = await crmClient
 			.from('opportunities')
@@ -51,7 +57,7 @@ async function fetchCrmData(pipelineName = 'Quantic Starter') {
                     biggest_difficulty
                 )
             `)
-			.ilike('pipeline', pipelineFilter); // <-- ALTERAÇÃO: antes .eq('pipeline', pipelineName);
+			.eq('pipeline', fullPipelineName); // <-- Usa o nome completo
 
 		if (error) {
 			console.error('Error fetching CRM data:', error);
