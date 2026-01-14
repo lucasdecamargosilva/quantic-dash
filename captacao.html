@@ -953,7 +953,7 @@
 
                     const { data, error } = await supabaseClient
                         .from('leads_google_maps')
-                        .select('id, created_at, empresa, "categoria do negócio", site, telefone')
+                        .select('id, created_at, empresa, categoria_negocio, site, telefone')
                         .order('created_at', { ascending: false });
 
                     if (error) {
@@ -970,7 +970,7 @@
                     data.forEach(lead => {
                         const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
                         const empresa = lead.empresa || 'Sem nome';
-                        const categoria = lead["categoria do negócio"] || '---';
+                        const categoria = lead.categoria_negocio || '---';
                         const site = lead.site || '---';
                         const phone = lead.telefone || '---';
                         const siteUrl = site !== '---' ? (site.startsWith('http') ? site : `https://${site}`) : '#';
