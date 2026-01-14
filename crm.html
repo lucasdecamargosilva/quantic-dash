@@ -1233,346 +1233,6 @@
             background: #1a1a1a;
             color: white;
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        /* Prize Card Styles */
-        .prize-card {
-            background: linear-gradient(135deg, #1e1e2d 0%, #151522 100%);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-lg);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-xl);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .highlight-card {
-            background: linear-gradient(145deg, rgba(139, 92, 246, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-            border: 1px solid rgba(139, 92, 246, 0.2) !important;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .highlight-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(139, 92, 246, 0.4) !important;
-            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
-        }
-
-        .ranking-prize-footer {
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px dashed rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .prize-footer-image {
-            width: 50px;
-            height: 50px;
-            border-radius: 8px;
-            background: #fff;
-            padding: 4px;
-            object-fit: contain;
-        }
-
-        .prize-footer-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .prize-footer-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            letter-spacing: 1px;
-            font-weight: 700;
-        }
-
-        .prize-footer-name {
-            font-size: 16px;
-            font-weight: 800;
-            color: white;
-        }
-
-        .prize-image-wrapper {
-            width: 70px;
-            height: 70px;
-            border-radius: 12px;
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            z-index: 1;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            flex-shrink: 0;
-        }
-
-        .prize-card:hover .prize-image-wrapper {
-            border-color: var(--primary-purple);
-            box-shadow: 0 12px 40px var(--primary-purple-glow);
-            transform: translateY(-8px) scale(1.05);
-        }
-
-        .prize-image {
-            width: 80%;
-            height: 80%;
-            object-fit: contain;
-            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .prize-card:hover .prize-image {
-            transform: scale(1.1) rotate(8deg);
-        }
-
-        .prize-info {
-            z-index: 1;
-        }
-
-        .prize-title {
-            font-size: 14px;
-            color: var(--text-gray);
-            margin-bottom: 4px;
-        }
-
-        .prize-name {
-            font-size: 24px;
-            font-weight: 800;
-            color: white;
-            background: linear-gradient(to right, #fff, var(--primary-purple));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .ranking-badge {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: 800;
-            margin-right: 8px;
-        }
-
-        .ranking-row-1 .ranking-badge {
-            background: #ffd700;
-            color: #000;
-        }
-
-        .ranking-row-2 .ranking-badge {
-            background: #c0c0c0;
-            color: #000;
-        }
-
-        .ranking-row-3 .ranking-badge {
-            background: #cd7f32;
-            color: #000;
-        }
-
-        @keyframes animate-spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .animate-spin {
-            animation: animate-spin 1s linear infinite;
-            display: inline-block;
-        }
-
-        .crm-filters {
-            display: flex;
-            gap: var(--spacing-md);
-            align-items: center;
-        }
-
-        .board-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-xl);
-            gap: var(--spacing-lg);
-            flex-wrap: wrap;
-        }
-
-        .search-wrapper {
-            position: relative;
-            flex: 1;
-            max-width: 400px;
-        }
-
-        .search-input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 10px 16px 10px 42px;
-            color: white;
-            font-family: inherit;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: var(--primary-purple);
-            background: rgba(139, 92, 246, 0.1);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-gray);
-            font-size: 18px;
-        }
-
-        .filter-select {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            color: white;
-            padding: 10px 16px;
-            border-radius: var(--radius-md);
-            font-family: inherit;
-            font-size: 14px;
-            cursor: pointer;
-            min-width: 200px;
-            transition: all 0.3s ease;
-        }
-
-        .filter-select:focus {
-            outline: none;
-            border-color: var(--primary-purple);
-        }
-
-        .filter-select option {
-            background: #1a1a1a;
-            color: white;
-        }
-
-        /* Helpers adicionados para evitar ReferenceError e fornecer logs */
-        function escapeHtml(input) {
-            try {
-                if (input === null || input === undefined) return '';
-                return String(input).replace(/[&<>"'\/]/g, function (s) {
-                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' }[s]);
-                });
-            } catch (e) {
-                console.warn('[escapeHtml] falha ao escapar:', e);
-                return String(input);
-            }
-        }
-
-        function getStatusDotClass(status) {
-            try {
-                if (!status) return 'dot-cold';
-                const s = String(status).toLowerCase();
-                if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'dot-hot';
-                if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'dot-warm';
-                return 'dot-cold';
-            } catch (e) {
-                console.warn('[getStatusDotClass] erro:', e);
-                return 'dot-cold';
-            }
-        }
-
-        function getStatusTextClass(status) {
-            try {
-                if (!status) return 'status-cold';
-                const s = String(status).toLowerCase();
-                if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'status-hot';
-                if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'status-warm';
-                return 'status-cold';
-            } catch (e) {
-                console.warn('[getStatusTextClass] erro:', e);
-                return 'status-cold';
-            }
-        }
-
-        /* Renderização dos gráficos por pipeline (usada por loadData) */
-        function renderChartsOnLoad(summary) {
-            try {
-                console.debug('[CRM-SCRIPT] renderChartsOnLoad', summary);
-                const container = document.getElementById('pipeline-charts-container');
-                if (!container) {
-                    console.warn('[renderChartsOnLoad] container não encontrado');
-                    return;
-                }
-                container.innerHTML = '';
-
-                const pipelineConfig = [
-                    { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
-                    { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
-                    { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
-                ];
-
-                const stagesOrder = (typeof stages !== 'undefined' && Array.isArray(stages)) ? stages : Object.keys((summary && summary.stages && summary.stages.starter) || {});
-
-                pipelineConfig.forEach(pipe => {
-                    const card = document.createElement('div');
-                    card.className = 'chart-card';
-
-                    const pipeData = (summary && summary.stages && summary.stages[pipe.id]) || {};
-                    const maxCount = Math.max(...stagesOrder.map(s => pipeData[s] || 0), 1);
-
-                    let chartRowsHtml = '';
-                    stagesOrder.forEach(stage => {
-                        const count = pipeData[stage] || 0;
-                        const percentage = Math.round((count / maxCount) * 100);
-                        chartRowsHtml += `
-					<div class="chart-row">
-						<span class="chart-stage-name">${escapeHtml(stage)}</span>
-						<div class="chart-bar-bg">
-							<div class="chart-bar-fill ${pipe.barClass}" style="width: ${percentage}%"></div>
-						</div>
-						<span class="chart-count">${count}</span>
-					</div>
-				`;
-                    });
-
-                    card.innerHTML = `
-				<div class="chart-header ${pipe.class}">
-					<i class="ph-fill ${pipe.icon}"></i>
-					<span>${pipe.name}</span>
-				</div>
-				<div class="chart-body">
-					${chartRowsHtml}
-				</div>
-			`;
-                    container.appendChild(card);
-                });
-            } catch (err) {
-                console.error('[renderChartsOnLoad] erro ao renderizar charts:', err);
-                const container = document.getElementById('pipeline-charts-container');
-                if (container) container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar gráficos. Veja console.</div>';
-            }
-        }
     </style>
 </head>
 
@@ -2135,6 +1795,105 @@
                 console.error('[updateResponsibleFilter] erro:', err);
             }
         }
+
+        // ===== MOVED HELPERS (antes de loadData) =====
+        // Funções JavaScript que estavam erroneamente dentro do <style>.
+        function escapeHtml(input) {
+            try {
+                if (input === null || input === undefined) return '';
+                return String(input).replace(/[&<>"'\/]/g, function (s) {
+                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' }[s]);
+                });
+            } catch (e) {
+                console.warn('[escapeHtml] falha ao escapar:', e);
+                return String(input);
+            }
+        }
+
+        function getStatusDotClass(status) {
+            try {
+                if (!status) return 'dot-cold';
+                const s = String(status).toLowerCase();
+                if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'dot-hot';
+                if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'dot-warm';
+                return 'dot-cold';
+            } catch (e) {
+                console.warn('[getStatusDotClass] erro:', e);
+                return 'dot-cold';
+            }
+        }
+
+        function getStatusTextClass(status) {
+            try {
+                if (!status) return 'status-cold';
+                const s = String(status).toLowerCase();
+                if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'status-hot';
+                if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'status-warm';
+                return 'status-cold';
+            } catch (e) {
+                console.warn('[getStatusTextClass] erro:', e);
+                return 'status-cold';
+            }
+        }
+
+        function renderChartsOnLoad(summary) {
+            try {
+                console.debug('[CRM-SCRIPT] renderChartsOnLoad', summary);
+                const container = document.getElementById('pipeline-charts-container');
+                if (!container) {
+                    console.warn('[renderChartsOnLoad] container não encontrado');
+                    return;
+                }
+                container.innerHTML = '';
+
+                const pipelineConfig = [
+                    { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
+                    { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
+                    { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
+                ];
+
+                const stagesOrder = (typeof stages !== 'undefined' && Array.isArray(stages)) ? stages : Object.keys((summary && summary.stages && summary.stages.starter) || {});
+
+                pipelineConfig.forEach(pipe => {
+                    const card = document.createElement('div');
+                    card.className = 'chart-card';
+
+                    const pipeData = (summary && summary.stages && summary.stages[pipe.id]) || {};
+                    const maxCount = Math.max(...stagesOrder.map(s => pipeData[s] || 0), 1);
+
+                    let chartRowsHtml = '';
+                    stagesOrder.forEach(stage => {
+                        const count = pipeData[stage] || 0;
+                        const percentage = Math.round((count / maxCount) * 100);
+                        chartRowsHtml += `
+						<div class="chart-row">
+							<span class="chart-stage-name">${escapeHtml(stage)}</span>
+							<div class="chart-bar-bg">
+								<div class="chart-bar-fill ${pipe.barClass}" style="width: ${percentage}%"></div>
+							</div>
+							<span class="chart-count">${count}</span>
+						</div>
+					`;
+                    });
+
+                    card.innerHTML = `
+					<div class="chart-header ${pipe.class}">
+						<i class="ph-fill ${pipe.icon}"></i>
+						<span>${pipe.name}</span>
+					</div>
+					<div class="chart-body">
+						${chartRowsHtml}
+					</div>
+				`;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                console.error('[renderChartsOnLoad] erro ao renderizar charts:', err);
+                const container = document.getElementById('pipeline-charts-container');
+                if (container) container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar gráficos. Veja console.</div>';
+            }
+        }
+        // ===== FIM MOVED HELPERS =====
 
         async function loadData() {
             // carrega summary padrão via CRM_LOGIC (mantém comportamento já existente)
