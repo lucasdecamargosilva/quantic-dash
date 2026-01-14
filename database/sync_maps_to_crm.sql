@@ -46,7 +46,8 @@ BEGIN
       stage, 
       pipeline, 
       responsible_name, 
-      tags, 
+      tags,
+      lead_status,
       created_at,
       updated_at
     )
@@ -55,7 +56,8 @@ BEGIN
       default_stage,
       default_pipeline,
       'Sistema',
-      'Lead Google Maps,Automático',
+      'Lead Google Maps,Automático,quente',
+      'Quente',
       NOW(),
       NOW()
     );
@@ -115,7 +117,8 @@ BEGIN
         stage, 
         pipeline, 
         responsible_name, 
-        tags, 
+        tags,
+        lead_status,
         created_at,
         updated_at
       )
@@ -124,7 +127,8 @@ BEGIN
         'Contato',
         'Quantic Starter',
         'Sistema',
-        'Lead Google Maps,Backfill',
+        'Lead Google Maps,Backfill,quente',
+        'Quente',
         NOW(),
         NOW()
       );
