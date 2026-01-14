@@ -58,7 +58,7 @@ BEGIN
         default_stage,
         default_pipeline,
         'Sistema',
-        ARRAY['Lead Google Maps', 'Automático', 'quente']::text[],
+        ARRAY['GOOGLE MAPS', 'Automático', 'QUENTE 🔥']::text[],
         'Quente',
         NOW(),
         NOW()
@@ -133,7 +133,7 @@ BEGIN
           'Contato',
           'Quantic Starter',
           'Sistema',
-          ARRAY['Lead Google Maps', 'Backfill', 'quente']::text[],
+          ARRAY['GOOGLE MAPS', 'QUENTE 🔥']::text[],
           'Quente',
           NOW(),
           NOW()

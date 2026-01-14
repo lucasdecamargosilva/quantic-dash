@@ -461,6 +461,16 @@
             text-transform: uppercase;
         }
 
+        .tag-hot {
+            background: #10b981 !important;
+            color: white !important;
+        }
+
+        .tag-maps {
+            background: #fbbf24 !important;
+            color: #0b0b15 !important;
+        }
+
         /* Updated Modal Layout - Split View */
         .modal-body-split {
             display: grid;
@@ -2123,7 +2133,13 @@
                             <span class="${getStatusTextClass(opp.lead_status)}">${escapeHtml(opp.lead_status || '---')}</span>
                         </div>
                         <div class="tags-container">
-                            ${(opp.tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+                            ${(opp.tags || []).map(tag => {
+                            const tagLower = tag.toLowerCase();
+                            let typeClass = '';
+                            if (tagLower.includes('quente')) typeClass = 'tag-hot';
+                            if (tagLower.includes('maps')) typeClass = 'tag-maps';
+                            return `<span class="tag ${typeClass}">${escapeHtml(tag)}</span>`;
+                        }).join('')}
                         </div>
                         <div class="responsible-badge">
                             <i class="ph-fill ph-user-circle"></i>
