@@ -969,18 +969,23 @@
                     tbody.innerHTML = '';
                     data.forEach(lead => {
                         const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
-                        const empresa = lead.empresa || 'Sem nome';
+                        let empresa = lead.empresa || 'Sem nome';
                         const categoria = lead.categoria_negocio || '---';
                         const site = lead.site || '---';
                         const phone = lead.telefone || '---';
                         const siteUrl = site !== '---' ? (site.startsWith('http') ? site : `https://${site}`) : '#';
+
+                        // Truncar nome da empresa se for muito longo
+                        const empresaExibicao = empresa.length > 40 ? empresa.substring(0, 37) + '...' : empresa;
 
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td>
                                 <div class="profile-info">
                                     <div class="profile-avatar" style="background: var(--primary-purple);">${escapeHtml(empresa[0])}</div>
-                                    <strong>${escapeHtml(empresa)}</strong>
+                                    <strong title="${escapeHtml(empresa)}" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        ${escapeHtml(empresaExibicao)}
+                                    </strong>
                                 </div>
                             </td>
                             <td style="font-size: 13px; color: var(--text-gray);">${escapeHtml(categoria)}</td>
