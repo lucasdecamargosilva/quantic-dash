@@ -29,7 +29,7 @@ BEGIN
       created_at
     )
     VALUES (
-      COALESCE(NEW.empresa, 'Lead Google Maps'),
+      COALESCE(NEW.empresa, 'Google Maps'),
       NEW.empresa,
       CASE WHEN NEW.telefone::text = '' THEN NULL ELSE NEW.telefone::text END,
       NULL,
@@ -104,7 +104,7 @@ BEGIN
         created_at
       )
       VALUES (
-        COALESCE(r.empresa, 'Lead Google Maps'),
+        COALESCE(r.empresa, 'Google Maps'),
         r.empresa,
         CASE WHEN r.telefone::text = '' THEN NULL ELSE r.telefone::text END,
         NULL,
