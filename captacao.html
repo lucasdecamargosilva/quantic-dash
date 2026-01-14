@@ -424,17 +424,17 @@
                                     <label>Canal de Origem</label>
                                     <div class="channel-selector"
                                         style="grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0;">
-                                        <div class="channel-btn active"
+                                        <div class="channel-btn active" id="channel-instagram"
                                             style="padding: 12px; height: 100%; justify-content: center;">
                                             <i class="ph-fill ph-instagram-logo" style="font-size: 32px;"></i>
+                                        </div>
+                                        <div class="channel-btn" id="channel-maps"
+                                            style="padding: 12px; height: 100%; justify-content: center;">
+                                            <i class="ph-fill ph-map-pin" style="font-size: 32px;"></i>
                                         </div>
                                         <div class="channel-btn disabled"
                                             style="padding: 12px; height: 100%; justify-content: center;">
                                             <i class="ph-fill ph-linkedin-logo" style="font-size: 32px;"></i>
-                                        </div>
-                                        <div class="channel-btn disabled"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-google-logo" style="font-size: 32px;"></i>
                                         </div>
                                         <div class="channel-btn disabled"
                                             style="padding: 12px; height: 100%; justify-content: center;">
@@ -450,7 +450,7 @@
                             </div>
 
                             <!-- Right: Inputs -->
-                            <div
+                            <div id="instagramInputs"
                                 style="display: flex; flex-direction: column; gap: 16px; justify-content: space-between;">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label>URL do Perfil Alvo</label>
@@ -461,6 +461,27 @@
                                     <label>Cookie de Sessão</label>
                                     <input type="text" id="sessionCookie" class="input-field"
                                         placeholder="Cole seu cookie aqui..." style="padding: 10px;">
+                                </div>
+                            </div>
+
+                            <div id="mapsInputs"
+                                style="display: none; flex-direction: column; gap: 16px; justify-content: space-between;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>Termo de Pesquisa</label>
+                                    <input type="text" id="mapsQuery" class="input-field"
+                                        placeholder="Ex: Restaurantes, Academias..." style="padding: 10px;">
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label>Local</label>
+                                        <input type="text" id="mapsLocation" class="input-field"
+                                            placeholder="Ex: São Paulo, SP" style="padding: 10px;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label>Número de Leads</label>
+                                        <input type="number" id="mapsCount" class="input-field" placeholder="Ex: 50"
+                                            style="padding: 10px;" value="20">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -573,6 +594,24 @@
     <script src="script.js"></script>
     <script>
         const btnCapture = document.getElementById('startCapture');
+        let activeChannel = 'instagram';
+
+        // Lógica de troca de canais
+        document.getElementById('channel-instagram').onclick = () => {
+            activeChannel = 'instagram';
+            document.getElementById('channel-instagram').classList.add('active');
+            document.getElementById('channel-maps').classList.remove('active');
+            document.getElementById('instagramInputs').style.display = 'flex';
+            document.getElementById('mapsInputs').style.display = 'none';
+        };
+
+        document.getElementById('channel-maps').onclick = () => {
+            activeChannel = 'maps';
+            document.getElementById('channel-maps').classList.add('active');
+            document.getElementById('channel-instagram').classList.remove('active');
+            document.getElementById('instagramInputs').style.display = 'none';
+            document.getElementById('mapsInputs').style.display = 'flex';
+        };
 
         // Toggle para expandir/recolher histórico de leads brutos
         function toggleRawLeadsHistory() {
@@ -969,12 +1008,34 @@
         }
 
         btnCapture.onclick = async () => {
-            const targetUrl = document.getElementById('targetUrl').value;
-            const sessionCookie = document.getElementById('sessionCookie').value;
+            let webhookUrl = '';
+            let body = {};
 
-            if (!targetUrl) {
-                showToast("Por favor, preencha a URL do Perfil Alvo.");
-                return;
+            if (activeChannel === 'instagram') {
+                const targetUrl = document.getElementById('targetUrl').value;
+                const sessionCookie = document.getElementById('sessionCookie').value;
+
+                if (!targetUrl) {
+                    showToast("Por favor, preencha a URL do Perfil Alvo.");
+                    return;
+                }
+                webhookUrl = 'https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic';
+                body = { targetUrl, sessionCookie };
+            } else {
+                const termo = document.getElementById('mapsQuery').value;
+                const local = document.getElementById('mapsLocation').value;
+                const leads = document.getElementById('mapsCount').value;
+
+                if (!termo || !local) {
+                    showToast("Por favor, preencha o Termo e o Local.");
+                    return;
+                }
+                webhookUrl = 'https://n8n.segredosdodrop.com/webhook/recebe-dados-maps';
+                body = {
+                    "Termo de Pesquisa": termo,
+                    "Local": local,
+                    "Numero de Leads": leads
+                };
             }
 
             try {
@@ -986,10 +1047,10 @@
                 setIAHistoryLoading(true);
 
                 // 3) Dispara o processo (gatilho)
-                const response = await fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
+                const response = await fetch(webhookUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetUrl, sessionCookie })
+                    body: JSON.stringify(body)
                 });
 
                 if (!response.ok) {
