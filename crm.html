@@ -992,75 +992,70 @@
                 }
                 console.debug('[CRM-AUTO] Supabase inicializado');
 
-                // Função utilitária para gerar cards de resumo simples
+                // Ordem fixa de etapas (para manter colunas consistentes como no design)
+                const STAGE_ORDER = [
+                    'Contato',
+                    'Mensagem Enviada',
+                    'Mensagem Enviada 2',
+                    'Mensagem Enviada 3',
+                    'Conexão',
+                    'Reunião Agendada',
+                    'Reunião Realizada',
+                    'Proposta Enviada',
+                    'Venda Realizada',
+                    'Perdida'
+                ];
+
+                // Mapeamento simples de nomes de botão -> chave de pipeline usada por fetchCrmData
+                function pipelineKeyFromLabel(label) {
+                    const l = (label || '').toLowerCase();
+                    if (l.includes('starter')) return 'starter';
+                    if (l.includes('growth')) return 'growth';
+                    if (l.includes('enterprise')) return 'enterprise';
+                    return 'starter';
+                }
+
+                // Render Summary com ícones e número grande (similar ao print)
                 function renderSummary(summary) {
                     console.debug('[CRM-AUTO] renderSummary:', summary);
                     const el = document.getElementById('crmSummary');
                     if (!el) return;
                     el.innerHTML = '';
-                    const createCard = (label, value) => {
+                    const cards = [
+                        { label: 'Quantic Starter', icon: '🚀', value: summary.total?.starter || 0 },
+                        { label: 'Quantic Growth', icon: '📈', value: summary.total?.growth || 0 },
+                        { label: 'Quantic Enterprise', icon: '🏢', value: summary.total?.enterprise || 0 }
+                    ];
+                    cards.forEach(c => {
                         const d = document.createElement('div');
                         d.className = 'summary-card';
-                        d.innerHTML = `<div class="summary-icon">${label[0]}</div>
-					<div class="summary-info"><h3>${label}</h3><div class="value">${value}</div></div>`;
-                        return d;
-                    };
-                    el.appendChild(createCard('Starter', summary.total?.starter || 0));
-                    el.appendChild(createCard('Growth', summary.total?.growth || 0));
-                    el.appendChild(createCard('Enterprise', summary.total?.enterprise || 0));
-                }
-
-                // Função utilitária para renderizar board (columns)
-                function renderBoard(items) {
-                    console.debug('[CRM-AUTO] renderBoard items count:', items.length);
-                    const board = document.getElementById('crmBoard');
-                    if (!board) return;
-                    board.innerHTML = '';
-                    const stages = {};
-                    items.forEach(i => {
-                        const s = i.stage || 'Sem Etapa';
-                        (stages[s] = stages[s] || []).push(i);
-                    });
-                    Object.keys(stages).forEach(stage => {
-                        const col = document.createElement('div');
-                        col.className = 'crm-column';
-                        col.innerHTML = `<div class="column-header"><h3>${stage}</h3><div class="opportunity-count">${stages[stage].length}</div></div>`;
-                        const list = document.createElement('div');
-                        list.className = 'opportunity-list';
-                        stages[stage].forEach(op => {
-                            const card = document.createElement('div');
-                            card.className = 'opportunity-card';
-                            card.innerHTML = `
-						<div>
-							<span class="client-name">${op.name || 'Sem Nome'}</span>
-							<span class="company-name">${op.company || 'Sem Empresa'}</span>
-						</div>
-						<div class="tags-container">${(op.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
-						<div class="responsible-badge"><i class="ph-fill ph-user"></i> ${op.responsible || 'Não atribuído'}</div>
-					`;
-                            list.appendChild(card);
-                        });
-                        col.appendChild(list);
-                        board.appendChild(col);
+                        d.innerHTML = `
+					<div class="summary-icon" aria-hidden>${c.icon}</div>
+					<div class="summary-info">
+						<h3>${c.label}</h3>
+						<div class="value">${c.value}</div>
+					</div>
+				`;
+                        el.appendChild(d);
                     });
                 }
 
-                // Função utilitária para renderizar charts simples a partir do summary
+                // Render charts simples a partir do summary (mantém visual de 3 painéis)
                 function renderCharts(summary) {
                     console.debug('[CRM-AUTO] renderCharts:', summary);
                     const el = document.getElementById('pipelineCharts');
                     if (!el) return;
                     el.innerHTML = '';
-                    const stages = summary.stages || {};
+                    const stagesObj = summary.stages || {};
                     ['starter', 'growth', 'enterprise'].forEach(pipe => {
                         const card = document.createElement('div');
                         card.className = 'chart-card';
-                        let html = `<div class="chart-header">${pipe.toUpperCase()}</div>`;
-                        const sObj = stages[pipe] || {};
-                        const total = Object.values(sObj).reduce((a, b) => a + b, 0) || 1;
-                        Object.keys(sObj).forEach(stageName => {
-                            const cnt = sObj[stageName];
-                            const pct = Math.round((cnt / total) * 100);
+                        let html = `<div class="chart-header">${(pipe === 'starter' ? 'Quantic Starter' : pipe === 'growth' ? 'Quantic Growth' : 'Quantic Enterprise')}</div>`;
+                        const sObj = stagesObj[pipe] || {};
+                        // mostra todas as etapas na ordem definida
+                        STAGE_ORDER.forEach(stageName => {
+                            const cnt = sObj[stageName] || 0;
+                            const pct = 0; // barra proporcional pode ser ajustada conforme necessidade
                             html += `<div class="chart-row">
 						<div class="chart-stage-name">${stageName}</div>
 						<div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%"></div></div>
@@ -1072,35 +1067,83 @@
                     });
                 }
 
-                // Carrega summary e dados iniciais (pipeline "starter")
-                const summary = await window.CRM_LOGIC.fetchPipelineSummary();
-                console.debug('[CRM-AUTO] fetchPipelineSummary ->', summary);
-                renderSummary(summary);
-                renderCharts(summary);
+                // Render board com colunas na ordem STAGE_ORDER (cria colunas vazias quando necessário)
+                function renderBoard(items) {
+                    console.debug('[CRM-AUTO] renderBoard items count:', items.length);
+                    const board = document.getElementById('crmBoard');
+                    if (!board) return;
+                    board.innerHTML = '';
 
-                // Escolhe pipeline inicial (starter)
-                const pipelineKey = 'starter';
-                let items = await window.CRM_LOGIC.fetchCrmData(pipelineKey);
-                console.debug(`[CRM-AUTO] fetchCrmData("${pipelineKey}") ->`, items);
-                renderBoard(items);
+                    // Agrupa por etapa
+                    const groups = {};
+                    items.forEach(i => {
+                        const s = i.stage || 'Contato';
+                        (groups[s] = groups[s] || []).push(i);
+                    });
 
-                // Recarrega e renderiza sob demanda (real-time)
-                const reloadAndRender = async () => {
+                    STAGE_ORDER.forEach(stage => {
+                        const col = document.createElement('div');
+                        col.className = 'crm-column';
+                        const count = (groups[stage] || []).length;
+                        col.innerHTML = `<div class="column-header"><h3>${stage}</h3><div class="opportunity-count">${count}</div></div>`;
+                        const list = document.createElement('div');
+                        list.className = 'opportunity-list';
+                        (groups[stage] || []).forEach(op => {
+                            const card = document.createElement('div');
+                            card.className = 'opportunity-card';
+                            card.innerHTML = `
+						<div>
+							<span class="client-name">${op.name || 'Sem Nome'}</span>
+							<span class="company-name">${op.company || ''}</span>
+						</div>
+						<div class="tags-container">${(op.tags || []).slice(0,3).map(t => `<span class="tag">${t}</span>`).join('')}</div>
+						<div class="responsible-badge"><i class="ph-fill ph-user"></i> ${op.responsible || 'Não atribuído'}</div>
+					`;
+                            list.appendChild(card);
+                        });
+                        col.appendChild(list);
+                        board.appendChild(col);
+                    });
+                }
+
+                // Função principal de load para um pipeline
+                async function loadPipeline(pipelineLabelOrKey) {
+                    const key = pipelineKeyFromLabel(pipelineLabelOrKey);
+                    console.debug('[CRM-AUTO] carregando pipeline:', pipelineLabelOrKey, '-> key:', key);
                     try {
-                        console.debug('[CRM-AUTO] reloadAndRender acionado');
-                        const newSummary = await window.CRM_LOGIC.fetchPipelineSummary();
-                        console.debug('[CRM-AUTO] novo summary ->', newSummary);
-                        renderSummary(newSummary);
-                        renderCharts(newSummary);
-                        const newItems = await window.CRM_LOGIC.fetchCrmData(pipelineKey);
-                        console.debug('[CRM-AUTO] novos items ->', newItems);
-                        renderBoard(newItems);
+                        const summary = await window.CRM_LOGIC.fetchPipelineSummary();
+                        console.debug('[CRM-AUTO] summary ->', summary);
+                        renderSummary(summary);
+                        renderCharts(summary);
+
+                        const items = await window.CRM_LOGIC.fetchCrmData(key);
+                        console.debug(`[CRM-AUTO] items (${key}) ->`, items);
+                        renderBoard(items);
                     } catch (e) {
-                        console.error('[CRM-AUTO] erro reloadAndRender', e);
+                        console.error('[CRM-AUTO] erro loadPipeline', e);
                     }
+                }
+
+                // Inicial load (starter)
+                await loadPipeline('Quantic Starter');
+
+                // Hook: pipeline buttons
+                document.querySelectorAll('.pipeline-btn').forEach(btn => {
+                    btn.addEventListener('click', async (ev) => {
+                        document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        const label = btn.dataset.pipeline || btn.textContent;
+                        console.debug('[CRM-AUTO] pipeline button clicked:', label);
+                        await loadPipeline(label);
+                    });
+                });
+
+                // Recarrega quando houver mudanças realtime
+                const reloadAndRender = async () => {
+                    console.debug('[CRM-AUTO] reloadAndRender acionado');
+                    await loadPipeline(document.querySelector('.pipeline-btn.active')?.dataset?.pipeline || 'Quantic Starter');
                 };
 
-                // Inscreve-se em mudanças realtime fornecidas pelo módulo CRM
                 if (window.CRM_LOGIC.subscribeToCrmChanges) {
                     window.CRM_LOGIC.subscribeToCrmChanges(() => {
                         console.debug('[CRM-AUTO] realtime change detected, atualizando...');
