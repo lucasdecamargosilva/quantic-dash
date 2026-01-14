@@ -487,7 +487,8 @@
         }
 
         .tag-instagram {
-            background: linear-gradient(45deg, #f09433, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888) !important;
+            background: #3b82f6 !important;
+            /* Azul sólido */
             color: white !important;
         }
 
@@ -2140,12 +2141,7 @@
                         const card = document.createElement('div');
                         const pipelineClass = `strip-${currentPipeline || 'starter'}`;
 
-                        // Normalização do Status (Sincronizar Dot/Text com Tags se estiver vazio)
-                        let effectiveStatus = opp.lead_status || '---';
                         const tags = opp.tags || [];
-                        if ((effectiveStatus === '---') && tags.some(t => t.toLowerCase().includes('quente'))) {
-                            effectiveStatus = 'Quente 🔥';
-                        }
 
                         // Normalização do Display da Empresa (Evitar @ extras)
                         const rawCompany = opp.company || '';
@@ -2158,11 +2154,26 @@
                         card.ondragend = handleDragEnd;
                         card.onclick = () => openLeadDetails(opp);
 
+                        // Tags Dinâmicas (Garantir tags de canal e status mesmo se não estiverem no banco)
+                        let displayTags = [...tags];
+                        const channel = (opp.channels || '').toLowerCase();
+                        const status = (opp.lead_status || '').toLowerCase();
+
+                        // Adiciona tag INSTAGRAM se for do canal instagram
+                        if (channel.includes('instagram') && !displayTags.some(t => t.toUpperCase() === 'INSTAGRAM')) {
+                            displayTags.push('INSTAGRAM');
+                        }
+
+                        // Adiciona tag QUENTE 🔥 se status for quente (compatível com leads do instagram sem tag)
+                        if ((status.includes('quente') || status.includes('hot')) && !displayTags.some(t => t.toLowerCase().includes('quente'))) {
+                            displayTags.push('QUENTE 🔥');
+                        }
+
                         card.innerHTML = `
                         <span class="client-name">${escapeHtml(opp.name)}</span>
                         <span class="company-name">${escapeHtml(companyDisplay)}</span>
                         <div class="tags-container">
-                            ${tags.map(tag => {
+                            ${displayTags.map(tag => {
                             const tagLower = tag.toLowerCase();
                             let typeClass = '';
                             if (tagLower.includes('quente')) typeClass = 'tag-hot';
