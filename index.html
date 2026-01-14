@@ -889,7 +889,7 @@
                     .eq('stage', 'Proposta Enviada');
 
                 const safeProposals = proposalsCount || 0;
-                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safePropostas, 'erro:', err6);
+                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safeProposals, 'erro:', err6);
 
                 // 7. Funil - Vendas Realizadas
                 const { count: salesCount, error: err7 } = await captureSupabase
@@ -922,14 +922,14 @@
 
                 if (scheduledCountEl) scheduledCountEl.textContent = safeScheduled.toString();
                 if (completedCountEl) completedCountEl.textContent = safeCompleted.toString();
-                if (proposalsCountEl) proposalsCountEl.textContent = safePropostas.toString();
+                if (proposalsCountEl) proposalsCountEl.textContent = safeProposals.toString();
                 if (salesCountEl) salesCountEl.textContent = safeSales.toString();
 
                 // Calcular percentuais para as barras do funil
                 const percentages = calculateFunnelPercentages(
                     safeScheduled,
                     safeCompleted,
-                    safePropostas,
+                    safeProposals,
                     safeSales
                 );
 
@@ -941,7 +941,7 @@
 
                 if (bar1) bar1.style.width = percentages.scheduled + '%';
                 if (bar2) bar2.style.width = percentages.completed + '%';
-                if (bar3) bar3.style.width = percentages.propostas + '%';
+                if (bar3) bar3.style.width = percentages.proposals + '%';
                 if (bar4) bar4.style.width = percentages.sales + '%';
 
                 console.debug('[loadCaptureMetrics] ✅ Todos os dados atualizados:', {
@@ -951,7 +951,7 @@
                     qualificados: safeQualified,
                     reunioes_agendadas: safeScheduled,
                     reunioes_realizadas: safeCompleted,
-                    propostas: safePropostas,
+                    propostas: safeProposals,
                     vendas: safeSales,
                     percentuais: percentages
                 });
@@ -1007,7 +1007,7 @@
             return {
                 scheduled: (scheduled / maxValue) * 100,
                 completed: (completed / maxValue) * 100,
-                proposals: (propostas / maxValue) * 100,
+                proposals: (proposals / maxValue) * 100,
                 sales: (sales / maxValue) * 100
             };
         }

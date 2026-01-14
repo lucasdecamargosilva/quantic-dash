@@ -57,6 +57,7 @@
             overflow-x: auto;
             padding-bottom: var(--spacing-lg);
             min-height: 600px;
+            align-items: flex-start;
             scrollbar-width: thin;
             scrollbar-color: var(--primary-purple) var(--bg-dark);
         }
@@ -71,6 +72,7 @@
         }
 
         .crm-column {
+            flex: 0 0 300px;
             min-width: 280px;
             width: 280px;
             background: rgba(255, 255, 255, 0.02);
@@ -80,6 +82,7 @@
             gap: var(--spacing-md);
             padding: var(--spacing-sm);
             border: 1px solid var(--border-color);
+            align-items: stretch;
         }
 
         .column-header {
@@ -196,7 +199,7 @@
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 10000;
+            z-index: 12000;
             animation: fadeIn 0.3s ease;
         }
 
