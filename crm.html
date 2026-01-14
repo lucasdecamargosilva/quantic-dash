@@ -248,12 +248,17 @@
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 16px;
+            padding: 14px;
             cursor: grab;
             transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            /* Prevent squeezing when many items exist */
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .opportunity-card::before {
@@ -271,8 +276,8 @@
         .opportunity-card:hover {
             border-color: rgba(139, 92, 246, 0.5);
             transform: translateY(-3px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
         }
 
         .opportunity-card:hover::before {
@@ -281,24 +286,24 @@
 
         .opportunity-card .client-name {
             font-weight: 700;
-            font-size: 14px;
-            margin-bottom: 2px;
+            font-size: 13.5px;
+            margin-bottom: 0;
             display: block;
             color: var(--text-white);
             letter-spacing: -0.01em;
-            line-height: 1.3;
+            line-height: 1.2;
         }
 
         .opportunity-card .company-name {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-gray);
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             display: block;
-            opacity: 0.8;
+            opacity: 0.6;
         }
 
         .opportunity-card .revenue {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--secondary-green);
             display: flex;
@@ -307,16 +312,17 @@
         }
 
         .opportunity-card .revenue i {
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .opportunity-card.dragging {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: grabbing;
+            transform: scale(0.95);
         }
 
         .opportunity-list.drag-over {
-            background: rgba(139, 92, 246, 0.05);
+            background: rgba(139, 92, 246, 0.08);
             border-radius: var(--radius-md);
         }
 
