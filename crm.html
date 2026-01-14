@@ -1723,8 +1723,74 @@
         ];
 
         let draggedLeadId = null;
-        // Use o identificador curto (coerente com data-pipeline nos botões)
         let currentPipeline = 'starter';
+
+        // ===== HELPER FUNCTIONS (MISSING) =====
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getStatusDotClass(status) {
+            if (!status) return 'dot-cold';
+            const s = status.toLowerCase();
+            if (s.includes('quente') || s.includes('hot')) return 'dot-hot';
+            if (s.includes('morno') || s.includes('warm')) return 'dot-warm';
+            return 'dot-cold';
+        }
+
+        function getStatusTextClass(status) {
+            if (!status) return 'status-cold';
+            const s = status.toLowerCase();
+            if (s.includes('quente') || s.includes('hot')) return 'status-hot';
+            if (s.includes('morno') || s.includes('warm')) return 'status-warm';
+            return 'status-cold';
+        }
+
+        function renderRanking(containerId, data, title, icon, colorClass, barClass, prize) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            if (!data || Object.keys(data).length === 0) {
+                container.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-muted);">Sem dados de ranking</div>`;
+                return;
+            }
+
+            const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+
+            sorted.forEach((entry, idx) => {
+                const [name, count] = entry;
+                const rowClass = idx === 0 ? 'ranking-row-1' : idx === 1 ? 'ranking-row-2' : idx === 2 ? 'ranking-row-3' : '';
+
+                const card = document.createElement('div');
+                card.className = `prize-card highlight-card ${rowClass}`;
+                card.innerHTML = `
+                    <div class="ranking-badge">${idx + 1}</div>
+                    <div class="prize-image-wrapper">
+                        <img src="${prize.image}" alt="${prize.name}" class="prize-image">
+                    </div>
+                    <div class="prize-info">
+                        <div class="prize-title">${name}</div>
+                        <div class="prize-name">${count} ${title.includes('Vendas') ? 'Vendas' : 'Reuniões'}</div>
+                    </div>
+                    ${idx === 0 ? `
+                    <div class="ranking-prize-footer">
+                        <img src="${prize.image}" alt="${prize.name}" class="prize-footer-image">
+                        <div class="prize-footer-info">
+                            <div class="prize-footer-label">${prize.label}</div>
+                            <div class="prize-footer-name">${prize.name}</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+                container.appendChild(card);
+            });
+        }
+        // ===== END HELPER FUNCTIONS =====
 
         function renderBoard() {
             const board = document.getElementById('crm-board');
@@ -1973,10 +2039,18 @@
         setupCopy('copy-email', 'email');
 
         async function loadData() {
-            if (!window.CRM_LOGIC) return;
+            if (!window.CRM_LOGIC) {
+                console.error('[loadData] CRM_LOGIC não está disponível');
+                return;
+            }
+
+            console.debug('[loadData] Iniciando carregamento de dados...');
+            console.debug('[loadData] Pipeline atual:', currentPipeline);
 
             // 1. Load Global Summary and Stage Distribution
             const summary = await CRM_LOGIC.fetchPipelineSummary();
+            console.debug('[loadData] Summary carregado:', summary);
+
             document.getElementById('total-starter').textContent = summary.total.starter;
             document.getElementById('total-growth').textContent = summary.total.growth;
             document.getElementById('total-enterprise').textContent = summary.total.enterprise;
@@ -1986,6 +2060,9 @@
 
             // 2. Load Board for current pipeline
             const leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
+            console.debug('[loadData] Leads carregados para pipeline:', currentPipeline, 'Total:', leads.length);
+            console.debug('[loadData] Dados dos leads:', leads);
+
             window.allLeads = leads;
             renderLeads(leads);
 
@@ -2027,6 +2104,10 @@
             const searchTerm = document.getElementById('crmSearch').value.toLowerCase();
             const respFilter = document.getElementById('responsibleFilter').value;
 
+            console.debug('[renderLeads] Total leads recebidos:', leads.length);
+            console.debug('[renderLeads] Filtro de responsável:', respFilter);
+            console.debug('[renderLeads] Termo de busca:', searchTerm);
+
             // Filter leads
             const filteredLeads = leads.filter(opp => {
                 const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
@@ -2034,6 +2115,8 @@
                 const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
                 return matchesSearch && matchesResp;
             });
+
+            console.debug('[renderLeads] Leads após filtro:', filteredLeads.length);
 
             // Clear lists
             document.querySelectorAll('.opportunity-list').forEach(list => {
@@ -2044,6 +2127,8 @@
             filteredLeads.forEach(opp => {
                 const listId = `list-${opp.stage.replace(/\s+/g, '-')}`;
                 const list = document.getElementById(listId);
+                console.debug(`[renderLeads] Tentando renderizar ${opp.name} na stage ${opp.stage} (listId: ${listId})`);
+
                 if (list) {
                     const card = document.createElement('div');
                     card.className = 'opportunity-card';
@@ -2069,6 +2154,9 @@
                         </div>
                     `;
                     list.appendChild(card);
+                    console.debug(`[renderLeads] ✅ Card renderizado para ${opp.name}`);
+                } else {
+                    console.warn(`[renderLeads] ❌ Lista não encontrada: ${listId}`);
                 }
             });
 
@@ -2217,11 +2305,15 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            console.debug('[DOMContentLoaded] Iniciando...');
             renderBoard();
 
             if (window.CRM_LOGIC && await CRM_LOGIC.initCrmSupabase()) {
+                console.debug('[DOMContentLoaded] Supabase inicializado com sucesso');
                 await loadData();
                 CRM_LOGIC.subscribeToCrmChanges(() => loadData());
+            } else {
+                console.error('[DOMContentLoaded] Falha ao inicializar Supabase');
             }
 
             // Use o atributo data-pipeline para definir qual pipeline carregar (mais confiável)
@@ -2229,9 +2321,8 @@
                 btn.addEventListener('click', async () => {
                     document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-                    // data-pipeline contém: "starter", "growth", "enterprise"
                     currentPipeline = btn.dataset.pipeline || btn.textContent.trim();
-                    console.debug('Pipeline selecionado:', currentPipeline); // <-- Debug
+                    console.debug('[Pipeline Button Click] Pipeline selecionado:', currentPipeline);
                     await loadData();
                 });
             });
