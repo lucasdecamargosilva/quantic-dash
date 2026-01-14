@@ -978,20 +978,25 @@
                         // Truncar nome da empresa se for muito longo
                         const empresaExibicao = empresa.length > 40 ? empresa.substring(0, 37) + '...' : empresa;
 
+                        // Truncar site se for muito longo
+                        const siteExibicao = site.length > 30 ? site.substring(0, 27) + '...' : site;
+
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td>
                                 <div class="profile-info">
                                     <div class="profile-avatar" style="background: var(--primary-purple);">${escapeHtml(empresa[0])}</div>
-                                    <strong title="${escapeHtml(empresa)}" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <strong title="${escapeHtml(empresa)}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                         ${escapeHtml(empresaExibicao)}
                                     </strong>
                                 </div>
                             </td>
-                            <td style="font-size: 13px; color: var(--text-gray);">${escapeHtml(categoria)}</td>
-                            <td>${site !== '---' ? `<a href="${siteUrl}" target="_blank" class="profile-link">${escapeHtml(site)}</a>` : '---'}</td>
-                            <td style="font-size: 13px;">${escapeHtml(phone)}</td>
-                            <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
+                            <td style="font-size: 13px; color: var(--text-gray); white-space: nowrap;">${escapeHtml(categoria)}</td>
+                            <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${site !== '---' ? `<a href="${siteUrl}" target="_blank" class="profile-link" title="${escapeHtml(site)}">${escapeHtml(siteExibicao)}</a>` : '---'}
+                            </td>
+                            <td style="font-size: 13px; white-space: nowrap;">${escapeHtml(phone)}</td>
+                            <td style="font-size: 13px; color: var(--text-muted); white-space: nowrap;">${date}</td>
                         `;
                         tbody.appendChild(tr);
                     });
