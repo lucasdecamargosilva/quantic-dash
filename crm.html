@@ -55,7 +55,7 @@
             display: flex;
             gap: var(--spacing-md);
             overflow-x: auto;
-            padding-bottom: var(--spacing-lg);
+            padding: var(--spacing-md) 0 var(--spacing-xl) 0;
             min-height: calc(100vh - 250px);
             scrollbar-width: thin;
             scrollbar-color: var(--primary-purple) var(--bg-dark);
@@ -71,8 +71,8 @@
         }
 
         .crm-column {
-            min-width: 280px;
-            width: 280px;
+            min-width: 310px;
+            width: 310px;
             background: rgba(255, 255, 255, 0.02);
             border-radius: var(--radius-lg);
             display: flex;
@@ -281,18 +281,20 @@
 
         .opportunity-card .client-name {
             font-weight: 700;
-            font-size: 16px;
+            font-size: 14px;
             margin-bottom: 2px;
             display: block;
             color: var(--text-white);
             letter-spacing: -0.01em;
+            line-height: 1.3;
         }
 
         .opportunity-card .company-name {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-gray);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             display: block;
+            opacity: 0.8;
         }
 
         .opportunity-card .revenue {
@@ -588,9 +590,12 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            font-size: 12px;
-            padding: 4px 0;
+            font-size: 11px;
+            padding: 2px 8px;
             font-weight: 600;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            margin-bottom: 8px;
         }
 
         .status-dot {
@@ -990,6 +995,67 @@
 
         .label-enterprise {
             color: var(--accents-pink);
+        }
+
+        /* Ranking Components */
+        .rank-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .rank-badge.rank-1 {
+            background: var(--secondary-green);
+            color: white;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .ranking-prize-preview {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .prize-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .prize-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--primary-purple);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .prize-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        .prize-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.3));
+        }
+
+        .ranking-card {
+            height: 100%;
         }
 
         @keyframes fadeIn {
@@ -1893,6 +1959,62 @@
                 if (container) container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar gráficos. Veja console.</div>';
             }
         }
+
+        function renderRanking(containerId, data, title, icon, headerClass, barClass, prize) {
+            try {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+
+                const sorted = Object.entries(data || {})
+                    .sort(([, a], [, b]) => b - a);
+
+                const maxCount = Math.max(...Object.values(data || {}), 1);
+
+                let rowsHtml = '';
+                sorted.forEach(([name, count], index) => {
+                    const percentage = Math.round((count / maxCount) * 100);
+                    const rank = index + 1;
+                    rowsHtml += `
+                        <div class="chart-row">
+                            <div class="rank-badge ${rank === 1 ? 'rank-1' : ''}">${rank}º</div>
+                            <span class="chart-stage-name">${escapeHtml(name)}</span>
+                            <div class="chart-bar-bg">
+                                <div class="chart-bar-fill ${barClass}" style="width: ${percentage}%"></div>
+                            </div>
+                            <span class="chart-count">${count}</span>
+                        </div>
+                    `;
+                });
+
+                let prizeHtml = '';
+                if (prize) {
+                    prizeHtml = `
+                        <div class="ranking-prize-preview">
+                            <div class="prize-info">
+                                <span class="prize-label">${escapeHtml(prize.label)}</span>
+                                <span class="prize-name">${escapeHtml(prize.name)}</span>
+                            </div>
+                            <img src="${prize.image}" alt="Prêmio" class="prize-img">
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = `
+                    <div class="chart-card ranking-card">
+                        <div class="chart-header ${headerClass}">
+                            <i class="ph-fill ${icon}"></i>
+                            <span>${escapeHtml(title)}</span>
+                        </div>
+                        <div class="chart-body">
+                            ${rowsHtml || '<p style="color:var(--text-muted); font-size:13px; padding:10px;">Sem dados para o ranking.</p>'}
+                            ${prizeHtml}
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error('[renderRanking] erro:', err);
+            }
+        }
         // ===== FIM MOVED HELPERS =====
 
         async function loadData() {
@@ -1928,7 +2050,7 @@
                             name: r.name || r.phone || 'Lead Instagram',
                             company: r.username || r.source || 'instagram',
                             stage: 'Contato',
-                            tags: r.tags ? (typeof r.tags === 'string' ? r.tags.split(',').map(t=>t.trim()) : r.tags) : [],
+                            tags: r.tags ? (typeof r.tags === 'string' ? r.tags.split(',').map(t => t.trim()) : r.tags) : [],
                             responsible: r.responsible_name || 'Não atribuído',
                             lead_status: r.status || 'Novo',
                             email: r.email || '',
@@ -1950,7 +2072,7 @@
                             name: r.name || r.phone || 'Lead Maps',
                             company: r.company || r.source || 'maps',
                             stage: 'Contato',
-                            tags: r.tags ? (typeof r.tags === 'string' ? r.tags.split(',').map(t=>t.trim()) : r.tags) : [],
+                            tags: r.tags ? (typeof r.tags === 'string' ? r.tags.split(',').map(t => t.trim()) : r.tags) : [],
                             responsible: r.responsible_name || 'Não atribuído',
                             lead_status: r.status || 'Novo',
                             email: r.email || '',
@@ -2022,7 +2144,7 @@
                         const card = document.createElement('div');
                         card.className = 'opportunity-card';
                         card.draggable = true;
-                                               card.setAttribute('data-id', opp.id);
+                        card.setAttribute('data-id', opp.id);
                         card.ondragstart = (e) => handleDragStart(e, opp.id);
                         card.ondragend = handleDragEnd;
                         card.onclick = () => openLeadDetails(opp);
@@ -2068,11 +2190,59 @@
                 console.error('[renderChannelsChart] elemento #channels-chart-container não encontrado');
                 return;
             }
-            // mantém comportamento existente
-            // ...existing renderChannelsChart body...
+
             try {
-                // original implementation kept (call existing function body)
-                // ...existing code for renderChannelsChart...
+                const sorted = Object.entries(channelsData || {})
+                    .sort(([, a], [, b]) => b - a);
+
+                const maxCount = Math.max(...Object.values(channelsData || {}), 1);
+
+                let cardsHtml = '<div class="channel-grid">';
+                sorted.forEach(([channel, count]) => {
+                    const percentage = Math.round((count / maxCount) * 100);
+                    let iconClass = 'ph-share-network';
+                    let brandClass = 'bg-generic';
+                    let iconBoxClass = 'icon-generic';
+
+                    const chanLower = channel.toLowerCase();
+                    if (chanLower.includes('instagram')) {
+                        iconClass = 'ph-instagram-logo';
+                        brandClass = 'bg-instagram';
+                        iconBoxClass = 'icon-instagram';
+                    } else if (chanLower.includes('facebook')) {
+                        iconClass = 'ph-facebook-logo';
+                        brandClass = 'bg-facebook';
+                        iconBoxClass = 'icon-facebook';
+                    } else if (chanLower.includes('linkedin')) {
+                        iconClass = 'ph-linkedin-logo';
+                        brandClass = 'bg-linkedin';
+                        iconBoxClass = 'icon-linkedin';
+                    } else if (chanLower.includes('maps') || chanLower.includes('google')) {
+                        iconClass = 'ph-google-logo';
+                        brandClass = 'bg-google';
+                        iconBoxClass = 'icon-google';
+                    }
+
+                    cardsHtml += `
+                        <div class="channel-card-item">
+                            <div class="channel-info">
+                                <div class="channel-label">
+                                    <div class="channel-icon-box ${iconBoxClass}">
+                                        <i class="ph-fill ${iconClass}"></i>
+                                    </div>
+                                    <span>${escapeHtml(channel)}</span>
+                                </div>
+                                <span class="channel-count">${count}</span>
+                            </div>
+                            <div class="channel-bar-bg">
+                                <div class="channel-bar-fill ${brandClass}" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+                cardsHtml += '</div>';
+
+                container.innerHTML = cardsHtml;
             } catch (err) {
                 console.error('[renderChannelsChart] erro:', err);
                 container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar canais. Veja console.</div>';
