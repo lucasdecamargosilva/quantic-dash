@@ -1307,21 +1307,27 @@
                     throw new Error(`Erro ao iniciar: ${response.status}`);
                 }
 
+                showToast("Requisição enviada. Preparando extração...");
+
+                // 4) Aguarda 20 segundos antes de começar a procurar por jobs ou novos dados
+                // Isso dá tempo para o n8n iniciar o processo e gravar os primeiros registros
+                await new Promise(resolve => setTimeout(resolve, 20000));
+
                 showToast("Busca de Leads em andamento...");
 
-                // 4) Inicia um polling de segurança (caso o Realtime esteja desativado no Supabase)
+                // 5) Inicia um polling de segurança (caso o Realtime esteja desativado no Supabase)
                 const pollingInterval = setInterval(() => {
                     fetchRawHistory();
                 }, 5000);
 
-                // 5) Espera o ÚLTIMO job da tabela aparecer e virar finished/failed
+                // 6) Espera o ÚLTIMO job da tabela aparecer e virar finished/failed
                 try {
                     await waitLastJobFinished();
                 } catch (e) {
                     console.warn("Aviso no waitLastJobFinished:", e);
                 }
 
-                // 6) Finalizou: limpa polling, destrava e carrega tabelas
+                // 7) Finalizou: limpa polling, destrava e carrega tabelas
                 clearInterval(pollingInterval);
                 showToast("Processo de extração concluído.");
                 setCaptureButtonState('idle');
