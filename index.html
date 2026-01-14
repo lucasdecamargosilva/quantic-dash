@@ -132,18 +132,156 @@
             text-align: center;
         }
 
-        /* Responsivo */
-        @media (max-width: 1400px) {
-            .capture-kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        /* ===== CAPTURE CARD HORIZONTAL (NOVO) ===== */
+        .capture-card-single {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-bottom: var(--spacing-xl);
         }
 
-        @media (max-width: 768px) {
-            .capture-kpi-grid {
-                grid-template-columns: 1fr;
-            }
+        .capture-card-single:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(139, 92, 246, 0.1);
         }
+
+        .capture-content {
+            display: flex;
+            width: 100%;
+            gap: 0;
+            align-items: center;
+        }
+
+        .capture-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 0 var(--spacing-lg);
+        }
+
+        .capture-section:first-child {
+            padding-left: 0;
+        }
+
+        .capture-section:last-child {
+            padding-right: 0;
+        }
+
+        .capture-section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .capture-section-header i {
+            font-size: 16px;
+            color: var(--primary-purple);
+        }
+
+        .capture-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text-white);
+            line-height: 1;
+        }
+
+        .capture-subtext {
+            font-size: 11px;
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .capture-divider {
+            width: 1px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 0 var(--spacing-lg);
+        }
+
+        /* Breakdown items */
+        .capture-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            padding: 6px 0;
+        }
+
+        .breakdown-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .breakdown-label i {
+            font-size: 14px;
+            color: var(--primary-purple);
+        }
+
+        .breakdown-count {
+            font-weight: 700;
+            color: var(--text-white);
+            background: rgba(139, 92, 246, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* Mini Funnel */
+        .funnel-mini {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .funnel-mini-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .funnel-mini-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .funnel-mini-count {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 10px;
+            border-radius: 6px;
+            min-width: 50px;
+            text-align: center;
+        }
+        /* ===== FIM CAPTURE CARD HORIZONTAL ===== */
     </style>
 </head>
 
@@ -218,68 +356,66 @@
                             <h2><i class="ph-fill ph-lightning"></i> Captura de Leads</h2>
                         </div>
 
-                        <div class="capture-kpi-grid">
-                            <!-- CARD ÚNICO 1: Leads Capturados (com breakdown por canal) -->
-                            <div class="card capture-card">
-                                <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-funnel"></i></div>
-                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> Total</span>
-                                </div>
-                                <div class="card-content">
-                                    <span class="label">Leads Capturados</span>
-                                    <h3 id="kpi-leads-captured-value" class="value">0</h3>
-                                    <div class="channel-breakdown">
-                                        <div class="breakdown-item">
-                                            <i class="ph-fill ph-instagram-logo"></i>
-                                            <span class="breakdown-label">Instagram:</span>
-                                            <span id="kpi-instagram-value" class="breakdown-value">0</span>
+                        <!-- CARD ÚNICO HORIZONTAL -->
+                        <div class="card capture-card-single">
+                            <div class="capture-content">
+                                <!-- Seção 1: Leads Capturados -->
+                                <div class="capture-section">
+                                    <div class="capture-section-header">
+                                        <i class="ph-fill ph-funnel"></i>
+                                        <span class="section-title">Leads Capturados</span>
+                                    </div>
+                                    <div class="capture-value" id="kpi-leads-captured-value">0</div>
+                                    <div class="capture-breakdown">
+                                        <div class="breakdown-row">
+                                            <span class="breakdown-label"><i class="ph-fill ph-instagram-logo"></i> Instagram</span>
+                                            <span id="kpi-instagram-value" class="breakdown-count">0</span>
                                         </div>
-                                        <div class="breakdown-item">
-                                            <i class="ph-fill ph-map-pin"></i>
-                                            <span class="breakdown-label">Google Maps:</span>
-                                            <span id="kpi-maps-value" class="breakdown-value">0</span>
+                                        <div class="breakdown-row">
+                                            <span class="breakdown-label"><i class="ph-fill ph-map-pin"></i> Maps</span>
+                                            <span id="kpi-maps-value" class="breakdown-count">0</span>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- CARD ÚNICO 2: Leads Qualificados -->
-                            <div class="card capture-card">
-                                <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-robot"></i></div>
-                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
-                                </div>
-                                <div class="card-content">
-                                    <span class="label">Leads Qualificados</span>
-                                    <h3 id="kpi-qualified-value" class="value">0</h3>
-                                    <span class="subtext">Processados por IA</span>
-                                </div>
-                            </div>
+                                <!-- Divisor -->
+                                <div class="capture-divider"></div>
 
-                            <!-- CARD ÚNICO 3: Pipeline Progress (Reuniões + Propostas + Vendas) -->
-                            <div class="card capture-card">
-                                <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-chart-line-up"></i></div>
-                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i></span>
+                                <!-- Seção 2: Leads Qualificados -->
+                                <div class="capture-section">
+                                    <div class="capture-section-header">
+                                        <i class="ph-fill ph-robot"></i>
+                                        <span class="section-title">Qualificados</span>
+                                    </div>
+                                    <div class="capture-value" id="kpi-qualified-value">0</div>
+                                    <span class="capture-subtext">Processados por IA</span>
                                 </div>
-                                <div class="card-content">
-                                    <span class="label">Progresso do Funil</span>
-                                    <div class="funnel-progress">
-                                        <div class="funnel-item">
-                                            <span class="funnel-stage">Reuniões Agendadas</span>
-                                            <span id="kpi-meetings-scheduled-value" class="funnel-count">0</span>
+
+                                <!-- Divisor -->
+                                <div class="capture-divider"></div>
+
+                                <!-- Seção 3: Funil de Vendas -->
+                                <div class="capture-section">
+                                    <div class="capture-section-header">
+                                        <i class="ph-fill ph-chart-line-up"></i>
+                                        <span class="section-title">Funil</span>
+                                    </div>
+                                    <div class="funnel-mini">
+                                        <div class="funnel-mini-item">
+                                            <span class="funnel-mini-label">Reuniões</span>
+                                            <span id="kpi-meetings-scheduled-value" class="funnel-mini-count">0</span>
                                         </div>
-                                        <div class="funnel-item">
-                                            <span class="funnel-stage">Reuniões Realizadas</span>
-                                            <span id="kpi-meetings-completed-value" class="funnel-count">0</span>
+                                        <div class="funnel-mini-item">
+                                            <span class="funnel-mini-label">Realizadas</span>
+                                            <span id="kpi-meetings-completed-value" class="funnel-mini-count">0</span>
                                         </div>
-                                        <div class="funnel-item">
-                                            <span class="funnel-stage">Propostas Enviadas</span>
-                                            <span id="kpi-proposals-value" class="funnel-count">0</span>
+                                        <div class="funnel-mini-item">
+                                            <span class="funnel-mini-label">Propostas</span>
+                                            <span id="kpi-proposals-value" class="funnel-mini-count">0</span>
                                         </div>
-                                        <div class="funnel-item">
-                                            <span class="funnel-stage">Vendas Realizadas</span>
-                                            <span id="kpi-sales-value" class="funnel-count">0</span>
+                                        <div class="funnel-mini-item">
+                                            <span class="funnel-mini-label">Vendas</span>
+                                            <span id="kpi-sales-value" class="funnel-mini-count">0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -823,22 +959,177 @@
 
 
 
-</html></body>    </div>        </div>            </div>                </script>                    });                        }                            await subscribeCaptureMetrics();                            await loadCaptureMetrics();                        if (await initDashboardSupabase()) {                    document.addEventListener('DOMContentLoaded', async () => {                    }                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: '*', schema: 'public', table: 'opportunities' }, () => {                            .channel('opportunities-rt')                        dashboardSupabase                        // Real-time: Opportunities (all stages)                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_qualificados' }, () => {                            .channel('qualified-leads-rt')                        dashboardSupabase                        // Real-time: Qualified leads                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {                            .channel('maps-captures-rt')                        dashboardSupabase                        // Real-time: Maps captures                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {                            .channel('instagram-captures-rt')                        dashboardSupabase                        // Real-time: Instagram captures                        if (!dashboardSupabase) return;                    async function subscribeCaptureMetrics() {                    // Subscribe to real-time changes                    }                        }                            console.error('[loadCaptureMetrics] Erro ao carregar métricas:', err);                        } catch (err) {                            });                                sales: salesCount                                proposals: proposalsCount,                                completed: completedCount,                                scheduled: scheduledCount,                                qualified: qualifiedCount,                                maps: mapsCount,                                instagram: instagramCount,                            console.debug('[loadCaptureMetrics] Métricas carregadas:', {                            document.getElementById('kpi-sales-value').textContent = salesCount.toString();                            document.getElementById('kpi-proposals-value').textContent = proposalsCount.toString();                            document.getElementById('kpi-meetings-completed-value').textContent = completedCount.toString();                            document.getElementById('kpi-meetings-scheduled-value').textContent = scheduledCount.toString();                            document.getElementById('kpi-qualified-value').textContent = qualifiedCount.toString();                            document.getElementById('kpi-maps-value').textContent = mapsCount.toString();                            document.getElementById('kpi-instagram-value').textContent = instagramCount.toString();                            document.getElementById('kpi-leads-captured-value').textContent = (instagramCount + mapsCount).toString();                            // Update UI                            const salesCount = sales?.length || 0;                                .eq('stage', 'Venda Realizada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: sales, error: err7 } = await dashboardSupabase                            // 7. Vendas Realizadas (Opportunities - stage: "Venda Realizada")                            const proposalsCount = proposals?.length || 0;                                .eq('stage', 'Proposta Enviada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: proposals, error: err6 } = await dashboardSupabase                            // 6. Propostas Enviadas (Opportunities - stage: "Proposta Enviada")                            const completedCount = meetingsCompleted?.length || 0;                                .eq('stage', 'Reunião Realizada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: meetingsCompleted, error: err5 } = await dashboardSupabase                            // 5. Reuniões Realizadas (Opportunities - stage: "Reunião Realizada")                            const scheduledCount = meetingsScheduled?.length || 0;                                .eq('stage', 'Reunião Agendada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: meetingsScheduled, error: err4 } = await dashboardSupabase                            // 4. Reuniões Agendadas (Opportunities - stage: "Reunião Agendada")                            const qualifiedCount = qualifiedLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_qualificados')                            const { data: qualifiedLeads, error: err3 } = await dashboardSupabase                            // 3. Leads Qualificados (IA)                            const mapsCount = mapsLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_google_maps')                            const { data: mapsLeads, error: err2 } = await dashboardSupabase                            // 2. Leads Capturados - Google Maps                            const instagramCount = instagramLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_capturados_posts')                            const { data: instagramLeads, error: err1 } = await dashboardSupabase                            // 1. Leads Capturados - Instagram                        try {                        if (!dashboardSupabase) return;                    async function loadCaptureMetrics() {                    }                        return false;                        }                            return true;                            dashboardSupabase = window.supabaseClient;                        if (window.supabaseClient) {                        }                            attempts++;                            await new Promise(resolve => setTimeout(resolve, 100));                        while (!window.supabaseClient && attempts < 50) {                        let attempts = 0;                        // Robust waiting for supabaseClient                        }                            await window.CONFIG_LOADED;                        if (window.CONFIG_LOADED) {                        // Wait for config to load                    async function initDashboardSupabase() {                    let dashboardSupabase;                <script>                <!-- Novo: Script para carregar dados de Captura de Leads -->                <script src="script.js"></script>                <!-- Dashboard main script -->                <script src="supabase-logic.js?v=2"></script>                <!-- Supabase Integration Logic (Modular) -->
-                <footer class="main-footer">
-                    <div class="footer-logo">
-                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
-                    </div>
-                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
-                </footer>
-            </div> <!-- end app-container -->
-        </div> <!-- end main-content -->
-    </div> <!-- end layout-wrapper -->
+</html></body>    </div>        </div>            </div>                </script>                    });                        }                            await subscribeCaptureMetrics();                            await loadCaptureMetrics();                        if (await initDashboardSupabase()) {                    document.addEventListener('DOMContentLoaded', async () => {                    }                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: '*', schema: 'public', table: 'opportunities' }, () => {                            .channel('opportunities-rt')                        dashboardSupabase                        // Real-time: Opportunities (all stages)                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_qualificados' }, () => {                            .channel('qualified-leads-rt')                        dashboardSupabase                        // Real-time: Qualified leads                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {                            .channel('maps-captures-rt')                        dashboardSupabase                        // Real-time: Maps captures                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {                            .channel('instagram-captures-rt')                        dashboardSupabase                        // Real-time: Instagram captures                        if (!dashboardSupabase) return;                    async function subscribeCaptureMetrics() {                    // Subscribe to real-time changes                    }                        }                            console.error('[loadCaptureMetrics] Erro ao carregar métricas:', err);                        } catch (err) {                            });                                sales: salesCount                                proposals: proposalsCount,                                completed: completedCount,                                scheduled: scheduledCount,                                qualified: qualifiedCount,                                maps: mapsCount,                                instagram: instagramCount,                            console.debug('[loadCaptureMetrics] Métricas carregadas:', {                            document.getElementById('kpi-sales-value').textContent = salesCount.toString();                            document.getElementById('kpi-proposals-value').textContent = proposalsCount.toString();                            document.getElementById('kpi-meetings-completed-value').textContent = completedCount.toString();                            document.getElementById('kpi-meetings-scheduled-value').textContent = scheduledCount.toString();                            document.getElementById('kpi-qualified-value').textContent = qualifiedCount.toString();                            document.getElementById('kpi-maps-value').textContent = mapsCount.toString();                            document.getElementById('kpi-instagram-value').textContent = instagramCount.toString();                            document.getElementById('kpi-leads-captured-value').textContent = (instagramCount + mapsCount).toString();                            // Update UI                            const salesCount = sales?.length || 0;                                .eq('stage', 'Venda Realizada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: sales, error: err7 } = await dashboardSupabase                            // 7. Vendas Realizadas (Opportunities - stage: "Venda Realizada")                            const proposalsCount = proposals?.length || 0;                                .eq('stage', 'Proposta Enviada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: proposals, error: err6 } = await dashboardSupabase                            // 6. Propostas Enviadas (Opportunities - stage: "Proposta Enviada")                            const completedCount = meetingsCompleted?.length || 0;                                .eq('stage', 'Reunião Realizada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: meetingsCompleted, error: err5 } = await dashboardSupabase                            // 5. Reuniões Realizadas (Opportunities - stage: "Reunião Realizada")                            const scheduledCount = meetingsScheduled?.length || 0;                                .eq('stage', 'Reunião Agendada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: meetingsScheduled, error: err4 } = await dashboardSupabase                            // 4. Reuniões Agendadas (Opportunities - stage: "Reunião Agendada")                            const qualifiedCount = qualifiedLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_qualificados')                            const { data: qualifiedLeads, error: err3 } = await dashboardSupabase                            // 3. Leads Qualificados (IA)                            const mapsCount = mapsLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_google_maps')                            const { data: mapsLeads, error: err2 } = await dashboardSupabase                            // 2. Leads Capturados - Google Maps                            const instagramCount = instagramLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_capturados_posts')                            const { data: instagramLeads, error: err1 } = await dashboardSupabase                            // 1. Leads Capturados - Instagram                        try {                        if (!dashboardSupabase) return;                    async function loadCaptureMetrics() {                    }                        return false;                        }                            return true;                            dashboardSupabase = window.supabaseClient;                        if (window.supabaseClient) {                        }                            attempts++;                            await new Promise(resolve => setTimeout(resolve, 100));                        while (!window.supabaseClient && attempts < 50) {                        let attempts = 0;                        // Robust waiting for supabaseClient                        }                            await window.CONFIG_LOADED;                        if (window.CONFIG_LOADED) {                        // Wait for config to load                    async function initDashboardSupabase() {                    let dashboardSupabase;                <script>                <!-- Novo: Script para carregar dados de Captura de Leads -->
+    <script>
+        let dashboardSupabase;
 
-    <!-- Supabase Integration Logic (Modular) -->
-    <script src="supabase-logic.js?v=2"></script>
+        async function initDashboardSupabase() {
+            // Wait for config to load
+            if (window.CONFIG_LOADED) {
+                await window.CONFIG_LOADED;
+            }
 
-    <!-- Dashboard main script -->
-    <script src="script.js"></script>
+            // Robust waiting for supabaseClient
+            let attempts = 0;
+            while (!window.supabaseClient && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            if (window.supabaseClient) {
+                dashboardSupabase = window.supabaseClient;
+                console.debug('[initDashboardSupabase] ✅ Supabase inicializado');
+                return true;
+            }
+            console.error('[initDashboardSupabase] ❌ Supabase não disponível');
+            return false;
+        }
+
+        async function loadCaptureMetrics() {
+            if (!dashboardSupabase) {
+                console.error('[loadCaptureMetrics] Supabase não inicializado');
+                return;
+            }
+
+            try {
+                console.debug('[loadCaptureMetrics] Iniciando carregamento...');
+
+                // 1. Leads Capturados - Instagram
+                const { count: instagramCount, error: err1 } = await dashboardSupabase
+                    .from('leads_capturados_posts')
+                    .select('*', { count: 'exact', head: true });
+
+                console.debug('[loadCaptureMetrics] Instagram count:', instagramCount, 'erro:', err1);
+
+                // 2. Leads Capturados - Google Maps
+                const { count: mapsCount, error: err2 } = await dashboardSupabase
+                    .from('leads_google_maps')
+                    .select('*', { count: 'exact', head: true });
+
+                console.debug('[loadCaptureMetrics] Maps count:', mapsCount, 'erro:', err2);
+
+                // 3. Leads Qualificados (IA)
+                const { count: qualifiedCount, error: err3 } = await dashboardSupabase
+                    .from('leads_qualificados')
+                    .select('*', { count: 'exact', head: true });
+
+                console.debug('[loadCaptureMetrics] Qualified count:', qualifiedCount, 'erro:', err3);
+
+                // 4. Reuniões Agendadas (Opportunities - stage: "Reunião Agendada")
+                const { count: scheduledCount, error: err4 } = await dashboardSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Reunião Agendada');
+
+                console.debug('[loadCaptureMetrics] Scheduled count:', scheduledCount, 'erro:', err4);
+
+                // 5. Reuniões Realizadas (Opportunities - stage: "Reunião Realizada")
+                const { count: completedCount, error: err5 } = await dashboardSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Reunião Realizada');
+
+                console.debug('[loadCaptureMetrics] Completed count:', completedCount, 'erro:', err5);
+
+                // 6. Propostas Enviadas (Opportunities - stage: "Proposta Enviada")
+                const { count: proposalsCount, error: err6 } = await dashboardSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Proposta Enviada');
+
+                console.debug('[loadCaptureMetrics] Proposals count:', proposalsCount, 'erro:', err6);
+
+                // 7. Vendas Realizadas (Opportunities - stage: "Venda Realizada")
+                const { count: salesCount, error: err7 } = await dashboardSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Venda Realizada');
+
+                console.debug('[loadCaptureMetrics] Sales count:', salesCount, 'erro:', err7);
+
+                // Calcular totais seguros
+                const safeInstagram = instagramCount || 0;
+                const safeMaps = mapsCount || 0;
+                const safeQualified = qualifiedCount || 0;
+                const safeScheduled = scheduledCount || 0;
+                const safeCompleted = completedCount || 0;
+                const safeProposals = proposalsCount || 0;
+                const safeSales = salesCount || 0;
+
+                // Update UI
+                document.getElementById('kpi-leads-captured-value').textContent = (safeInstagram + safeMaps).toString();
+                document.getElementById('kpi-instagram-value').textContent = safeInstagram.toString();
+                document.getElementById('kpi-maps-value').textContent = safeMaps.toString();
+                document.getElementById('kpi-qualified-value').textContent = safeQualified.toString();
+                document.getElementById('kpi-meetings-scheduled-value').textContent = safeScheduled.toString();
+                document.getElementById('kpi-meetings-completed-value').textContent = safeCompleted.toString();
+                document.getElementById('kpi-proposals-value').textContent = safeProposals.toString();
+                document.getElementById('kpi-sales-value').textContent = safeSales.toString();
+
+                console.debug('[loadCaptureMetrics] ✅ Métricas atualizadas:', {
+                    total: safeInstagram + safeMaps,
+                    instagram: safeInstagram,
+                    maps: safeMaps,
+                    qualified: safeQualified,
+                    scheduled: safeScheduled,
+                    completed: safeCompleted,
+                    proposals: safeProposals,
+                    sales: safeSales
+                });
+            } catch (err) {
+                console.error('[loadCaptureMetrics] ❌ Erro ao carregar métricas:', err);
+            }
+        }
+
+        // Subscribe to real-time changes
+        async function subscribeCaptureMetrics() {
+            if (!dashboardSupabase) return;
+
+            // Real-time: Instagram captures
+            dashboardSupabase
+                .channel('instagram-captures-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {
+                    console.debug('[RT] Nova captura Instagram detectada');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Maps captures
+            dashboardSupabase
+                .channel('maps-captures-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {
+                    console.debug('[RT] Nova captura Maps detectada');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Qualified leads
+            dashboardSupabase
+                .channel('qualified-leads-rt')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_qualificados' }, () => {
+                    console.debug('[RT] Mudança em leads_qualificados detectada');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Opportunities (all stages)
+            dashboardSupabase
+                .channel('opportunities-rt')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'opportunities' }, () => {
+                    console.debug('[RT] Mudança em opportunities detectada');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.debug('[Dashboard] Iniciando carregamento de métricas...');
+            if (await initDashboardSupabase()) {
+                await loadCaptureMetrics();
+                await subscribeCaptureMetrics();
+            }
+        });
+    </script>
 </body>
 
 </html>
