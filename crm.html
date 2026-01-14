@@ -21,6 +21,35 @@
     <script src="supabase-config.js"></script>
     <script src="auth.js"></script>
 
+    <!-- fallback pequeno para showToast (evita ReferenceError se utilitário não estiver presente) -->
+    <script>
+        if (!window.showToast) {
+            window.showToast = function(message = '', type = 'info') {
+                // Implementação mínima: loga no console e mostra um toast visual simples (se desejar)
+                console.debug('[showToast]', type, message);
+                // Cria um toast simples e autodestrói para evitar dependência externa
+                try {
+                    const t = document.createElement('div');
+                    t.textContent = message;
+                    t.style.position = 'fixed';
+                    t.style.right = '20px';
+                    t.style.bottom = '20px';
+                    t.style.padding = '10px 14px';
+                    t.style.background = (type === 'error') ? '#b91c1c' : (type === 'success') ? '#16a34a' : '#111827';
+                    t.style.color = 'white';
+                    t.style.borderRadius = '8px';
+                    t.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)';
+                    t.style.zIndex = 20000;
+                    document.body.appendChild(t);
+                    setTimeout(() => t.remove(), 3500);
+                } catch (e) {
+                    // se DOM não estiver pronto, falha silenciosa
+                }
+            };
+            console.debug('[auth] showToast fallback registered');
+        }
+    </script>
+
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         .pipeline-selector {
@@ -814,219 +843,6 @@
             border-color: var(--primary-purple);
             outline: none;
         }
-
-        /* Table Styles */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: var(--spacing-lg);
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 12px 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: left;
-            font-size: 14px;
-        }
-
-        .data-table th {
-            background: rgba(255, 255, 255, 0.03);
-            color: var(--text-muted);
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .data-table tr {
-            transition: background 0.2s;
-        }
-
-        .data-table tr:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        /* Tooltip Styles */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
-        }
-
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            width: 120px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 8px;
-            position: absolute;
-            z-index: 100;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -60px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Button Styles */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
-        }
-
-        .btn-primary {
-            background: var(--primary-purple);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-purple-hover, #7c3aed);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--bg-card);
-            color: var(--text-gray);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        /* Card Styles */
-        .info-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 24px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .info-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        .info-card .card-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            color: var(--text-white);
-        }
-
-        .info-card .card-subtitle {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 16px;
-            color: var(--text-muted);
-        }
-
-        .info-card .card-content {
-            font-size: 15px;
-            color: var(--text-white);
-            line-height: 1.6;
-        }
-
-        /* Badge Styles */
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-right: 8px;
-        }
-
-        .badge-primary {
-            background: var(--primary-purple);
-            color: white;
-        }
-
-        .badge-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-gray);
-        }
-
-        /* Avatar Styles */
-        .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            overflow: hidden;
-            display: inline-block;
-            position: relative;
-        }
-
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .avatar.online::after {
-            content: '';
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #4caf50;
-            border-radius: 50%;
-            bottom: 4px;
-            right: 4px;
-        }
-
-        .avatar.offline::after {
-            content: '';
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #f44336;
-            border-radius: 50%;
-            bottom: 4px;
-            right: 4px;
-        }
-
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-label {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-muted);
-        }
-
-        .form-control {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px 12px;
-            color: var(--text-white);
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .form-control:focus {
-            border-color: var(--primary-purple);
-            outline: none;
-        }
     </style>
 </head>
 
@@ -1151,12 +967,7 @@
     </div>
 
     <!-- Supabase Integration -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
-    <script src="auth.js"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
-    <!-- CRM Logic -->
+    <!-- Supabase + CRM logic (não duplicar inclusões já no head) -->
     <script src="supabase-logic.js?v=2"></script>
     <script src="crm-logic.js"></script>
 </body>
