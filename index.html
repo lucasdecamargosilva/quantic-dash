@@ -798,172 +798,27 @@
 
                 </main>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</html></body>    </div>        </div>            </div>                </script>                    });                        }                            await subscribeCaptureMetrics();                            await loadCaptureMetrics();                        if (await initDashboardSupabase()) {                    document.addEventListener('DOMContentLoaded', async () => {                    }                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: '*', schema: 'public', table: 'opportunities' }, () => {                            .channel('opportunities-rt')                        dashboardSupabase                        // Real-time: Opportunities (all stages)                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_qualificados' }, () => {                            .channel('qualified-leads-rt')                        dashboardSupabase                        // Real-time: Qualified leads                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {                            .channel('maps-captures-rt')                        dashboardSupabase                        // Real-time: Maps captures                            .subscribe();                            })                                loadCaptureMetrics();                            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {                            .channel('instagram-captures-rt')                        dashboardSupabase                        // Real-time: Instagram captures                        if (!dashboardSupabase) return;                    async function subscribeCaptureMetrics() {                    // Subscribe to real-time changes                    }                        }                            console.error('[loadCaptureMetrics] Erro ao carregar métricas:', err);                        } catch (err) {                            });                                sales: salesCount                                proposals: proposalsCount,                                completed: completedCount,                                scheduled: scheduledCount,                                qualified: qualifiedCount,                                maps: mapsCount,                                instagram: instagramCount,                            console.debug('[loadCaptureMetrics] Métricas carregadas:', {                            document.getElementById('kpi-sales-value').textContent = salesCount.toString();                            document.getElementById('kpi-proposals-value').textContent = proposalsCount.toString();                            document.getElementById('kpi-meetings-completed-value').textContent = completedCount.toString();                            document.getElementById('kpi-meetings-scheduled-value').textContent = scheduledCount.toString();                            document.getElementById('kpi-qualified-value').textContent = qualifiedCount.toString();                            document.getElementById('kpi-maps-value').textContent = mapsCount.toString();                            document.getElementById('kpi-instagram-value').textContent = instagramCount.toString();                            document.getElementById('kpi-leads-captured-value').textContent = (instagramCount + mapsCount).toString();                            // Update UI                            const salesCount = sales?.length || 0;                                .eq('stage', 'Venda Realizada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: sales, error: err7 } = await dashboardSupabase                            // 7. Vendas Realizadas (Opportunities - stage: "Venda Realizada")                            const proposalsCount = proposals?.length || 0;                                .eq('stage', 'Proposta Enviada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: proposals, error: err6 } = await dashboardSupabase                            // 6. Propostas Enviadas (Opportunities - stage: "Proposta Enviada")                            const completedCount = meetingsCompleted?.length || 0;                                .eq('stage', 'Reunião Realizada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: meetingsCompleted, error: err5 } = await dashboardSupabase                            // 5. Reuniões Realizadas (Opportunities - stage: "Reunião Realizada")                            const scheduledCount = meetingsScheduled?.length || 0;                                .eq('stage', 'Reunião Agendada');                                .select('id', { count: 'exact', head: true })                                .from('opportunities')                            const { data: meetingsScheduled, error: err4 } = await dashboardSupabase                            // 4. Reuniões Agendadas (Opportunities - stage: "Reunião Agendada")                            const qualifiedCount = qualifiedLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_qualificados')                            const { data: qualifiedLeads, error: err3 } = await dashboardSupabase                            // 3. Leads Qualificados (IA)                            const mapsCount = mapsLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_google_maps')                            const { data: mapsLeads, error: err2 } = await dashboardSupabase                            // 2. Leads Capturados - Google Maps                            const instagramCount = instagramLeads?.length || 0;                                .select('id', { count: 'exact', head: true });                                .from('leads_capturados_posts')                            const { data: instagramLeads, error: err1 } = await dashboardSupabase                            // 1. Leads Capturados - Instagram                        try {                        if (!dashboardSupabase) return;                    async function loadCaptureMetrics() {                    }                        return false;                        }                            return true;                            dashboardSupabase = window.supabaseClient;                        if (window.supabaseClient) {                        }                            attempts++;                            await new Promise(resolve => setTimeout(resolve, 100));                        while (!window.supabaseClient && attempts < 50) {                        let attempts = 0;                        // Robust waiting for supabaseClient                        }                            await window.CONFIG_LOADED;                        if (window.CONFIG_LOADED) {                        // Wait for config to load                    async function initDashboardSupabase() {                    let dashboardSupabase;                <script>                <!-- Novo: Script para carregar dados de Captura de Leads -->
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase Integration Logic (Modular) -->
+    <script src="supabase-logic.js?v=2"></script>
+
+    <!-- Dashboard main script -->
+    <script src="script.js"></script>
+
+    <!-- ===== SCRIPT 1: Carregamento de Dados de Captura de Leads ===== -->
     <script>
-        let dashboardSupabase;
+        let captureSupabase;
 
-        async function initDashboardSupabase() {
+        async function initCaptureSupabase() {
             // Wait for config to load
             if (window.CONFIG_LOADED) {
                 await window.CONFIG_LOADED;
@@ -977,16 +832,16 @@
             }
 
             if (window.supabaseClient) {
-                dashboardSupabase = window.supabaseClient;
-                console.debug('[initDashboardSupabase] ✅ Supabase inicializado');
+                captureSupabase = window.supabaseClient;
+                console.debug('[initCaptureSupabase] ✅ Supabase inicializado');
                 return true;
             }
-            console.error('[initDashboardSupabase] ❌ Supabase não disponível');
+            console.error('[initCaptureSupabase] ❌ Supabase não disponível');
             return false;
         }
 
         async function loadCaptureMetrics() {
-            if (!dashboardSupabase) {
+            if (!captureSupabase) {
                 console.error('[loadCaptureMetrics] Supabase não inicializado');
                 return;
             }
@@ -994,142 +849,144 @@
             try {
                 console.debug('[loadCaptureMetrics] Iniciando carregamento...');
 
-                // 1. Leads Capturados - Instagram
-                const { count: instagramCount, error: err1 } = await dashboardSupabase
+                // 1. Leads Capturados - Instagram (leads_capturados_posts)
+                const { count: instagramCount, error: err1 } = await captureSupabase
                     .from('leads_capturados_posts')
                     .select('*', { count: 'exact', head: true });
 
-                console.debug('[loadCaptureMetrics] Instagram count:', instagramCount, 'erro:', err1);
+                const safeInstagram = instagramCount || 0;
+                console.debug('[loadCaptureMetrics] Instagram:', safeInstagram, 'erro:', err1);
 
-                // 2. Leads Capturados - Google Maps
-                const { count: mapsCount, error: err2 } = await dashboardSupabase
+                // 2. Leads Capturados - Google Maps (leads_google_maps)
+                const { count: mapsCount, error: err2 } = await captureSupabase
                     .from('leads_google_maps')
                     .select('*', { count: 'exact', head: true });
 
-                console.debug('[loadCaptureMetrics] Maps count:', mapsCount, 'erro:', err2);
+                const safeMaps = mapsCount || 0;
+                console.debug('[loadCaptureMetrics] Maps:', safeMaps, 'erro:', err2);
 
-                // 3. Leads Qualificados (IA)
-                const { count: qualifiedCount, error: err3 } = await dashboardSupabase
+                // 3. Leads Qualificados (leads_qualificados)
+                const { count: qualifiedCount, error: err3 } = await captureSupabase
                     .from('leads_qualificados')
                     .select('*', { count: 'exact', head: true });
 
-                console.debug('[loadCaptureMetrics] Qualified count:', qualifiedCount, 'erro:', err3);
+                const safeQualified = qualifiedCount || 0;
+                console.debug('[loadCaptureMetrics] Qualified:', safeQualified, 'erro:', err3);
 
-                // 4. Reuniões Agendadas (Opportunities - stage: "Reunião Agendada")
-                const { count: scheduledCount, error: err4 } = await dashboardSupabase
+                // 4. Funil - Reuniões Agendadas
+                const { count: scheduledCount, error: err4 } = await captureSupabase
                     .from('opportunities')
                     .select('*', { count: 'exact', head: true })
                     .eq('stage', 'Reunião Agendada');
 
-                console.debug('[loadCaptureMetrics] Scheduled count:', scheduledCount, 'erro:', err4);
+                const safeScheduled = scheduledCount || 0;
+                console.debug('[loadCaptureMetrics] Reuniões Agendadas:', safeScheduled, 'erro:', err4);
 
-                // 5. Reuniões Realizadas (Opportunities - stage: "Reunião Realizada")
-                const { count: completedCount, error: err5 } = await dashboardSupabase
+                // 5. Funil - Reuniões Realizadas
+                const { count: completedCount, error: err5 } = await captureSupabase
                     .from('opportunities')
                     .select('*', { count: 'exact', head: true })
                     .eq('stage', 'Reunião Realizada');
 
-                console.debug('[loadCaptureMetrics] Completed count:', completedCount, 'erro:', err5);
+                const safeCompleted = completedCount || 0;
+                console.debug('[loadCaptureMetrics] Reuniões Realizadas:', safeCompleted, 'erro:', err5);
 
-                // 6. Propostas Enviadas (Opportunities - stage: "Proposta Enviada")
-                const { count: proposalsCount, error: err6 } = await dashboardSupabase
+                // 6. Funil - Propostas Enviadas
+                const { count: proposalsCount, error: err6 } = await captureSupabase
                     .from('opportunities')
                     .select('*', { count: 'exact', head: true })
                     .eq('stage', 'Proposta Enviada');
 
-                console.debug('[loadCaptureMetrics] Proposals count:', proposalsCount, 'erro:', err6);
+                const safeProposals = proposalsCount || 0;
+                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safePropostas, 'erro:', err6);
 
-                // 7. Vendas Realizadas (Opportunities - stage: "Venda Realizada")
-                const { count: salesCount, error: err7 } = await dashboardSupabase
+                // 7. Funil - Vendas Realizadas
+                const { count: salesCount, error: err7 } = await captureSupabase
                     .from('opportunities')
                     .select('*', { count: 'exact', head: true })
                     .eq('stage', 'Venda Realizada');
 
-                console.debug('[loadCaptureMetrics] Sales count:', salesCount, 'erro:', err7);
-
-                // Calcular totais seguros
-                const safeInstagram = instagramCount || 0;
-                const safeMaps = mapsCount || 0;
-                const safeQualified = qualifiedCount || 0;
-                const safeScheduled = scheduledCount || 0;
-                const safeCompleted = completedCount || 0;
-                const safeProposals = proposalsCount || 0;
                 const safeSales = salesCount || 0;
+                console.debug('[loadCaptureMetrics] Vendas Realizadas:', safeSales, 'erro:', err7);
 
                 // Update UI
-                document.getElementById('kpi-leads-captured-value').textContent = (safeInstagram + safeMaps).toString();
+                const totalCaptured = safeInstagram + safeMaps;
+                document.getElementById('kpi-leads-captured-value').textContent = totalCaptured.toString();
                 document.getElementById('kpi-instagram-value').textContent = safeInstagram.toString();
                 document.getElementById('kpi-maps-value').textContent = safeMaps.toString();
                 document.getElementById('kpi-qualified-value').textContent = safeQualified.toString();
                 document.getElementById('kpi-meetings-scheduled-value').textContent = safeScheduled.toString();
                 document.getElementById('kpi-meetings-completed-value').textContent = safeCompleted.toString();
-                document.getElementById('kpi-proposals-value').textContent = safeProposals.toString();
+                document.getElementById('kpi-propostas-value').textContent = safePropostas.toString();
                 document.getElementById('kpi-sales-value').textContent = safeSales.toString();
 
-                console.debug('[loadCaptureMetrics] ✅ Métricas atualizadas:', {
-                    total: safeInstagram + safeMaps,
+                console.debug('[loadCaptureMetrics] ✅ Todos os dados atualizados:', {
+                    total_capturados: totalCaptured,
                     instagram: safeInstagram,
                     maps: safeMaps,
-                    qualified: safeQualified,
-                    scheduled: safeScheduled,
-                    completed: safeCompleted,
-                    proposals: safeProposals,
-                    sales: safeSales
+                    qualificados: safeQualified,
+                    reunioes_agendadas: safeScheduled,
+                    reunioes_realizadas: safeCompleted,
+                    propostas: safePropostas,
+                    vendas: safeSales
                 });
             } catch (err) {
-                console.error('[loadCaptureMetrics] ❌ Erro ao carregar métricas:', err);
+                console.error('[loadCaptureMetrics] ❌ Erro:', err);
             }
         }
 
         // Subscribe to real-time changes
         async function subscribeCaptureMetrics() {
-            if (!dashboardSupabase) return;
+            if (!captureSupabase) return;
 
             // Real-time: Instagram captures
-            dashboardSupabase
-                .channel('instagram-captures-rt')
+            captureSupabase
+                .channel('capture-instagram-rt')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {
-                    console.debug('[RT] Nova captura Instagram detectada');
+                    console.debug('[RT] Nova captura Instagram');
                     loadCaptureMetrics();
                 })
                 .subscribe();
 
             // Real-time: Maps captures
-            dashboardSupabase
-                .channel('maps-captures-rt')
+            captureSupabase
+                .channel('capture-maps-rt')
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {
-                    console.debug('[RT] Nova captura Maps detectada');
+                    console.debug('[RT] Nova captura Maps');
                     loadCaptureMetrics();
                 })
                 .subscribe();
 
             // Real-time: Qualified leads
-            dashboardSupabase
-                .channel('qualified-leads-rt')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_qualificados' }, () => {
-                    console.debug('[RT] Mudança em leads_qualificados detectada');
+            captureSupabase
+                .channel('capture-qualified-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_qualificados' }, () => {
+                    console.debug('[RT] Novo lead qualificado');
                     loadCaptureMetrics();
                 })
                 .subscribe();
 
-            // Real-time: Opportunities (all stages)
-            dashboardSupabase
-                .channel('opportunities-rt')
+            // Real-time: Opportunities changes
+            captureSupabase
+                .channel('capture-opportunities-rt')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'opportunities' }, () => {
-                    console.debug('[RT] Mudança em opportunities detectada');
+                    console.debug('[RT] Mudança em opportunities');
                     loadCaptureMetrics();
                 })
                 .subscribe();
         }
 
+        // Initialize quando o DOM estiver pronto
         document.addEventListener('DOMContentLoaded', async () => {
-            console.debug('[Dashboard] Iniciando carregamento de métricas...');
-            if (await initDashboardSupabase()) {
+            console.debug('[CaptureMetrics] Inicializando...');
+            if (await initCaptureSupabase()) {
                 await loadCaptureMetrics();
                 await subscribeCaptureMetrics();
             }
         });
     </script>
+    <!-- ===== FIM SCRIPT CAPTURA DE LEADS ===== -->
+
 </body>
 
 </html>
