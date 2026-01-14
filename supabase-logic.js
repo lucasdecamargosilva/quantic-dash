@@ -7,14 +7,18 @@ let supabaseClient;
 
 // Initialize Supabase using the global client from auth.js
 async function initSupabase() {
+    window.logDebug("initSupabase called...");
     try {
         // Wait for config to load
         if (window.CONFIG_LOADED) {
+            window.logDebug("Waiting for CONFIG_LOADED promise...");
             await window.CONFIG_LOADED;
+            window.logDebug("CONFIG_LOADED resolved.");
         }
 
         // Robust waiting for supabaseClient (up to 5 seconds)
         let attempts = 0;
+        window.logDebug("Searching for window.supabaseClient...");
         while (!window.supabaseClient && attempts < 50) {
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
@@ -22,11 +26,23 @@ async function initSupabase() {
 
         if (window.supabaseClient) {
             supabaseClient = window.supabaseClient;
-            window.logDebug("Using Global Supabase Client");
+            window.logDebug("Global Supabase Client found. Verifying session...");
+
+            // Explicitly wait for session to be recovered from storage
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            if (error) {
+                window.logDebug("Session error: " + error.message);
+            }
+            if (session) {
+                window.logDebug("Session active for: " + session.user.email);
+            } else {
+                window.logDebug("No active session found in client.");
+            }
+
             return true;
         } else {
             window.logDebug("FAILED: Global Supabase Client missing after 5s!");
-            showToast("Erro de Conexão: Cliente não inicializado", "error");
+            if (window.showToast) window.showToast("Erro de Conexão: Cliente não inicializado", "error");
             return false;
         }
     } catch (e) {
@@ -165,9 +181,12 @@ function formatBRL(value) {
 }
 
 async function fetchAICostsByPeriod(startDate, endDate) {
-    if (!supabaseClient) return;
+    if (!supabaseClient) {
+        window.logDebug("Abort fetchAICosts: No supabaseClient");
+        return;
+    }
 
-    window.logDebug(`Fetching data from ${startDate} to ${endDate}...`);
+    window.logDebug(`fetchAICosts called: ${startDate} to ${endDate}`);
 
     // UI Loading state
     const loadingIds = ['ai-input-value', 'ai-output-value', 'ai-total-value'];
@@ -185,10 +204,12 @@ async function fetchAICostsByPeriod(startDate, endDate) {
             .order('data_request', { ascending: true });
 
         if (error) {
-            window.logDebug("API ERROR: " + error.message);
-            showToast("Erro API", "error");
+            window.logDebug("API ERROR (custos_modelo): " + error.message);
+            if (window.showToast) window.showToast("Erro ao carregar métricas de IA", "error");
             return;
         }
+
+        window.logDebug(`API Success: Received ${data ? data.length : 0} rows from custos_modelo`);
 
         if (data) {
             const totals = data.reduce((acc, r) => ({
@@ -250,10 +271,11 @@ async function fetchClientes() {
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    window.logDebug("DOM Loaded - Initializing...");
+    window.logDebug("DOM Loaded - Initializing dashboard logic...");
 
     const initialized = await initSupabase();
     if (initialized) {
+        window.logDebug("Supabase Initialized successfully.");
         // Period filter buttons
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.addEventListener('click', function () {
@@ -302,6 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Initial fetch - Default 30 days
         setPeriodDates(30);
+        window.logDebug("Triggering initial data fetch (30 days)...");
         await fetchAICostsByPeriod(currentStartDate, currentEndDate);
         await fetchClientes();
 

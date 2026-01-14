@@ -68,73 +68,35 @@ const AUTH = {
         const session = await this.getSession();
         const isLoginPage = window.location.pathname.includes('login.html');
 
-        // Check if we should show the full loader (only after login)
-        const shouldShowLoader = sessionStorage.getItem('quantic_show_loader') === 'true';
-
         if (!session && !isLoginPage) {
-            // Unauthenticated: Redirect to login immediately without showing loader elements
+            // Not logged in: go to login
             window.location.href = 'login.html';
             return null;
         } else if (session && isLoginPage) {
+            // Already logged in: skip login page
             window.location.href = 'index.html';
             return session;
         }
 
+        // Se logado e em uma página protegida, revela o conteúdo instantaneamente
         if (session && !isLoginPage) {
-            if (shouldShowLoader) {
-                // Show the loader elements now because we are coming from login
-                this.injectLoaderElements();
-                const minDuration = 1800; // Mantém a experiência premium
-                const startTime = Date.now();
-
-                // Allow some time for data initialization to start
-                const elapsedTime = Date.now() - startTime;
-                const remainingTime = Math.max(0, minDuration - elapsedTime);
-
-                setTimeout(() => {
-                    this.removeLoader();
-                    sessionStorage.removeItem('quantic_show_loader');
-                }, remainingTime);
-            } else {
-                // Already logged in (refresh or direct hit): skip loader, just reveal body
-                this.removeLoader(true); // immediate = true
-            }
+            this.removeLoader(true); // true = instantâneo
         }
 
         return session;
     },
 
-    injectLoaderElements() {
-        if (document.getElementById('quantic-loader-inner')) return;
-
-        const loader = document.getElementById('quantic-auth-loader');
-        if (loader) {
-            loader.innerHTML = `
-                <div id="quantic-loader-inner" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <img src="logo.png" class="loader-logo" alt="Quantic">
-                    <div class="loader-spinner"></div>
-                </div>
-            `;
-        }
-    },
-
-    removeLoader(immediate = false) {
+    removeLoader(immediate = true) {
+        console.log("Revealing page...");
         const loader = document.getElementById('quantic-auth-loader');
 
-        // Ensure body becomes visible
-        document.body.style.transition = immediate ? 'none' : 'opacity 1.5s ease, filter 1.5s ease';
+        // Remove block styles and show body
+        document.body.style.transition = 'none';
         document.body.style.opacity = '1';
         document.body.style.filter = 'blur(0)';
 
         if (loader) {
-            if (immediate) {
-                loader.remove();
-            } else {
-                loader.style.transition = 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
-                loader.style.opacity = '0';
-                loader.style.transform = 'scale(1.1)';
-                setTimeout(() => loader.remove(), 1200);
-            }
+            loader.remove();
         }
     },
 
@@ -198,9 +160,9 @@ const AUTH = {
     const blockStyle = document.createElement('style');
     blockStyle.innerHTML = `
         body { 
-            opacity: 0 !important; 
+            opacity: 0; 
             filter: blur(10px); 
-            transition: none !important; 
+            transition: none; 
         }
         #quantic-auth-loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
