@@ -41,7 +41,7 @@ BEGIN
         default_stage,
         default_pipeline,
         'IA', -- Responsável inicial
-        ARRAY['Lead IA', 'Automático'],
+        ARRAY['Lead IA'],
         NOW()
       );
     END IF;
@@ -89,7 +89,7 @@ BEGIN
         'Contato',
         'Quantic Starter',
         'IA',
-        ARRAY['Lead IA', 'Backfill'],
+        ARRAY['Lead IA'],
         NOW()
       );
     END IF;

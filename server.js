@@ -16,7 +16,7 @@ const CHATWOOT_USER_ID = process.env.CHATWOOT_USER_ID || 1;
 
 // Configurações do Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jytsrxrmgvliyyuktxsd.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
 
 // 1. Endpoints do Dashboard (Devem vir PRIMEIRO)
 app.get('/api/config', (req, res) => {

@@ -722,6 +722,7 @@
         const btnCapture = document.getElementById('startCapture');
         let activeChannel = 'instagram';
         let activeHistoryFilter = 'instagram';
+        window.isExtractionRunning = false;
 
         // Lógica de troca de canais
         document.getElementById('channel-instagram').onclick = () => {
@@ -865,11 +866,13 @@
 
         function setCaptureButtonState(state) {
             if (state === 'idle') {
+                window.isExtractionRunning = false;
                 btnCapture.disabled = false;
                 btnCapture.style.opacity = '1';
                 btnCapture.style.cursor = 'pointer';
                 btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
             } else if (state === 'running') {
+                window.isExtractionRunning = true;
                 btnCapture.disabled = true;
                 btnCapture.style.opacity = '0.5';
                 btnCapture.style.cursor = 'not-allowed';
@@ -904,12 +907,17 @@
             try {
                 if (activeHistoryFilter === 'instagram') {
                     thead.innerHTML = `
-                        <th>Lead</th>
-                        <th>Perfil/Username</th>
-                        <th>Bio / Descrição</th>
-                        <th>Contato</th>
-                        <th>Data</th>
-                    `;
+                            <th>Lead</th>
+                            <th>Perfil/Username</th>
+                            <th>Bio / Descrição</th>
+                            <th>Contato</th>
+                            <th>Data</th>
+                        `;
+
+                    if (window.isExtractionRunning) {
+                        console.log("Extraction active: keeping shimmer in raw history (Instagram).");
+                        return;
+                    }
 
                     const { data, error } = await supabaseClient
                         .from('leads_capturados_posts')
@@ -935,28 +943,33 @@
 
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>
-                                <div class="profile-info">
-                                    <div class="profile-avatar" style="background: var(--text-gray);">${escapeHtml(name[0])}</div>
-                                    <strong>${escapeHtml(name)}</strong>
-                                </div>
-                            </td>
-                            <td><a href="${profileUrl}" target="_blank" class="profile-link">@${escapeHtml(username)}</a></td>
-                            <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${escapeHtml(bio.substring(0, 60))}...</td>
-                            <td><div style="font-size: 13px;">${escapeHtml(email)}<br>${escapeHtml(phone)}</div></td>
-                            <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
-                        `;
+                                <td>
+                                    <div class="profile-info">
+                                        <div class="profile-avatar" style="background: var(--text-gray);">${escapeHtml(name[0])}</div>
+                                        <strong>${escapeHtml(name)}</strong>
+                                    </div>
+                                </td>
+                                <td><a href="${profileUrl}" target="_blank" class="profile-link">@${escapeHtml(username)}</a></td>
+                                <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${escapeHtml(bio.substring(0, 60))}...</td>
+                                <td><div style="font-size: 13px;">${escapeHtml(email)}<br>${escapeHtml(phone)}</div></td>
+                                <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
+                            `;
                         tbody.appendChild(tr);
                     });
                 } else {
                     // Google Maps
                     thead.innerHTML = `
-                        <th>Empresa</th>
-                        <th>Categoria</th>
-                        <th>Site</th>
-                        <th>Telefone</th>
-                        <th>Data</th>
-                    `;
+                            <th>Empresa</th>
+                            <th>Categoria</th>
+                            <th>Site</th>
+                            <th>Telefone</th>
+                            <th>Data</th>
+                        `;
+
+                    if (window.isExtractionRunning) {
+                        console.log("Extraction active: keeping shimmer in raw history (Maps).");
+                        return;
+                    }
 
                     const { data, error } = await supabaseClient
                         .from('leads_google_maps')
@@ -990,21 +1003,21 @@
 
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>
-                                <div class="profile-info">
-                                    <div class="profile-avatar" style="background: var(--primary-purple);">${escapeHtml(empresa[0])}</div>
-                                    <strong title="${escapeHtml(empresa)}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                        ${escapeHtml(empresaExibicao)}
-                                    </strong>
-                                </div>
-                            </td>
-                            <td style="font-size: 13px; color: var(--text-gray); white-space: nowrap;">${escapeHtml(categoria)}</td>
-                            <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                ${site !== '---' ? `<a href="${siteUrl}" target="_blank" class="profile-link" title="${escapeHtml(site)}">${escapeHtml(siteExibicao)}</a>` : '---'}
-                            </td>
-                            <td style="font-size: 13px; white-space: nowrap;">${escapeHtml(phone)}</td>
-                            <td style="font-size: 13px; color: var(--text-muted); white-space: nowrap;">${date}</td>
-                        `;
+                                <td>
+                                    <div class="profile-info">
+                                        <div class="profile-avatar" style="background: var(--primary-purple);">${escapeHtml(empresa[0])}</div>
+                                        <strong title="${escapeHtml(empresa)}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            ${escapeHtml(empresaExibicao)}
+                                        </strong>
+                                    </div>
+                                </td>
+                                <td style="font-size: 13px; color: var(--text-gray); white-space: nowrap;">${escapeHtml(categoria)}</td>
+                                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${site !== '---' ? `<a href="${siteUrl}" target="_blank" class="profile-link" title="${escapeHtml(site)}">${escapeHtml(siteExibicao)}</a>` : '---'}
+                                </td>
+                                <td style="font-size: 13px; white-space: nowrap;">${escapeHtml(phone)}</td>
+                                <td style="font-size: 13px; color: var(--text-muted); white-space: nowrap;">${date}</td>
+                            `;
                         tbody.appendChild(tr);
                     });
                 }
@@ -1019,6 +1032,14 @@
             if (!supabaseClient) return;
 
             const tbody = document.getElementById('history-ia-body');
+
+            // Set Loading state
+            setIAHistoryLoading(true);
+
+            if (window.isExtractionRunning) {
+                console.log("Extraction active: keeping shimmer in IA history.");
+                return;
+            }
 
             try {
                 const { data, error } = await supabaseClient
@@ -1353,6 +1374,13 @@
             if (await initSupabase()) {
                 fetchRawHistory();
                 fetchIAHistory();
+
+                // Check if there is an active job running (e.g. after refresh)
+                const lastJob = await getLastJob();
+                if (lastJob && (lastJob.status === 'running' || lastJob.status === 'pending')) {
+                    setCaptureButtonState('running');
+                    watchJob(lastJob.job_id);
+                }
 
                 // Real-time: Captured (Raw Instagram)
                 supabaseClient

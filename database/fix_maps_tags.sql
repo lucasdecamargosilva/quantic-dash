@@ -1,11 +1,14 @@
--- SQL para padronizar as tags do Google Maps
--- 1. Remove variações antigas e adiciona 'GOOGLE MAPS'
+-- SQL para limpar e padronizar as tags de leads do Google Maps
+-- Remove 'Automático' e garante 'QUENTE 🔥'
+
+-- 1. Identifica e limpa todas as tags de leads do Maps
 UPDATE opportunities
-SET tags = array_append(array_remove(array_remove(tags, 'Lead Google Maps'), 'LEAD GOOGLE MAPS'), 'GOOGLE MAPS')
-WHERE tags @> ARRAY['Lead Google Maps']::text[] 
+SET tags = ARRAY['GOOGLE MAPS', 'QUENTE 🔥']
+WHERE tags @> ARRAY['GOOGLE MAPS']::text[]
+   OR tags @> ARRAY['Lead Google Maps']::text[]
    OR tags @> ARRAY['LEAD GOOGLE MAPS']::text[];
 
--- 2. Garante que não existam duplicatas
+-- 2. Garantir que o status também esteja como Quente para esses leads
 UPDATE opportunities
-SET tags = (SELECT array_agg(DISTINCT x) FROM unnest(tags) t(x))
+SET lead_status = 'Quente'
 WHERE tags @> ARRAY['GOOGLE MAPS']::text[];

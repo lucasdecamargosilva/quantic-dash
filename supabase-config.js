@@ -20,7 +20,7 @@ async function loadSupabaseConfig() {
     // Replace these if needed for offline local testing
     window.SUPABASE_CONFIG = {
         URL: 'https://jytsrxrmgvliyyuktxsd.supabase.co',
-        KEY: '' // Should be provided via /api/config
+        KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5dHNyeHJtZ3ZsaXl5dWt0eHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDA0ODYsImV4cCI6MjA3NTQ3NjQ4Nn0.vxiQwV3DxFxfcqts4mgRjk9CRmzdhxKvKBM7XPCrKXQ'
     };
     return false;
 }
