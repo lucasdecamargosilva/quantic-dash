@@ -362,11 +362,11 @@
                     }
 
                     const filtered = allContacts.filter(contact => {
-                        const name = (contact.full_name || '').toLowerCase();
-                        const company = (contact.company_name || '').toLowerCase();
-                        const email = (contact.email || '').toLowerCase();
-                        const phone = (contact.phone || '').toLowerCase();
-                        const source = (contact.source || '').toLowerCase();
+                        const name = String(contact.full_name || '').toLowerCase();
+                        const company = String(contact.company_name || '').toLowerCase();
+                        const email = String(contact.email || '').toLowerCase();
+                        const phone = String(contact.phone || '').toLowerCase();
+                        const source = String(contact.source || '').toLowerCase();
 
                         return name.includes(term) ||
                             company.includes(term) ||
