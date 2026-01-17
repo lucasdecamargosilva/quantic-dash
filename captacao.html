@@ -596,16 +596,16 @@
                         body: JSON.stringify(body)
                     });
 
-                    // 2. Configura o Realtime para ouvir a finalização
+                    // 2. Configura o Realtime para ouvir a finalização na tabela capturas_jobs
                     const channel = supabaseClient
                         .channel('extraction_updates')
                         .on('postgres_changes', {
                             event: 'INSERT',
                             schema: 'public',
-                            table: 'extraction_control',
+                            table: 'capturas_jobs',
                             filter: "status=eq.completed"
                         }, async (payload) => {
-                            console.log('[REALTIME] Extração finalizada:', payload);
+                            console.log('[REALTIME] Extração finalizada (capturas_jobs):', payload);
 
                             // Limpa o loading e o canal
                             isExtracting = false;
