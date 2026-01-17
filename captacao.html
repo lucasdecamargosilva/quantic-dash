@@ -394,17 +394,24 @@
                     </div>
                 </div>
 
-                <div class="leads-table-card expanded" style="margin-top: 24px;">
-                    <div class="table-header">
-                        <div>
-                            <h3><i class="ph-fill ph-robot"></i> Histórico de Leads Instagram</h3>
-                            <p style="font-size: 12px; color: var(--text-muted);">Analisados pela inteligência da
-                                Quantic</p>
+                <div class="leads-table-card collapsed" id="instaLeadsCard" style="margin-top: 24px;">
+                    <div class="table-header" id="instaLeadsToggle">
+                        <div class="table-header-left">
+                            <i class="ph-bold ph-caret-down toggle-icon" id="instaLeadsIcon"></i>
+                            <div>
+                                <h3><i class="ph-fill ph-robot"></i> Histórico de Leads Instagram</h3>
+                                <p style="font-size: 12px; color: var(--text-muted);">Analisados pela inteligência da
+                                    Quantic</p>
+                            </div>
                         </div>
-                        <button id="refreshIAHistory" class="btn-refresh"><i class="ph ph-arrows-clockwise"></i>
-                            Atualizar</button>
+                        <div class="header-actions">
+                            <button id="refreshIAHistory" class="btn-refresh"
+                                onclick="event.stopPropagation(); fetchIAHistory();">
+                                <i class="ph ph-arrows-clockwise"></i> Atualizar
+                            </button>
+                        </div>
                     </div>
-                    <div style="flex: 1; overflow-y: auto;">
+                    <div class="table-content" id="instaLeadsContent">
                         <table class="leads-table">
                             <thead>
                                 <tr>
@@ -447,6 +454,14 @@
             document.getElementById('rawLeadsCard').classList.toggle('collapsed');
         }
         document.getElementById('rawLeadsToggle').onclick = toggleRawLeadsHistory;
+
+        function toggleInstaLeadsHistory() {
+            document.getElementById('instaLeadsContent').classList.toggle('visible');
+            document.getElementById('instaLeadsIcon').classList.toggle('rotated');
+            document.getElementById('instaLeadsCard').classList.toggle('expanded');
+            document.getElementById('instaLeadsCard').classList.toggle('collapsed');
+        }
+        document.getElementById('instaLeadsToggle').onclick = toggleInstaLeadsHistory;
 
         // Seleção
         function toggleLeadSelection(id) {
@@ -565,6 +580,7 @@
             historyBody.innerHTML = Array(5).fill(`<tr>${Array(cols).fill('<td><div class="loading-shimmer" style="height:20px; border-radius:4px;"></div></td>').join('')}</tr>`).join('');
 
             if (activeChannel === 'maps' && document.getElementById('rawLeadsCard').classList.contains('collapsed')) toggleRawLeadsHistory();
+            if (activeChannel === 'instagram' && document.getElementById('instaLeadsCard').classList.contains('collapsed')) toggleInstaLeadsHistory();
 
             try { await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { }
             isExtracting = false; fetchRawHistory(); btnCapture.disabled = false; btnCapture.innerHTML = 'INICIAR EXTRAÇÃO';
