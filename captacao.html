@@ -603,7 +603,7 @@
                             event: 'INSERT',
                             schema: 'public',
                             table: 'capturas_jobs',
-                            filter: "status=eq.completed"
+                            filter: "status=eq.finished"
                         }, async (payload) => {
                             console.log('[REALTIME] Extração finalizada (capturas_jobs):', payload);
 
