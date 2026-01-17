@@ -22,85 +22,66 @@ async function initCrmSupabase() {
 }
 
 async function fetchCrmData(pipelineName = 'starter') {
-	if (!crmClient) return [];
+    if (!crmClient) return [];
 
-	try {
-		// Mapeia identificadores curtos para nomes completos do pipeline
-		const pipelineMap = {
-			'starter': 'Quantic Starter',
-			'growth': 'Quantic Growth',
-			'enterprise': 'Quantic Enterprise'
-		};
+    try {
+        // Mapeia identificadores curtos para nomes completos do pipeline
+        const pipelineMap = {
+            'starter': 'Quantic Starter',
+            'growth': 'Quantic Growth',
+            'enterprise': 'Quantic Enterprise'
+        };
 
-		// Se receber um identificador curto, converte para nome completo
-		const fullPipelineName = pipelineMap[pipelineName.toLowerCase()] || pipelineName;
+        // Se receber um identificador curto, converte para nome completo
+        const fullPipelineName = pipelineMap[pipelineName.toLowerCase()] || pipelineName;
 
-		const { data, error } = await crmClient
-			.from('opportunities')
-			.select(`
+        const { data, error } = await crmClient
+            .from('opportunities')
+            .select(`
                 id,
                 stage,
                 pipeline,
                 responsible_name,
-                tags,
-                contacts (
-                    id,
-                    full_name,
-                    company_name,
-                    phone,
-                    email,
-                    monthly_revenue,
-                    business_type,
-                    audience_type,
-                    acquisition_channels,
-                    client_volume,
-                    biggest_difficulty
-                )
+                nome_oportunidade,
+                fonte_oportunidade,
+                telefone,
+                site,
+                tags
             `)
-			.eq('pipeline', fullPipelineName); // <-- Usa o nome completo
+            .eq('pipeline', fullPipelineName);
 
-		if (error) {
-			console.error('Error fetching CRM data:', error);
-			return [];
-		}
+        if (error) {
+            console.error('Error fetching CRM data:', error);
+            return [];
+        }
 
-		// Extract usernames to fetch statuses
-		const usernames = data
-			.map(o => o.contacts ? o.contacts.company_name : null)
-			.filter(u => u != null);
-
-		// Fetch statuses from leads_qualificados
-		let statusMap = {};
-		if (usernames.length > 0) {
-			const { data: leadsData } = await crmClient
-				.from('leads_qualificados')
-				.select('usuario, status')
-				.in('usuario', usernames);
-
-			if (leadsData) {
-				leadsData.forEach(l => {
-					statusMap[l.usuario] = l.status;
-				});
-			}
-		}
-
-		return data.map(opp => ({
-			id: opp.id,
-			contactId: opp.contacts ? opp.contacts.id : null,
-			name: opp.contacts ? opp.contacts.full_name : 'Sem Nome',
-			company: opp.contacts ? opp.contacts.company_name : 'Sem Empresa',
-			phone: opp.contacts ? opp.contacts.phone : '---',
-			email: opp.contacts ? opp.contacts.email : '---',
-			stage: opp.stage,
-			lead_status: opp.contacts ? (statusMap[opp.contacts.company_name] || '---') : '---',
-			channels: opp.contacts ? opp.contacts.acquisition_channels : '---',
-			responsible: opp.responsible_name || 'Não atribuído',
-			tags: opp.tags || []
-		}));
-	} catch (err) {
-		console.error('Fetch CRM data catch error:', err);
-		return [];
-	}
+        return data.map(opp => ({
+            id: opp.id,
+            contactId: null, // No longer using contacts table relationship
+            name: opp.nome_oportunidade || 'Sem Nome',
+            company: opp.nome_oportunidade || 'Sem Empresa',
+            phone: opp.telefone || '---',
+            email: '---', // Not present in flat structure yet
+            stage: opp.stage,
+            lead_status: 'Novo',
+            channels: opp.fonte_oportunidade || '---',
+            responsible: opp.responsible_name || 'Não atribuído',
+            tags: (function () {
+                if (!opp.tags) return [];
+                if (Array.isArray(opp.tags)) return opp.tags;
+                try {
+                    const parsed = JSON.parse(opp.tags);
+                    return Array.isArray(parsed) ? parsed : [parsed];
+                } catch (e) {
+                    return String(opp.tags).split(',').map(t => t.trim()).filter(t => t);
+                }
+            })(),
+            site: opp.site || '---'
+        }));
+    } catch (err) {
+        console.error('Fetch CRM data catch error:', err);
+        return [];
+    }
 }
 
 async function updateOpportunityDetails(oppId, contactId, details) {
@@ -164,6 +145,43 @@ async function updateLeadStage(leadId, newStage) {
         console.error('Update stage catch error:', err);
     }
 }
+async function deleteOpportunity(oppId) {
+    if (!crmClient) {
+        console.error('CRM client not initialized');
+        return false;
+    }
+
+    try {
+        console.log('[CRM-DEBUG] Attempting to delete opportunity ID:', oppId, 'Type:', typeof oppId);
+
+        // Using .select() after delete to confirm if rows were actually affected
+        const { data, error } = await crmClient
+            .from('opportunities')
+            .delete()
+            .eq('id', oppId)
+            .select();
+
+        if (error) {
+            console.error('[CRM-DEBUG] Delete error:', error);
+            if (window.showToast) window.showToast("Erro ao excluir: " + error.message, "error");
+            return false;
+        }
+
+        if (!data || data.length === 0) {
+            console.warn('[CRM-DEBUG] No rows deleted. ID might not exist or RLS policy preventing delete.', oppId);
+            if (window.showToast) window.showToast("Erro: Nenhuma oportunidade encontrada para excluir.", "warning");
+            return false;
+        }
+
+        console.log('[CRM-DEBUG] Delete successful. Rows affected:', data.length, data);
+        if (window.showToast) window.showToast("Oportunidade excluída com sucesso!", "success");
+        return true;
+    } catch (err) {
+        console.error('[CRM-DEBUG] Unexpected error during delete:', err);
+        if (window.showToast) window.showToast("Erro inesperado ao excluir", "error");
+        return false;
+    }
+}
 
 async function fetchPipelineSummary() {
     if (!crmClient) return { total: { starter: 0, growth: 0, enterprise: 0 }, stages: { starter: {}, growth: {}, enterprise: {} } };
@@ -175,7 +193,7 @@ async function fetchPipelineSummary() {
                 pipeline, 
                 stage, 
                 responsible_name,
-                contacts ( acquisition_channels )
+                fonte_oportunidade
             `);
 
         if (error) throw error;
@@ -198,9 +216,7 @@ async function fetchPipelineSummary() {
             const resp = opp.responsible_name || 'Não atribuído';
 
             // Channel Aggregation
-            const channel = (opp.contacts && opp.contacts.acquisition_channels)
-                ? opp.contacts.acquisition_channels
-                : 'Não informado';
+            const channel = opp.fonte_oportunidade || 'Não informado';
 
             // Normalize channel name (simple)
             const cName = channel.trim();
@@ -279,82 +295,84 @@ window.CRM_LOGIC = {
     updateOpportunityDetails,
     fetchAILeadInfo,
     subscribeToCrmChanges,
-    initCrmSupabase
+    initCrmSupabase,
+    deleteOpportunity
 };
 
 /* ===== CRM_LOGIC logging wrappers =====
    Aguarda window.CRM_LOGIC e envolve métodos para debug sem alterar comportamento.
 */
 (function attachCrmLogicLogging() {
-	// evita múltiplas aplicações
-	if (window.__CRM_LOGGING_ATTACHED) {
-		console.debug('[CRM-LOG] logging already attached');
-		return;
-	}
+    // evita múltiplas aplicações
+    if (window.__CRM_LOGGING_ATTACHED) {
+        console.debug('[CRM-LOG] logging already attached');
+        return;
+    }
 
-	function wrapAsyncMethod(obj, name) {
-		if (!obj || typeof obj[name] !== 'function') return;
-		if (obj[name].__crm_logged) return;
-		const original = obj[name];
-		obj[name] = async function (...args) {
-			console.debug(`[CRM-LOG] CALL ${name}`, args);
-			try {
-				const res = await original.apply(this, args);
-				console.debug(`[CRM-LOG] OK ${name}`, res);
-				return res;
-			} catch (err) {
-				console.error(`[CRM-LOG] ERROR ${name}`, err);
-				throw err;
-			}
-		};
-		obj[name].__crm_logged = true;
-	}
+    function wrapAsyncMethod(obj, name) {
+        if (!obj || typeof obj[name] !== 'function') return;
+        if (obj[name].__crm_logged) return;
+        const original = obj[name];
+        obj[name] = async function (...args) {
+            console.debug(`[CRM-LOG] CALL ${name}`, args);
+            try {
+                const res = await original.apply(this, args);
+                console.debug(`[CRM-LOG] OK ${name}`, res);
+                return res;
+            } catch (err) {
+                console.error(`[CRM-LOG] ERROR ${name}`, err);
+                throw err;
+            }
+        };
+        obj[name].__crm_logged = true;
+    }
 
-	function wrapSyncMethod(obj, name) {
-		if (!obj || typeof obj[name] !== 'function') return;
-		if (obj[name].__crm_logged) return;
-		const original = obj[name];
-		obj[name] = function (...args) {
-			console.debug(`[CRM-LOG] CALL ${name}`, args);
-			try {
-				const res = original.apply(this, args);
-				console.debug(`[CRM-LOG] OK ${name}`, res);
-				return res;
-			} catch (err) {
-				console.error(`[CRM-LOG] ERROR ${name}`, err);
-				throw err;
-			}
-		};
-		obj[name].__crm_logged = true;
-	}
+    function wrapSyncMethod(obj, name) {
+        if (!obj || typeof obj[name] !== 'function') return;
+        if (obj[name].__crm_logged) return;
+        const original = obj[name];
+        obj[name] = function (...args) {
+            console.debug(`[CRM-LOG] CALL ${name}`, args);
+            try {
+                const res = original.apply(this, args);
+                console.debug(`[CRM-LOG] OK ${name}`, res);
+                return res;
+            } catch (err) {
+                console.error(`[CRM-LOG] ERROR ${name}`, err);
+                throw err;
+            }
+        };
+        obj[name].__crm_logged = true;
+    }
 
-	const methodsAsync = [
-		'initCrmSupabase',
-		'fetchPipelineSummary',
-		'fetchCrmData',
-		'fetchAILeadInfo',
-		'updateOpportunityDetails',
-		'updateLeadStage'
-	];
-	const methodsSync = [
-		'subscribeToCrmChanges'
-	];
+    const methodsAsync = [
+        'initCrmSupabase',
+        'fetchPipelineSummary',
+        'fetchCrmData',
+        'fetchAILeadInfo',
+        'updateOpportunityDetails',
+        'updateLeadStage',
+        'deleteOpportunity'
+    ];
+    const methodsSync = [
+        'subscribeToCrmChanges'
+    ];
 
-	let tries = 0;
-	const maxTries = 60; // ~6s
-	const interval = setInterval(() => {
-		if (window.CRM_LOGIC) {
-			methodsAsync.forEach(m => wrapAsyncMethod(window.CRM_LOGIC, m));
-			methodsSync.forEach(m => wrapSyncMethod(window.CRM_LOGIC, m));
-			window.__CRM_LOGGING_ATTACHED = true;
-			console.debug('[CRM-LOG] logging wrappers attached to window.CRM_LOGIC');
-			clearInterval(interval);
-			return;
-		}
-		tries++;
-		if (tries >= maxTries) {
-			console.warn('[CRM-LOG] window.CRM_LOGIC not found - logging wrappers not attached');
-			clearInterval(interval);
-		}
-	}, 100);
+    let tries = 0;
+    const maxTries = 60; // ~6s
+    const interval = setInterval(() => {
+        if (window.CRM_LOGIC) {
+            methodsAsync.forEach(m => wrapAsyncMethod(window.CRM_LOGIC, m));
+            methodsSync.forEach(m => wrapSyncMethod(window.CRM_LOGIC, m));
+            window.__CRM_LOGGING_ATTACHED = true;
+            console.debug('[CRM-LOG] logging wrappers attached to window.CRM_LOGIC');
+            clearInterval(interval);
+            return;
+        }
+        tries++;
+        if (tries >= maxTries) {
+            console.warn('[CRM-LOG] window.CRM_LOGIC not found - logging wrappers not attached');
+            clearInterval(interval);
+        }
+    }, 100);
 })();

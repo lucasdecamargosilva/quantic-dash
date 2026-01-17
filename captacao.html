@@ -6,23 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantic Captação</title>
 
-    <!-- Favicons / theme (usa a imagem anexada: favicon.png) -->
     <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
-    <link rel="icon" href="favicon.png" type="image/png" sizes="16x16">
-    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
     <meta name="theme-color" content="#8b5cf6">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- Supabase Core & Configuration (MUST BE IN HEAD) -->
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <script src="auth.js"></script>
-
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
     <style>
+        /* Estilos Base e Alinhamento */
         .capture-grid {
             display: block;
             margin-bottom: var(--spacing-xl);
@@ -61,16 +59,11 @@
             transition: all 0.3s;
         }
 
-        .input-field:focus {
-            outline: none;
-            border-color: var(--primary-purple);
-            background: rgba(139, 92, 246, 0.1);
-        }
-
+        /* Canais */
         .channel-selector {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
             margin-bottom: var(--spacing-xl);
         }
 
@@ -78,10 +71,11 @@
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 16px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             cursor: pointer;
             transition: all 0.3s;
@@ -89,7 +83,7 @@
         }
 
         .channel-btn i {
-            font-size: 24px;
+            font-size: 32px;
         }
 
         .channel-btn.active {
@@ -97,12 +91,6 @@
             background: rgba(139, 92, 246, 0.1);
             color: white;
             box-shadow: 0 0 15px var(--primary-purple-glow);
-        }
-
-        .channel-btn.disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            filter: grayscale(1);
         }
 
         .btn-capture {
@@ -122,11 +110,7 @@
             transition: all 0.3s;
         }
 
-        .btn-capture:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px var(--primary-purple-glow);
-        }
-
+        /* Tabelas */
         .leads-table-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -152,11 +136,12 @@
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
-            transition: background-color 0.2s;
         }
 
-        .table-header:hover {
-            background-color: rgba(139, 92, 246, 0.03);
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .table-header-left {
@@ -208,6 +193,54 @@
             font-size: 14px;
         }
 
+        /* Botões CRM e Refresh */
+        .btn-crm {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-crm:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-crm:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .btn-refresh {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            color: var(--primary-purple);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lead-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-purple);
+        }
+
         .profile-info {
             display: flex;
             align-items: center;
@@ -225,16 +258,7 @@
             font-size: 14px;
             font-weight: 700;
             color: white;
-        }
-
-        .profile-link {
-            color: var(--primary-purple);
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .profile-link:hover {
-            text-decoration: underline;
+            flex-shrink: 0;
         }
 
         .status-pill {
@@ -242,21 +266,8 @@
             border-radius: 20px;
             font-size: 11px;
             font-weight: 700;
-        }
-
-        .status-pill.new {
             background: rgba(16, 185, 129, 0.1);
-            color: var(--secondary-green);
-        }
-
-        .status-pill.qualificado {
-            background: rgba(139, 92, 246, 0.1);
-            color: var(--primary-purple);
-        }
-
-        .status-pill.desqualificado {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
+            color: #10b981;
         }
 
         .loading-shimmer {
@@ -274,208 +285,6 @@
                 background-position: 200% 0;
             }
         }
-
-        /* Estilos para linhas expansíveis */
-        .clickable-row {
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .clickable-row:hover {
-            background-color: rgba(139, 92, 246, 0.05);
-        }
-
-        .detail-row {
-            display: none;
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .detail-row.visible {
-            display: table-row;
-        }
-
-        .detail-content {
-            padding: var(--spacing-lg);
-            border-left: 3px solid var(--primary-purple);
-        }
-
-        .detail-section {
-            margin-bottom: var(--spacing-md);
-        }
-
-        .detail-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .detail-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--text-gray);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-
-        .detail-value {
-            font-size: 14px;
-            color: var(--text-primary);
-            line-height: 1.6;
-        }
-
-        .signals-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .signals-list li {
-            padding: 4px 0;
-            padding-left: 16px;
-            position: relative;
-        }
-
-        .signals-list li:before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: var(--primary-purple);
-            font-weight: bold;
-        }
-
-        .expand-icon {
-            transition: transform 0.3s;
-        }
-
-        .expand-icon.rotated {
-            transform: rotate(180deg);
-        }
-
-        .insight-box {
-            background: rgba(139, 92, 246, 0.08);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: var(--radius-md);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .insight-box .detail-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--primary-purple);
-        }
-
-        .insight-box .detail-label i {
-            font-size: 18px;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* Custom Dropdown Styling */
-        .quantic-select-container {
-            position: relative;
-            min-width: 180px;
-        }
-
-        .quantic-select-trigger {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 10px 16px;
-            color: var(--text-white);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .quantic-select-trigger:hover {
-            border-color: var(--primary-purple);
-            background: rgba(139, 92, 246, 0.05);
-        }
-
-        .quantic-select-options {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            display: none;
-            z-index: 1000;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-        }
-
-        .quantic-select-options.visible {
-            display: block;
-            animation: dropdownFadeIn 0.2s ease;
-        }
-
-        @keyframes dropdownFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .quantic-option {
-            padding: 12px 16px;
-            color: var(--text-gray);
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .quantic-option:hover {
-            background: rgba(139, 92, 246, 0.1);
-            color: var(--text-white);
-        }
-
-        .quantic-option.active {
-            color: var(--primary-purple);
-            background: rgba(139, 92, 246, 0.05);
-            font-weight: 700;
-        }
-
-        .btn-refresh {
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: var(--radius-md);
-            padding: 10px 16px;
-            color: var(--primary-purple);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-refresh:hover {
-            background: var(--primary-purple);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px var(--primary-purple-glow);
-        }
     </style>
 </head>
 
@@ -484,939 +293,287 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
-                <button class="toggle-btn" id="toggleSidebar">
-                    <i class="ph ph-list"></i>
-                </button>
+                <button class="toggle-btn" id="toggleSidebar"><i class="ph ph-list"></i></button>
             </div>
             <nav class="sidebar-nav">
-                <a href="index.html" class="nav-link">
-                    <i class="ph-fill ph-chart-line-up"></i>
-                    <span class="link-text">Desempenho</span>
-                </a>
-                <a href="crm.html" class="nav-link">
-                    <i class="ph-fill ph-table"></i>
-                    <span class="link-text">CRM Quantic</span>
-                </a>
-                <a href="contatos.html" class="nav-link">
-                    <i class="ph-fill ph-user"></i>
-                    <span class="link-text">Contatos</span>
-                </a>
-                <a href="conversas.html" class="nav-link">
-                    <i class="ph-fill ph-chats-teardrop"></i>
-                    <span class="link-text">Conversas</span>
-                </a>
-                <a href="captacao.html" class="nav-link active">
-                    <i class="ph-fill ph-funnel"></i>
-                    <span class="link-text">Captação</span>
-                </a>
+                <a href="index.html" class="nav-link"><i class="ph-fill ph-chart-line-up"></i><span
+                        class="link-text">Desempenho</span></a>
+                <a href="crm.html" class="nav-link"><i class="ph-fill ph-table"></i><span class="link-text">CRM
+                        Quantic</span></a>
+                <a href="contatos.html" class="nav-link"><i class="ph-fill ph-user"></i><span
+                        class="link-text">Contatos</span></a>
+                <a href="conversas.html" class="nav-link"><i class="ph-fill ph-chats-teardrop"></i><span
+                        class="link-text">Conversas</span></a>
+                <a href="captacao.html" class="nav-link active"><i class="ph-fill ph-funnel"></i><span
+                        class="link-text">Captação</span></a>
             </nav>
-            <div class="sidebar-footer">
-            </div>
         </aside>
 
         <div class="main-content">
             <div class="app-container">
                 <header class="main-header">
-                    <div class="header-left">
-                        <h1 class="page-title">Captação de Leads IA</h1>
-                    </div>
+                    <h1 class="page-title">Captação de Leads IA</h1>
                 </header>
 
                 <div class="capture-grid">
                     <div class="config-card">
                         <h3 style="margin-bottom: 20px;">Configurar Aquisição</h3>
-
                         <div style="display: grid; grid-template-columns: 350px 1fr; gap: 24px;">
-                            <!-- Left: Channels & Button -->
-                            <div style="display: flex; flex-direction: column; justify-content: space-between;">
-                                <div class="form-group" style="margin-bottom: 16px;">
+                            <div>
+                                <div class="form-group">
                                     <label>Canal de Origem</label>
-                                    <div class="channel-selector"
-                                        style="grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0;">
-                                        <div class="channel-btn active" id="channel-instagram"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-instagram-logo" style="font-size: 32px;"></i>
+                                    <div class="channel-selector">
+                                        <div class="channel-btn active" id="channel-instagram"><i
+                                                class="ph-fill ph-instagram-logo"></i></div>
+                                        <div class="channel-btn" id="channel-maps"><i class="ph-fill ph-map-pin"></i>
                                         </div>
-                                        <div class="channel-btn" id="channel-maps"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-map-pin" style="font-size: 32px;"></i>
-                                        </div>
-                                        <div class="channel-btn disabled"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-linkedin-logo" style="font-size: 32px;"></i>
-                                        </div>
-                                        <div class="channel-btn disabled"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-facebook-logo" style="font-size: 32px;"></i>
-                                        </div>
+                                        <div class="channel-btn disabled"><i class="ph-fill ph-linkedin-logo"></i></div>
+                                        <div class="channel-btn disabled"><i class="ph-fill ph-facebook-logo"></i></div>
                                     </div>
                                 </div>
-
-                                <button class="btn-capture" id="startCapture" style="width: 100%; padding: 12px;">
-                                    <i class="ph-bold ph-lightning"></i>
-                                    INICIAR EXTRAÇÃO
-                                </button>
+                                <button class="btn-capture" id="startCapture"><i class="ph-bold ph-lightning"></i>
+                                    INICIAR EXTRAÇÃO</button>
                             </div>
 
-                            <!-- Right: Inputs -->
-                            <div id="instagramInputs"
-                                style="display: flex; flex-direction: column; gap: 16px; justify-content: space-between;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>URL do Perfil Alvo</label>
-                                    <input type="text" id="targetUrl" class="input-field"
-                                        placeholder="https://instagram.com/concorrente/" style="padding: 10px;">
+                            <div id="instagramInputs" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="form-group"><label>URL do Perfil Alvo</label><input type="text"
+                                        id="targetUrl" class="input-field" placeholder="https://instagram.com/perfil/">
                                 </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>Cookie de Sessão</label>
-                                    <input type="text" id="sessionCookie" class="input-field"
-                                        placeholder="Cole seu cookie aqui..." style="padding: 10px;">
+                                <div class="form-group"><label>Cookie de Sessão</label><input type="text"
+                                        id="sessionCookie" class="input-field" placeholder="Cole seu cookie aqui...">
                                 </div>
                             </div>
 
-                            <div id="mapsInputs"
-                                style="display: none; flex-direction: column; gap: 16px; justify-content: space-between;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>Termo de Pesquisa</label>
-                                    <input type="text" id="mapsQuery" class="input-field"
-                                        placeholder="Ex: Restaurantes, Academias..." style="padding: 10px;">
-                                </div>
+                            <div id="mapsInputs" style="display: none; flex-direction: column; gap: 16px;">
+                                <div class="form-group"><label>Termo de Pesquisa</label><input type="text"
+                                        id="mapsQuery" class="input-field" placeholder="Ex: Restaurantes..."></div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label>Local</label>
-                                        <input type="text" id="mapsLocation" class="input-field"
-                                            placeholder="Ex: São Paulo, SP" style="padding: 10px;">
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label>Número de Leads</label>
-                                        <input type="number" id="mapsCount" class="input-field" placeholder="Ex: 50"
-                                            style="padding: 10px;" value="20">
-                                    </div>
+                                    <div class="form-group"><label>Local</label><input type="text" id="mapsLocation"
+                                            class="input-field" placeholder="Ex: São Paulo, SP"></div>
+                                    <div class="form-group"><label>Número de Leads</label><input type="number"
+                                            id="mapsCount" class="input-field" value="20"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Raw Leads History (Collapsible) -->
-                <div class="leads-table-card collapsed" style="margin-top: var(--spacing-xl);" id="rawLeadsCard">
+                <div class="leads-table-card collapsed" id="rawLeadsCard" style="margin-top: 24px;">
                     <div class="table-header" id="rawLeadsToggle">
                         <div class="table-header-left">
                             <i class="ph-bold ph-caret-down toggle-icon" id="rawLeadsIcon"></i>
                             <div>
-                                <h3><i class="ph-fill ph-clock-counter-clockwise"></i> Histórico de Leads Capturados
-                                </h3>
-                                <p style="font-size: 12px; color: var(--text-muted);">Todos os leads extraídos
-                                </p>
+                                <h3><i class="ph-fill ph-map-pin"></i> Histórico de Leads Google Maps</h3>
+                                <p style="font-size: 12px; color: var(--text-muted);">Dados extraídos diretamente do
+                                    Maps</p>
                             </div>
                         </div>
                         <div class="header-actions">
-                            <!-- Custom Dropdown for Channel Selection -->
-                            <div class="quantic-select-container" id="channelSelectContainer"
-                                onclick="event.stopPropagation();">
-                                <div class="quantic-select-trigger" id="channelSelectTrigger">
-                                    <span id="selectedChannelLabel">Canal: Instagram</span>
-                                    <i class="ph ph-caret-down"></i>
-                                </div>
-                                <div class="quantic-select-options" id="channelSelectOptions">
-                                    <div class="quantic-option active" data-value="instagram">
-                                        <i class="ph-fill ph-instagram-logo"></i>
-                                        Instagram
-                                    </div>
-                                    <div class="quantic-option" data-value="maps">
-                                        <i class="ph-fill ph-map-pin"></i>
-                                        Google Maps
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button id="refreshRawHistory" class="btn-refresh" onclick="event.stopPropagation();">
-                                <i class="ph ph-arrows-clockwise"></i> Atualizar
-                            </button>
+                            <button id="refreshRawHistory" class="btn-refresh"
+                                onclick="event.stopPropagation(); fetchRawHistory();"><i
+                                    class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                            <button id="sendToCRM" class="btn-crm" onclick="event.stopPropagation();"><i
+                                    class="ph-bold ph-paper-plane-tilt"></i> Enviar para CRM</button>
                         </div>
                     </div>
-
                     <div class="table-content" id="rawLeadsContent">
                         <table class="leads-table">
                             <thead>
                                 <tr id="raw-history-headers">
-                                    <th>Lead</th>
-                                    <th>Perfil/Username</th>
-                                    <th>Bio / Descrição</th>
-                                    <th>Contato</th>
+                                    <th style="width: 40px;"><input type="checkbox" onclick="toggleSelectAll(this)">
+                                    </th>
+                                    <th>Empresa</th>
+                                    <th>Categoria</th>
+                                    <th>Site</th>
+                                    <th>Telefone</th>
                                     <th>Data</th>
                                 </tr>
                             </thead>
-                            <tbody id="history-raw-body">
-                                <tr>
-                                    <td colspan="5"
-                                        style="text-align: center; padding: 60px; color: var(--text-muted);">
-                                        <i class="ph ph-database"
-                                            style="font-size: 32px; opacity: 0.2; margin-bottom: 10px; display: block; margin: 0 auto;"></i>
-                                        Carregando histórico...
-                                    </td>
-                                </tr>
-                            </tbody>
+                            <tbody id="history-raw-body"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- AI Qualified Leads -->
-                <div class="leads-table-card expanded" style="margin-top: var(--spacing-xl);">
+                <div class="leads-table-card expanded" style="margin-top: 24px;">
                     <div class="table-header">
                         <div>
                             <h3><i class="ph-fill ph-robot"></i> Leads Qualificados por IA</h3>
-                            <p style="font-size: 12px; color: var(--text-muted);">Leads processados e qualificados pela
-                                inteligência artificial (clique para ver detalhes)</p>
+                            <p style="font-size: 12px; color: var(--text-muted);">Analisados pela inteligência da
+                                Quantic</p>
                         </div>
-                        <button id="refreshIAHistory" class="btn-refresh">
-                            <i class="ph ph-arrows-clockwise"></i> Atualizar
-                        </button>
+                        <button id="refreshIAHistory" class="btn-refresh"><i class="ph ph-arrows-clockwise"></i>
+                            Atualizar</button>
                     </div>
-
                     <div style="flex: 1; overflow-y: auto;">
                         <table class="leads-table">
                             <thead>
                                 <tr>
                                     <th style="width: 30px;"></th>
                                     <th>Lead</th>
-                                    <th>Perfil/Username</th>
-                                    <th>Bio / Descrição</th>
+                                    <th>Perfil</th>
+                                    <th>Bio</th>
                                     <th>Status</th>
                                     <th>Contato</th>
-                                    <th>Data de Captura</th>
+                                    <th>Data</th>
                                 </tr>
                             </thead>
-                            <tbody id="history-ia-body">
-                                <tr>
-                                    <td colspan="7"
-                                        style="text-align: center; padding: 60px; color: var(--text-muted);">
-                                        <i class="ph ph-robot"
-                                            style="font-size: 32px; opacity: 0.2; margin-bottom: 10px; display: block; margin: 0 auto;"></i>
-                                        Carregando leads qualificados...
-                                    </td>
-                                </tr>
-                            </tbody>
+                            <tbody id="history-ia-body"></tbody>
                         </table>
                     </div>
                 </div>
-
-                <footer class="main-footer">
-                    <div class="footer-logo">
-                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
-                    </div>
-                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
-                </footer>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast"
-        style="position: fixed; bottom: 20px; right: 20px; background: var(--secondary-green); color: white; padding: 16px 24px; border-radius: var(--radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: translateY(150%); transition: transform 0.3s; z-index: 9999; display: flex; align-items: center; gap: 12px;">
-        <i class="ph-bold ph-check-circle" style="font-size: 24px;"></i>
-        <span id="toast-msg">Sucesso!</span>
-    </div>
-
-    <script src="script.js"></script>
     <script>
         const btnCapture = document.getElementById('startCapture');
-        let activeChannel = 'instagram';
-        let activeHistoryFilter = 'instagram';
-        window.isExtractionRunning = false;
+        let activeChannel = 'instagram', supabaseClient, isExtracting = false, selectedLeads = [];
 
-        // Lógica de troca de canais
-        document.getElementById('channel-instagram').onclick = () => {
-            activeChannel = 'instagram';
-            document.getElementById('channel-instagram').classList.add('active');
-            document.getElementById('channel-maps').classList.remove('active');
-            document.getElementById('instagramInputs').style.display = 'flex';
-            document.getElementById('mapsInputs').style.display = 'none';
-        };
+        // Canais e Interface
+        document.getElementById('channel-instagram').onclick = () => { activeChannel = 'instagram'; updateChannelUI('instagram'); };
+        document.getElementById('channel-maps').onclick = () => { activeChannel = 'maps'; updateChannelUI('maps'); };
 
-        document.getElementById('channel-maps').onclick = () => {
-            activeChannel = 'maps';
-            document.getElementById('channel-maps').classList.add('active');
-            document.getElementById('channel-instagram').classList.remove('active');
-            document.getElementById('instagramInputs').style.display = 'none';
-            document.getElementById('mapsInputs').style.display = 'flex';
-        };
-
-        // Lógica de filtro de histórico (Custom Dropdown)
-        const channelSelectTrigger = document.getElementById('channelSelectTrigger');
-        const channelSelectOptions = document.getElementById('channelSelectOptions');
-        const selectedChannelLabel = document.getElementById('selectedChannelLabel');
-
-        channelSelectTrigger.onclick = (e) => {
-            e.stopPropagation();
-            channelSelectOptions.classList.toggle('visible');
-        };
-
-        document.querySelectorAll('.quantic-option').forEach(option => {
-            option.onclick = (e) => {
-                e.stopPropagation();
-                const value = option.dataset.value;
-                const text = option.textContent.trim();
-
-                activeHistoryFilter = value;
-                selectedChannelLabel.textContent = `Canal: ${text}`;
-
-                // Update active class
-                document.querySelectorAll('.quantic-option').forEach(opt => opt.classList.remove('active'));
-                option.classList.add('active');
-
-                channelSelectOptions.classList.remove('visible');
-                fetchRawHistory();
-            };
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', () => {
-            channelSelectOptions.classList.remove('visible');
-        });
-
-        // Toggle para expandir/recolher histórico de leads brutos
-        function toggleRawLeadsHistory() {
-            const content = document.getElementById('rawLeadsContent');
-            const icon = document.getElementById('rawLeadsIcon');
-            const card = document.getElementById('rawLeadsCard');
-
-            if (content.classList.contains('visible')) {
-                content.classList.remove('visible');
-                icon.classList.remove('rotated');
-                card.classList.remove('expanded');
-                card.classList.add('collapsed');
-            } else {
-                content.classList.add('visible');
-                icon.classList.add('rotated');
-                card.classList.remove('collapsed');
-                card.classList.add('expanded');
-            }
+        function updateChannelUI(c) {
+            document.getElementById('channel-instagram').classList.toggle('active', c === 'instagram');
+            document.getElementById('channel-maps').classList.toggle('active', c === 'maps');
+            document.getElementById('instagramInputs').style.display = c === 'instagram' ? 'flex' : 'none';
+            document.getElementById('mapsInputs').style.display = c === 'maps' ? 'flex' : 'none';
         }
 
+        function toggleRawLeadsHistory() {
+            document.getElementById('rawLeadsContent').classList.toggle('visible');
+            document.getElementById('rawLeadsIcon').classList.toggle('rotated');
+            document.getElementById('rawLeadsCard').classList.toggle('expanded');
+            document.getElementById('rawLeadsCard').classList.toggle('collapsed');
+        }
         document.getElementById('rawLeadsToggle').onclick = toggleRawLeadsHistory;
 
-        function setRawHistoryLoading(isLoading) {
-            const tbody = document.getElementById('history-raw-body');
-            if (!tbody) return;
-
-            if (!isLoading) return;
-
-            tbody.innerHTML = `
-    ${[1, 2, 3, 4, 5, 6, 7, 8].map(() => `
-      <tr>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-      </tr>
-    `).join('')}
-  `;
+        // Seleção
+        function toggleLeadSelection(id) {
+            const idx = selectedLeads.indexOf(id);
+            if (idx > -1) selectedLeads.splice(idx, 1); else selectedLeads.push(id);
         }
 
-        function setIAHistoryLoading(isLoading) {
-            const tbody = document.getElementById('history-ia-body');
-            if (!tbody) return;
-
-            if (!isLoading) return;
-
-            tbody.innerHTML = `
-    ${[1, 2, 3, 4, 5, 6, 7, 8].map(() => `
-      <tr>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-      </tr>
-    `).join('')}
-  `;
+        function toggleSelectAll(source) {
+            const cbs = document.querySelectorAll('.lead-checkbox');
+            selectedLeads = [];
+            cbs.forEach(cb => { cb.checked = source.checked; if (source.checked) selectedLeads.push(cb.value); });
         }
 
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').textContent = msg;
-            toast.style.transform = 'translateY(0)';
-            setTimeout(() => toast.style.transform = 'translateY(150%)', 3000);
-        }
-
-        // Supabase History Logic
-        let supabaseClient;
-        async function initSupabase() {
-            // Wait for config to load
-            if (window.CONFIG_LOADED) {
-                await window.CONFIG_LOADED;
-            }
-
-            // Robust waiting for supabaseClient (up to 5 seconds)
-            let attempts = 0;
-            while (!window.supabaseClient && attempts < 50) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                attempts++;
-            }
-
-            if (window.supabaseClient) {
-                supabaseClient = window.supabaseClient;
-                return true;
-            }
-            return false;
-        }
-
-        function setCaptureButtonState(state) {
-            if (state === 'idle') {
-                window.isExtractionRunning = false;
-                btnCapture.disabled = false;
-                btnCapture.style.opacity = '1';
-                btnCapture.style.cursor = 'pointer';
-                btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
-            } else if (state === 'running') {
-                window.isExtractionRunning = true;
-                btnCapture.disabled = true;
-                btnCapture.style.opacity = '0.5';
-                btnCapture.style.cursor = 'not-allowed';
-                btnCapture.innerHTML = '<i class="ph-bold ph-activity animate-spin"></i> Busca de Leads em andamento...';
-            }
-        }
-
-        // Toggle para expandir/recolher detalhes
-        function toggleLeadDetails(leadId) {
-            const detailRow = document.getElementById(`detail-${leadId}`);
-            const icon = document.getElementById(`icon-${leadId}`);
-
-            if (detailRow.classList.contains('visible')) {
-                detailRow.classList.remove('visible');
-                icon.classList.remove('rotated');
-            } else {
-                detailRow.classList.add('visible');
-                icon.classList.add('rotated');
-            }
-        }
-
-        // 1. Fetch Raw History
+        // Buscas Supabase
         async function fetchRawHistory() {
             if (!supabaseClient) return;
-
             const tbody = document.getElementById('history-raw-body');
-            const thead = document.getElementById('raw-history-headers');
-
-            // Set Loading state
-            setRawHistoryLoading(true);
-
             try {
-                if (activeHistoryFilter === 'instagram') {
-                    thead.innerHTML = `
-                            <th>Lead</th>
-                            <th>Perfil/Username</th>
-                            <th>Bio / Descrição</th>
-                            <th>Contato</th>
-                            <th>Data</th>
-                        `;
-
-                    if (window.isExtractionRunning) {
-                        console.log("Extraction active: keeping shimmer in raw history (Instagram).");
-                        return;
-                    }
-
-                    const { data, error } = await supabaseClient
-                        .from('leads_capturados_posts')
-                        .select('id, created_at, nome_cliente, usuario, bio, email, telefone')
-                        .order('created_at', { ascending: false });
-
-                    if (error) throw error;
-
-                    if (!data || data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead encontrado.</td></tr>';
-                        return;
-                    }
-
-                    tbody.innerHTML = '';
-                    data.forEach(lead => {
-                        const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
-                        const name = lead.nome_cliente || 'Sem nome';
-                        const username = lead.usuario || 'unknown';
-                        const profileUrl = username !== 'unknown' ? `https://instagram.com/${username.replace('@', '')}` : '#';
-                        const bio = lead.bio || '';
-                        const email = lead.email || '---';
-                        const phone = lead.telefone || '---';
-
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                                <td>
-                                    <div class="profile-info">
-                                        <div class="profile-avatar" style="background: var(--text-gray);">${escapeHtml(name[0])}</div>
-                                        <strong>${escapeHtml(name)}</strong>
-                                    </div>
-                                </td>
-                                <td><a href="${profileUrl}" target="_blank" class="profile-link">@${escapeHtml(username)}</a></td>
-                                <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${escapeHtml(bio.substring(0, 60))}...</td>
-                                <td><div style="font-size: 13px;">${escapeHtml(email)}<br>${escapeHtml(phone)}</div></td>
-                                <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
-                            `;
-                        tbody.appendChild(tr);
-                    });
-                } else {
-                    // Google Maps
-                    thead.innerHTML = `
-                            <th>Empresa</th>
-                            <th>Categoria</th>
-                            <th>Site</th>
-                            <th>Telefone</th>
-                            <th>Data</th>
-                        `;
-
-                    if (window.isExtractionRunning) {
-                        console.log("Extraction active: keeping shimmer in raw history (Maps).");
-                        return;
-                    }
-
-                    const { data, error } = await supabaseClient
-                        .from('leads_google_maps')
-                        .select('id, created_at, empresa, categoria_negocio, site, telefone')
-                        .order('created_at', { ascending: false });
-
-                    if (error) {
-                        console.error("Supabase Error (Google Maps):", error);
-                        throw error;
-                    }
-
-                    if (!data || data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead de Maps encontrado.</td></tr>';
-                        return;
-                    }
-
-                    tbody.innerHTML = '';
-                    data.forEach(lead => {
-                        const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
-                        let empresa = lead.empresa || 'Sem nome';
-                        const categoria = lead.categoria_negocio || '---';
-                        const site = lead.site || '---';
-                        const phone = lead.telefone || '---';
-                        const siteUrl = site !== '---' ? (site.startsWith('http') ? site : `https://${site}`) : '#';
-
-                        // Truncar nome da empresa se for muito longo
-                        const empresaExibicao = empresa.length > 40 ? empresa.substring(0, 37) + '...' : empresa;
-
-                        // Truncar site se for muito longo
-                        const siteExibicao = site.length > 30 ? site.substring(0, 27) + '...' : site;
-
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                                <td>
-                                    <div class="profile-info">
-                                        <div class="profile-avatar" style="background: var(--primary-purple);">${escapeHtml(empresa[0])}</div>
-                                        <strong title="${escapeHtml(empresa)}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                            ${escapeHtml(empresaExibicao)}
-                                        </strong>
-                                    </div>
-                                </td>
-                                <td style="font-size: 13px; color: var(--text-gray); white-space: nowrap;">${escapeHtml(categoria)}</td>
-                                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                    ${site !== '---' ? `<a href="${siteUrl}" target="_blank" class="profile-link" title="${escapeHtml(site)}">${escapeHtml(siteExibicao)}</a>` : '---'}
-                                </td>
-                                <td style="font-size: 13px; white-space: nowrap;">${escapeHtml(phone)}</td>
-                                <td style="font-size: 13px; color: var(--text-muted); white-space: nowrap;">${date}</td>
-                            `;
-                        tbody.appendChild(tr);
-                    });
-                }
-            } catch (err) {
-                console.error("Error fetching raw history:", err);
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar dados.</td></tr>';
-            }
+                selectedLeads = [];
+                const { data } = await supabaseClient.from('leads_google_maps').select('*').order('created_at', { ascending: false });
+                tbody.innerHTML = data.map(l => `<tr>
+                    <td><input type="checkbox" class="lead-checkbox" value="${l.id}" onchange="toggleLeadSelection('${l.id}')"></td>
+                    <td><div class="profile-info"><div class="profile-avatar">${(l.empresa || 'E')[0]}</div><strong>${truncateName(l.empresa)}</strong></div></td>
+                    <td>${l.categoria_negocio}</td>
+                    <td>${(l.site || '').substring(0, 25)}...</td>
+                    <td>${l.telefone || '---'}</td>
+                    <td>${new Date(l.created_at).toLocaleDateString('pt-BR')}</td>
+                </tr>`).join('');
+            } catch (e) { console.error(e); }
         }
 
-        // 2. Fetch IA Qualified History (leads_qualificados) com detalhes expansíveis
         async function fetchIAHistory() {
             if (!supabaseClient) return;
-
             const tbody = document.getElementById('history-ia-body');
+            try {
+                const { data } = await supabaseClient.from('leads_qualificados').select('*').order('created_at', { ascending: false });
+                tbody.innerHTML = data.map(l => `<tr>
+                    <td style="text-align:center;"><i class="ph-bold ph-caret-down" style="color:#8b5cf6;"></i></td>
+                    <td><div class="profile-info"><div class="profile-avatar">${(l.nome_cliente || 'S')[0]}</div><strong>${truncateName(l.nome_cliente)}</strong></div></td>
+                    <td>@${l.usuario}</td>
+                    <td>${(l.bio || '').substring(0, 30)}...</td>
+                    <td><span class="status-pill">Qualificado</span></td>
+                    <td>${l.email || '---'}</td>
+                    <td>${new Date(l.created_at).toLocaleDateString('pt-BR')}</td>
+                </tr>`).join('');
+            } catch (e) { console.error(e); }
+        }
 
-            // Set Loading state
-            setIAHistoryLoading(true);
+        // --- ENVIO PARA CRM COM CORREÇÃO DE ERRO NUMÉRICO ---
+        document.getElementById('sendToCRM').onclick = async (event) => {
+            event.stopPropagation();
+            if (selectedLeads.length === 0) return alert("Selecione leads primeiro!");
 
-            if (window.isExtractionRunning) {
-                console.log("Extraction active: keeping shimmer in IA history.");
-                return;
-            }
+            const btn = document.getElementById('sendToCRM');
+            const originalContent = '<i class="ph-bold ph-paper-plane-tilt"></i> Enviar para CRM';
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Enviando...';
 
             try {
-                const { data, error } = await supabaseClient
-                    .from('leads_qualificados')
-                    .select('id, created_at, nome_cliente, usuario, bio, email, telefone, status, sinais_detectados, trechos_relevantes, observacoes, insight_ia')
-                    .order('created_at', { ascending: false });
+                const { data: leads, error: fetchError } = await supabaseClient
+                    .from('leads_google_maps')
+                    .select('*')
+                    .in('id', selectedLeads);
 
-                if (error) throw error;
+                if (fetchError) throw fetchError;
 
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead qualificado ainda.</td></tr>';
-                    return;
-                }
+                const opportunitiesData = leads.map(l => ({
+                    nome_oportunidade: l.empresa || 'Empresa sem nome',
+                    telefone: l.telefone ? String(l.telefone) : null,
+                    site: l.site || '',
+                    categoria: l.categoria_negocio || '',
+                    tags: l.tags || '',
+                    fonte_oportunidade: l.fonte_oportunidade || 'Google Maps',
+                    lead_status: 'Novo',
+                    stage: 'Contato',
+                    pipeline: 'Quantic Starter'
+                }));
 
-                tbody.innerHTML = '';
-                data.forEach(lead => {
-                    const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
-                    const name = lead.nome_cliente || 'Sem nome';
-                    const username = lead.usuario || 'unknown';
-                    const profileUrl = username !== 'unknown' ? `https://instagram.com/${username.replace('@', '')}` : '#';
-                    const bio = lead.bio || '';
-                    const email = lead.email || '---';
-                    const phone = lead.telefone || '---';
-                    const status = lead.status || 'pendente';
+                const { error: insertError } = await supabaseClient
+                    .from('opportunities')
+                    .insert(opportunitiesData);
 
-                    // Processar sinais_detectados
-                    let sinaisHtml = '<p style="color: var(--text-muted); font-style: italic;">Nenhum sinal detectado</p>';
-                    if (lead.sinais_detectados) {
-                        try {
-                            const sinais = typeof lead.sinais_detectados === 'string'
-                                ? JSON.parse(lead.sinais_detectados)
-                                : lead.sinais_detectados;
+                if (insertError) throw insertError;
 
-                            if (Array.isArray(sinais) && sinais.length > 0) {
-                                sinaisHtml = '<ul class="signals-list">' +
-                                    sinais.map(s => `<li>${s}</li>`).join('') +
-                                    '</ul>';
-                            }
-                        } catch (e) {
-                            sinaisHtml = `<p>${lead.sinais_detectados}</p>`;
-                        }
-                    }
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> Leads enviados com sucesso!';
+                btn.style.background = '#059669';
 
-                    // Processar trechos_relevantes
-                    let trechosHtml = '<p style="color: var(--text-muted); font-style: italic;">Nenhum trecho relevante</p>';
-                    if (lead.trechos_relevantes) {
-                        try {
-                            const trechos = typeof lead.trechos_relevantes === 'string'
-                                ? JSON.parse(lead.trechos_relevantes)
-                                : lead.trechos_relevantes;
-
-                            if (Array.isArray(trechos) && trechos.length > 0) {
-                                trechosHtml = '<ul class="signals-list">' +
-                                    trechos.map(t => `<li>${t}</li>`).join('') +
-                                    '</ul>';
-                            }
-                        } catch (e) {
-                            trechosHtml = `<p>${lead.trechos_relevantes}</p>`;
-                        }
-                    }
-
-                    // Definir classe do status
-                    let statusClass = 'new';
-                    if (status.toLowerCase().includes('qualificado')) statusClass = 'qualificado';
-                    if (status.toLowerCase().includes('desqualificado')) statusClass = 'desqualificado';
-
-                    // Linha principal (clicável)
-                    const mainTr = document.createElement('tr');
-                    mainTr.className = 'clickable-row';
-                    mainTr.onclick = () => toggleLeadDetails(lead.id);
-                    mainTr.innerHTML = `
-                        <td style="text-align: center;">
-                            <i id="icon-${lead.id}" class="ph-bold ph-caret-down expand-icon" style="font-size: 16px; color: var(--primary-purple);"></i>
-                        </td>
-                        <td>
-                            <div class="profile-info">
-                                <div class="profile-avatar">${escapeHtml(name[0])}</div>
-                                <strong>${escapeHtml(name)}</strong>
-                            </div>
-                        </td>
-                        <td><a href="${profileUrl}" target="_blank" class="profile-link" onclick="event.stopPropagation();">@${escapeHtml(username)}</a></td>
-                        <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${escapeHtml(bio.substring(0, 60))}...</td>
-                        <td><span class="status-pill ${statusClass}">${escapeHtml(status)}</span></td>
-                        <td><div style="font-size: 13px;">${escapeHtml(email)}<br>${escapeHtml(phone)}</div></td>
-                        <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
-                    `;
-                    tbody.appendChild(mainTr);
-
-                    // Linha de detalhes (expansível)
-                    const detailTr = document.createElement('tr');
-                    detailTr.id = `detail-${lead.id}`;
-                    detailTr.className = 'detail-row';
-                    detailTr.innerHTML = `
-                        <td colspan="7">
-                            <div class="detail-content">
-                                ${lead.insight_ia ? `
-                                <div class="insight-box">
-                                    <div class="detail-label">
-                                        <i class="ph-fill ph-brain"></i>
-                                        Insight da IA
-                                    </div>
-                                    <div class="detail-value">${lead.insight_ia}</div>
-                                </div>
-                                ` : ''}
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
-                                    <div class="detail-section">
-                                        <div class="detail-label">Sinais Detectados</div>
-                                        <div class="detail-value">${sinaisHtml}</div>
-                                    </div>
-                                    <div class="detail-section">
-                                        <div class="detail-label">Trechos Relevantes</div>
-                                        <div class="detail-value">${trechosHtml}</div>
-                                    </div>
-                                </div>
-                                ${lead.observacoes ? `
-                                <div class="detail-section" style="margin-top: var(--spacing-md);">
-                                    <div class="detail-label">Observações</div>
-                                    <div class="detail-value">${lead.observacoes}</div>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(detailTr);
-                });
-            } catch (err) {
-                console.error("Error fetching IA history:", err);
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar qualificados.</td></tr>';
-            }
-        }
-
-        document.getElementById('refreshRawHistory').onclick = fetchRawHistory;
-        document.getElementById('refreshIAHistory').onclick = fetchIAHistory;
-
-        // ==== acompanhar status do ÚLTIMO job via Supabase Realtime ====
-        let jobChannel = null;
-
-        function stopWatchingJob() {
-            if (jobChannel && supabaseClient) {
-                supabaseClient.removeChannel(jobChannel);
-                jobChannel = null;
-            }
-        }
-
-        function watchJob(jobId) {
-            stopWatchingJob();
-
-            jobChannel = supabaseClient
-                .channel(`captura-job-${jobId}`)
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'capturas_jobs',
-                    filter: `job_id=eq.${jobId}`,
-                }, (payload) => {
-                    const status = payload?.new?.status;
-
-                    if (status === 'finished') {
-                        showToast("A extração foi finalizada.");
-                        setCaptureButtonState('idle');
-                        fetchRawHistory();
-                        fetchIAHistory();
-                        stopWatchingJob();
-                    } else if (status === 'failed') {
-                        showToast(payload?.new?.message || "Extração falhou.");
-                        setCaptureButtonState('idle');
-                        stopWatchingJob();
-                    }
-                })
-                .subscribe();
-        }
-
-        async function getLastJob() {
-            const { data, error } = await supabaseClient
-                .from('capturas_jobs')
-                .select('job_id, status, created_at')
-                .order('created_at', { ascending: false })
-                .limit(1);
-
-            if (error) throw error;
-            return data?.[0] || null;
-        }
-
-        async function waitLastJobFinished() {
-            // 1) Espera existir pelo menos 1 job (reduzido para 10s para não travar se o n8n não usar esta tabela)
-            let lastJob = await getLastJob();
-            const start = Date.now();
-
-            while (!lastJob && (Date.now() - start) < 10000) {
-                await new Promise(r => setTimeout(r, 1500));
-                lastJob = await getLastJob();
-            }
-
-            if (!lastJob) {
-                console.log("Nenhum job encontrado em 10s. Prosseguindo com monitoramento de dados...");
-                return;
-            }
-
-            // 2) Se já terminou, encerra
-            if (lastJob.status === 'finished') return;
-            if (lastJob.status === 'failed') throw new Error("O último job está com status failed.");
-
-            // 3) Aguarda UPDATE do job até finished/failed via Realtime (com timeout de segurança de 10 min)
-            await new Promise((resolve, reject) => {
-                stopWatchingJob();
-
-                const timeout = setTimeout(() => {
-                    stopWatchingJob();
-                    resolve(); // Libera após 10 min de qualquer jeito
-                }, 600000);
-
-                jobChannel = supabaseClient
-                    .channel(`captura-job-${lastJob.job_id}`)
-                    .on('postgres_changes', {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'leads_google_maps', // Monitorar também a tabela de dados como "trigger"
-                    }, (payload) => {
-                        // Se houver qualquer mudança na tabela de dados, já ajuda a saber que está rodando
-                        fetchRawHistory();
-                    })
-                    .on('postgres_changes', {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'capturas_jobs',
-                        filter: `job_id=eq.${lastJob.job_id}`,
-                    }, (payload) => {
-                        const status = payload?.new?.status;
-                        if (status === 'finished') {
-                            clearTimeout(timeout);
-                            resolve();
-                        }
-                        if (status === 'failed') {
-                            clearTimeout(timeout);
-                            reject(new Error(payload?.new?.message || "Extração falhou."));
-                        }
-                    })
-                    .subscribe((status) => {
-                        console.log(`Realtime Subscription [Job ${lastJob.job_id}]:`, status);
-                    });
-            });
-
-            stopWatchingJob();
-        }
-
-        btnCapture.onclick = async () => {
-            let webhookUrl = '';
-            let body = {};
-
-            if (activeChannel === 'instagram') {
-                const targetUrl = document.getElementById('targetUrl').value;
-                const sessionCookie = document.getElementById('sessionCookie').value;
-
-                if (!targetUrl) {
-                    showToast("Por favor, preencha a URL do Perfil Alvo.");
-                    return;
-                }
-                webhookUrl = 'https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic';
-                body = { targetUrl, sessionCookie };
-            } else {
-                const termo = document.getElementById('mapsQuery').value;
-                const local = document.getElementById('mapsLocation').value;
-                const leads = document.getElementById('mapsCount').value;
-
-                if (!termo || !local) {
-                    showToast("Por favor, preencha o Termo e o Local.");
-                    return;
-                }
-                webhookUrl = 'https://n8n.segredosdodrop.com/webhook/recebe-dados-maps';
-                body = {
-                    "Termo de Pesquisa": termo,
-                    "Local": local,
-                    "Numero de Leads": leads
-                };
-            }
-
-            try {
-                // 1) Trava botão + coloca mensagem "em andamento"
-                setCaptureButtonState('running');
-
-                // 2) Coloca shimmer/loading na tabela de histórico (raw e ia)
-                setRawHistoryLoading(true);
-                setIAHistoryLoading(true);
-
-                // 3) Dispara o processo (gatilho)
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Erro ao iniciar: ${response.status}`);
-                }
-
-                showToast("Requisição enviada. Preparando extração...");
-
-                // 4) Aguarda 20 segundos antes de começar a procurar por jobs ou novos dados
-                // Isso dá tempo para o n8n iniciar o processo e gravar os primeiros registros
-                await new Promise(resolve => setTimeout(resolve, 20000));
-
-                showToast("Busca de Leads em andamento...");
-
-                // 5) Inicia um polling de segurança (caso o Realtime esteja desativado no Supabase)
-                const pollingInterval = setInterval(() => {
-                    fetchRawHistory();
-                }, 5000);
-
-                // 6) Espera o ÚLTIMO job da tabela aparecer e virar finished/failed
-                try {
-                    await waitLastJobFinished();
-                } catch (e) {
-                    console.warn("Aviso no waitLastJobFinished:", e);
-                }
-
-                // 7) Finalizou: limpa polling, destrava e carrega tabelas
-                clearInterval(pollingInterval);
-                showToast("Processo de extração concluído.");
-                setCaptureButtonState('idle');
+                selectedLeads = [];
                 fetchRawHistory();
-                fetchIAHistory();
-            } catch (error) {
-                console.error('Start/wait error:', error);
-                showToast(error?.message || "Erro ao iniciar/aguardar.");
-                setCaptureButtonState('idle');
-                fetchRawHistory();
-                fetchIAHistory();
+
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                    btn.style.background = '';
+                }, 3000);
+
+            } catch (e) {
+                console.error("Erro no envio:", e);
+                alert(`Erro ao enviar: ${e.message}`);
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
             }
         };
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (await initSupabase()) {
-                fetchRawHistory();
-                fetchIAHistory();
+        btnCapture.onclick = async () => {
+            let url = activeChannel === 'instagram' ? 'https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic' : 'https://n8n.segredosdodrop.com/webhook/recebe-dados-maps';
+            let body = activeChannel === 'instagram' ?
+                { targetUrl: document.getElementById('targetUrl').value, sessionCookie: document.getElementById('sessionCookie').value } :
+                { "Termo de Pesquisa": document.getElementById('mapsQuery').value, "Local": document.getElementById('mapsLocation').value, "Numero de Leads": document.getElementById('mapsCount').value };
 
-                // Check if there is an active job running (e.g. after refresh)
-                const lastJob = await getLastJob();
-                if (lastJob && (lastJob.status === 'running' || lastJob.status === 'pending')) {
-                    setCaptureButtonState('running');
-                    watchJob(lastJob.job_id);
-                }
+            isExtracting = true; btnCapture.disabled = true; btnCapture.innerHTML = 'EXTRAINDO...';
 
-                // Real-time: Captured (Raw Instagram)
-                supabaseClient
-                    .channel('raw-leads-realtime')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, payload => {
-                        if (activeHistoryFilter === 'instagram') {
-                            fetchRawHistory();
-                        }
-                        showToast("Novo lead do Instagram capturado!");
-                    })
-                    .subscribe();
+            const historyBody = activeChannel === 'instagram' ? document.getElementById('history-ia-body') : document.getElementById('history-raw-body');
+            const cols = activeChannel === 'instagram' ? 7 : 6;
+            historyBody.innerHTML = Array(5).fill(`<tr>${Array(cols).fill('<td><div class="loading-shimmer" style="height:20px; border-radius:4px;"></div></td>').join('')}</tr>`).join('');
 
-                // Real-time: Captured (Raw Maps)
-                supabaseClient
-                    .channel('maps-leads-realtime')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_google_maps' }, payload => {
-                        console.log("Realtime Maps Change:", payload);
-                        fetchRawHistory();
-                        if (payload.event === 'INSERT') {
-                            showToast("Novo lead do Google Maps capturado!");
-                        }
-                    })
-                    .subscribe((status) => {
-                        console.log("Realtime Subscription [Maps]:", status);
-                    });
+            if (activeChannel === 'maps' && document.getElementById('rawLeadsCard').classList.contains('collapsed')) toggleRawLeadsHistory();
 
-                // Real-time: IA Qualified
-                supabaseClient
-                    .channel('qualificados-ia-realtime')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_qualificados' }, payload => {
-                        fetchIAHistory();
-                        showToast("Novo lead qualificado pela IA!");
-                    })
-                    .subscribe();
-            }
-        });
+            try { await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { }
+            isExtracting = false; fetchRawHistory(); btnCapture.disabled = false; btnCapture.innerHTML = 'INICIAR EXTRAÇÃO';
+        };
+
+        function truncateName(n, l = 20) { return n && n.length > l ? n.substring(0, l) + '...' : n; }
+        async function initSupabase() { if (window.CONFIG_LOADED) await window.CONFIG_LOADED; supabaseClient = window.supabaseClient; return !!supabaseClient; }
+        document.getElementById('refreshIAHistory').onclick = fetchIAHistory;
+        document.addEventListener('DOMContentLoaded', async () => { if (await initSupabase()) { fetchRawHistory(); fetchIAHistory(); } });
     </script>
 </body>
 

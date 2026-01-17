@@ -592,6 +592,32 @@
             background: var(--primary-purple-hover, #7c3aed);
         }
 
+        .delete-btn-modal {
+            background: rgba(239, 68, 68, 0.05);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: sticky;
+            float: right;
+            margin-top: 24px;
+            margin-right: 0;
+        }
+
+        .delete-btn-modal:hover {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
         /* Compact AI Grid */
         .ai-grid-compact {
             display: grid;
@@ -1512,7 +1538,8 @@
                     <div class="sidebar-group">
                         <span class="sidebar-label">Contato</span>
                         <div class="contact-row">
-                            <span class="contact-val" id="modal-phone">---</span>
+                            <input type="text" id="modal-phone" class="crm-input-compact"
+                                style="flex: 1; margin-right: 8px;" placeholder="Telefone">
                             <i class="ph ph-copy copy-btn-mini" id="copy-phone"></i>
                         </div>
                         <div class="contact-row">
@@ -1555,11 +1582,19 @@
                                 <p class="ai-content" id="modal-ia-obs">---</p>
                             </div>
 
-                            <!-- Status -->
+                            <!-- Site -->
                             <div class="ai-box">
-                                <span class="ai-label">Status Detectado</span>
-                                <span class="status-pill" id="modal-ia-status" style="display: inline-block;">---</span>
+                                <span class="ai-label">Site</span>
+                                <div style="margin-top: 8px;">
+                                    <a id="modal-site-link" href="#" target="_blank" class="ai-content"
+                                        style="color: var(--primary-purple); text-decoration: none; border-bottom: 1px solid rgba(139, 92, 246, 0.3); padding-bottom: 2px; transition: all 0.2s; word-break: break-all;">
+                                        Abrir Site
+                                    </a>
+                                    <!-- Hidden input to maintain save functionality without changing too much logic -->
+                                    <input type="hidden" id="modal-site">
+                                </div>
                             </div>
+
 
                             <!-- Signals & Snippets -->
                             <div class="ai-box ai-full-row">
@@ -1572,6 +1607,10 @@
                                 <div class="ia-list" id="modal-ia-snippets">---</div>
                             </div>
                         </div>
+
+                        <button class="delete-btn-modal" id="deleteLeadBtn">
+                            <i class="ph-bold ph-trash"></i> Excluir Oportunidade
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1746,6 +1785,11 @@
             if (event.target == modal) closeModalFunc();
         }
 
+        // Close modal on Escape key
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeModalFunc();
+        });
+
         let currentLeadId = null;
         let currentContactId = null;
 
@@ -1757,13 +1801,39 @@
             const displayUser = lead.company.startsWith('@') ? lead.company : '@' + lead.company;
             document.getElementById('modal-company-name').textContent = displayUser;
             document.getElementById('modal-email').textContent = lead.email || '---';
-            document.getElementById('modal-phone').textContent = lead.phone || '---';
+            document.getElementById('modal-phone').value = lead.phone !== '---' ? lead.phone : '';
 
             // Now 'channels' maps to 'Fonte da Oportunidade'
             document.getElementById('modal-channels').value = (lead.channels && lead.channels !== '---') ? lead.channels : '';
 
             document.getElementById('modal-responsible').value = lead.responsible !== 'Não atribuído' ? lead.responsible : '';
             document.getElementById('modal-tags').value = lead.tags ? lead.tags.join(', ') : '';
+
+            const siteVal = (lead.site && lead.site !== '---') ? lead.site : '';
+            const siteEl = document.getElementById('modal-site');
+            const siteLink = document.getElementById('modal-site-link');
+
+            if (siteEl) siteEl.value = siteVal;
+            if (siteLink) {
+                if (siteVal) {
+                    siteLink.href = siteVal.startsWith('http') ? siteVal : 'https://' + siteVal;
+                    siteLink.textContent = siteVal;
+                    siteLink.style.display = 'inline-block';
+                    siteLink.style.opacity = '1';
+                } else {
+                    siteLink.href = '#';
+                    siteLink.textContent = 'Sem site cadastrado';
+                    siteLink.style.display = 'inline-block';
+                    siteLink.style.opacity = '0.5';
+                }
+            }
+
+            // Reset Delete Button state
+            const delBtn = document.getElementById('deleteLeadBtn');
+            if (delBtn) {
+                delBtn.disabled = false;
+                delBtn.innerHTML = '<i class="ph-bold ph-trash"></i> Excluir Oportunidade';
+            }
 
             modal.style.display = 'flex';
             document.body.classList.add('modal-open');
@@ -1783,7 +1853,6 @@
                 const aiInfo = await CRM_LOGIC.fetchAILeadInfo(username);
 
                 if (aiInfo) {
-                    if (document.getElementById('modal-ia-status')) document.getElementById('modal-ia-status').textContent = aiInfo.status || '---';
                     if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = aiInfo.observacoes || 'Sem observações';
                     if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = aiInfo.insight_ia || 'Nenhum insight disponível';
 
@@ -1810,7 +1879,6 @@
                     formatList('modal-ia-signals', aiInfo.sinais_detectados);
                     formatList('modal-ia-snippets', aiInfo.trechos_relevantes);
                 } else {
-                    if (document.getElementById('modal-ia-status')) document.getElementById('modal-ia-status').textContent = '---';
                     if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = '---';
                     if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = 'Nenhum dado de IA encontrado para este usuário.';
                     if (document.getElementById('modal-ia-signals')) document.getElementById('modal-ia-signals').textContent = '---';
@@ -1832,8 +1900,10 @@
             const tagsRaw = document.getElementById('modal-tags').value;
             const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
 
-            // Contact Data
+            // New: Get phone, source and site from modal
+            const phone = document.getElementById('modal-phone').value;
             const channels = document.getElementById('modal-channels').value;
+            const site = document.getElementById('modal-site').value;
 
             const saveBtn = document.getElementById('saveLeadDetails');
             const originalText = saveBtn.innerHTML;
@@ -1844,10 +1914,14 @@
             await CRM_LOGIC.updateOpportunityDetails(currentLeadId, currentContactId, {
                 oppData: {
                     responsible_name: responsible,
-                    tags: tags
+                    tags: tags,
+                    telefone: phone !== '---' ? phone : null,
+                    fonte_oportunidade: channels,
+                    site: site
                 },
                 contactData: {
                     acquisition_channels: channels,
+                    website: site
                 }
             });
 
@@ -1859,13 +1933,36 @@
             closeModalFunc();
         };
 
+        document.getElementById('deleteLeadBtn').onclick = async () => {
+            if (!currentLeadId || !window.CRM_LOGIC) return;
+
+            if (confirm("Tem certeza que deseja excluir esta oportunidade? Esta ação não pode ser desfeita.")) {
+                const btn = document.getElementById('deleteLeadBtn');
+                const originalContent = btn.innerHTML;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Excluindo...';
+
+                const success = await CRM_LOGIC.deleteOpportunity(currentLeadId);
+
+                if (success) {
+                    closeModalFunc();
+                    await loadData();
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                }
+            }
+        };
+
         // Add copy listeners
         function setupCopy(id, type) {
             const el = document.getElementById(id);
             if (el) {
                 el.onclick = () => {
-                    const content = document.getElementById('modal-' + type).textContent;
-                    if (content && content !== '---') {
+                    const targetEl = document.getElementById('modal-' + type);
+                    const content = targetEl.value !== undefined ? targetEl.value : targetEl.textContent;
+                    if (content && content !== '---' && content !== "") {
                         navigator.clipboard.writeText(content).then(() => {
                             if (window.showToast) window.showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' copiado!', 'success');
                         });
@@ -2162,6 +2259,11 @@
                         // Adiciona tag INSTAGRAM se for do canal instagram
                         if (channel.includes('instagram') && !displayTags.some(t => t.toUpperCase() === 'INSTAGRAM')) {
                             displayTags.push('INSTAGRAM');
+                        }
+
+                        // Adiciona tag GOOGLE MAPS se for do canal maps ou google
+                        if ((channel.includes('maps') || channel.includes('google')) && !displayTags.some(t => t.toUpperCase() === 'GOOGLE MAPS')) {
+                            displayTags.push('GOOGLE MAPS');
                         }
 
                         // Adiciona tag QUENTE 🔥 se status for quente (compatível com leads do instagram sem tag)
