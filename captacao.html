@@ -589,27 +589,49 @@
 
             try {
                 if (activeChannel === 'instagram') {
-                    // 1. Dispara o gatilho inicial (Fire and Forget)
-                    fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    }).catch(e => console.error("Trigger error:", e));
-
-                    // 2. Aguarda a resposta do webhook de finalização (Este libera o botão)
-                    const response = await fetch('https://n8n.segredosdodrop.com/webhook/qualifica-leads', {
+                    // 1. Dispara o gatilho inicial (Apenas envia o comando)
+                    await fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body)
                     });
 
-                    if (response.ok) {
-                        if (window.showToast) window.showToast("Extração do Instagram finalizada!", "success");
-                    } else {
-                        if (window.showToast) window.showToast("Erro na extração do Instagram.", "error");
-                    }
+                    // 2. Configura o Realtime para ouvir a finalização
+                    const channel = supabaseClient
+                        .channel('extraction_updates')
+                        .on('postgres_changes', {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'extraction_control',
+                            filter: "status=eq.completed"
+                        }, async (payload) => {
+                            console.log('[REALTIME] Extração finalizada:', payload);
+
+                            // Limpa o loading e o canal
+                            isExtracting = false;
+                            btnCapture.disabled = false;
+                            btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
+
+                            if (window.showToast) window.showToast("Extração do Instagram finalizada!", "success");
+
+                            await fetchIAHistory();
+                            supabaseClient.removeChannel(channel);
+                        })
+                        .subscribe();
+
+                    // Timeout de segurança (opcional, 5 minutos)
+                    setTimeout(() => {
+                        if (isExtracting && activeChannel === 'instagram') {
+                            isExtracting = false;
+                            btnCapture.disabled = false;
+                            btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
+                            supabaseClient.removeChannel(channel);
+                            fetchIAHistory();
+                        }
+                    }, 300000);
+
                 } else {
-                    // Lógica original para Google Maps (espera o próprio webhook)
+                    // MANTÉM IGUAL PARA GOOGLE MAPS: Espera a resposta direta do webhook
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -619,17 +641,16 @@
                     if (response.ok) {
                         if (window.showToast) window.showToast("Extração do Maps finalizada!", "success");
                     }
+
+                    isExtracting = false;
+                    await fetchRawHistory();
+                    btnCapture.disabled = false;
+                    btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
                 }
             } catch (e) {
                 console.error("Erro na extração:", e);
-                if (window.showToast) window.showToast("Erro de conexão com o servidor.", "error");
-            } finally {
+                if (window.showToast) window.showToast("Erro de conexão.", "error");
                 isExtracting = false;
-                if (activeChannel === 'instagram') {
-                    await fetchIAHistory();
-                } else {
-                    await fetchRawHistory();
-                }
                 btnCapture.disabled = false;
                 btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
             }
