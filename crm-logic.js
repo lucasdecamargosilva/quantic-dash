@@ -45,6 +45,7 @@ async function fetchCrmData(pipelineName = 'starter') {
                 nome_oportunidade,
                 fonte_oportunidade,
                 telefone,
+                email,
                 site,
                 tags
             `)
@@ -61,7 +62,7 @@ async function fetchCrmData(pipelineName = 'starter') {
             name: opp.nome_oportunidade || 'Sem Nome',
             company: opp.nome_oportunidade || 'Sem Empresa',
             phone: opp.telefone || '---',
-            email: '---', // Not present in flat structure yet
+            email: opp.email || '---',
             stage: opp.stage,
             lead_status: 'Novo',
             channels: opp.fonte_oportunidade || '---',

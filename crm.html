@@ -1543,7 +1543,8 @@
                             <i class="ph ph-copy copy-btn-mini" id="copy-phone"></i>
                         </div>
                         <div class="contact-row">
-                            <span class="contact-val" id="modal-email">---</span>
+                            <input type="text" id="modal-email" class="crm-input-compact"
+                                style="flex: 1; margin-right: 8px;" placeholder="Email">
                             <i class="ph ph-copy copy-btn-mini" id="copy-email"></i>
                         </div>
                     </div>
@@ -1800,7 +1801,7 @@
             document.getElementById('modal-client-name').textContent = lead.name;
             const displayUser = lead.company.startsWith('@') ? lead.company : '@' + lead.company;
             document.getElementById('modal-company-name').textContent = displayUser;
-            document.getElementById('modal-email').textContent = lead.email || '---';
+            document.getElementById('modal-email').value = (lead.email && lead.email !== '---') ? lead.email : '';
             document.getElementById('modal-phone').value = lead.phone !== '---' ? lead.phone : '';
 
             // Now 'channels' maps to 'Fonte da Oportunidade'
@@ -1904,9 +1905,10 @@
             const tagsRaw = document.getElementById('modal-tags').value;
             const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
 
-            // New: Get phone, source and site from modal
+            // New: Get phone, source, email and site from modal
             const phone = document.getElementById('modal-phone').value.trim();
             const channels = document.getElementById('modal-channels').value.trim();
+            const email = document.getElementById('modal-email').value.trim();
             const site = document.getElementById('modal-site').value.trim();
 
             const saveBtn = document.getElementById('saveLeadDetails');
@@ -1924,11 +1926,13 @@
                     responsible_name: responsible || null,
                     tags: tags,
                     telefone: (phone && phone !== '---') ? phone : null,
+                    email: email || null,
                     fonte_oportunidade: channels || null,
                     site: site || null
                 },
                 contactData: {
                     acquisition_channels: channels || null,
+                    email: email || null,
                     website: site || null
                 }
             });
