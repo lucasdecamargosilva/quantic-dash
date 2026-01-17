@@ -589,14 +589,9 @@
 
             try {
                 if (activeChannel === 'instagram') {
-                    // 1. Dispara o gatilho inicial (Apenas envia o comando)
-                    await fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    });
+                    console.log('[DEBUG] Starting Instagram extraction flow');
 
-                    // 2. Configura o Realtime para ouvir a finalização na tabela capturas_jobs
+                    // 1. Configura o Realtime ANTES de disparar o gatilho (para não perder o evento)
                     const channel = supabaseClient
                         .channel('extraction_updates')
                         .on('postgres_changes', {
@@ -605,9 +600,8 @@
                             table: 'capturas_jobs',
                             filter: "status=eq.finished"
                         }, async (payload) => {
-                            console.log('[REALTIME] Extração finalizada (capturas_jobs):', payload);
+                            console.log('[REALTIME] Event received, releasing button:', payload);
 
-                            // Limpa o loading e o canal
                             isExtracting = false;
                             btnCapture.disabled = false;
                             btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
@@ -617,11 +611,23 @@
                             await fetchIAHistory();
                             supabaseClient.removeChannel(channel);
                         })
-                        .subscribe();
+                        .subscribe((status) => {
+                            console.log('[DEBUG] Realtime subscription status:', status);
+                        });
+
+                    // 2. Dispara o gatilho inicial
+                    console.log('[DEBUG] Calling trigger webhook');
+                    await fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    console.log('[DEBUG] Trigger webhook responded');
 
                     // Timeout de segurança (opcional, 5 minutos)
                     setTimeout(() => {
                         if (isExtracting && activeChannel === 'instagram') {
+                            console.log('[DEBUG] Security timeout hit, forcing release');
                             isExtracting = false;
                             btnCapture.disabled = false;
                             btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
@@ -631,7 +637,7 @@
                     }, 300000);
 
                 } else {
-                    // MANTÉM IGUAL PARA GOOGLE MAPS: Espera a resposta direta do webhook
+                    console.log('[DEBUG] Starting Maps extraction flow (Sync)');
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -642,13 +648,14 @@
                         if (window.showToast) window.showToast("Extração do Maps finalizada!", "success");
                     }
 
+                    console.log('[DEBUG] Maps extraction done, releasing button');
                     isExtracting = false;
                     await fetchRawHistory();
                     btnCapture.disabled = false;
                     btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
                 }
             } catch (e) {
-                console.error("Erro na extração:", e);
+                console.error("[DEBUG] Extraction Error - releasing button:", e);
                 if (window.showToast) window.showToast("Erro de conexão.", "error");
                 isExtracting = false;
                 btnCapture.disabled = false;
