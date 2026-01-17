@@ -1893,17 +1893,21 @@
         }
 
         document.getElementById('saveLeadDetails').onclick = async () => {
-            if (!currentLeadId || !window.CRM_LOGIC) return;
+            if (!currentLeadId || !window.CRM_LOGIC) {
+                console.error('[CRM-SCRIPT] Cannot save: currentLeadId is missing', { currentLeadId });
+                if (window.showToast) window.showToast("Erro: ID da oportunidade não encontrado", "error");
+                return;
+            }
 
             // Opp Data
-            const responsible = document.getElementById('modal-responsible').value;
+            const responsible = document.getElementById('modal-responsible').value.trim();
             const tagsRaw = document.getElementById('modal-tags').value;
             const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
 
             // New: Get phone, source and site from modal
-            const phone = document.getElementById('modal-phone').value;
-            const channels = document.getElementById('modal-channels').value;
-            const site = document.getElementById('modal-site').value;
+            const phone = document.getElementById('modal-phone').value.trim();
+            const channels = document.getElementById('modal-channels').value.trim();
+            const site = document.getElementById('modal-site').value.trim();
 
             const saveBtn = document.getElementById('saveLeadDetails');
             const originalText = saveBtn.innerHTML;
@@ -1911,17 +1915,21 @@
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Salvando dados...';
 
+            console.log('[CRM-SCRIPT] Saving details for ID:', currentLeadId, {
+                responsible, phone, channels, site
+            });
+
             await CRM_LOGIC.updateOpportunityDetails(currentLeadId, currentContactId, {
                 oppData: {
-                    responsible_name: responsible,
+                    responsible_name: responsible || null,
                     tags: tags,
-                    telefone: phone !== '---' ? phone : null,
-                    fonte_oportunidade: channels,
-                    site: site
+                    telefone: (phone && phone !== '---') ? phone : null,
+                    fonte_oportunidade: channels || null,
+                    site: site || null
                 },
                 contactData: {
-                    acquisition_channels: channels,
-                    website: site
+                    acquisition_channels: channels || null,
+                    website: site || null
                 }
             });
 

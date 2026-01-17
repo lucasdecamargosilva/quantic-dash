@@ -92,6 +92,7 @@ async function updateOpportunityDetails(oppId, contactId, details) {
 
         // 1. Update Opportunity (responsible, tags)
         if (oppData && Object.keys(oppData).length > 0) {
+            console.log('[CRM-DEBUG] Updating opportunity ID:', oppId, 'with data:', oppData);
             const { error: oppError } = await crmClient
                 .from('opportunities')
                 .update(oppData)
@@ -99,7 +100,8 @@ async function updateOpportunityDetails(oppId, contactId, details) {
 
             if (oppError) {
                 console.error('Error updating opportunity:', oppError);
-                if (window.showToast) window.showToast("Erro ao atualizar oportunidade", "error");
+                console.error('[CRM-DEBUG] Failed data:', oppData);
+                if (window.showToast) window.showToast("Erro ao atualizar oportunidade: " + oppError.message, "error");
                 return;
             }
         }
