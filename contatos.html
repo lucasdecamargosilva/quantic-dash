@@ -188,6 +188,7 @@
                                 <th>Empresa</th>
                                 <th>Telefone</th>
                                 <th>Email</th>
+                                <th>Origem</th>
                                 <th>Data</th>
                             </tr>
                         </thead>
@@ -234,17 +235,79 @@
             if (!sbClient) return [];
 
             try {
-                const { data, error } = await sbClient
+                // 1. Fetch from consolidated contacts
+                const { data: contacts, error: errC } = await sbClient
                     .from('contacts')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                    .select('*');
 
-                if (error) {
-                    console.error('Error fetching contacts:', error);
-                    return [];
+                // 2. Fetch from Instagram (leads_qualificados)
+                const { data: instaLeads, error: errI } = await sbClient
+                    .from('leads_qualificados')
+                    .select('*');
+
+                // 3. Fetch from Google Maps (leads_google_maps)
+                const { data: mapsLeads, error: errM } = await sbClient
+                    .from('leads_google_maps')
+                    .select('*');
+
+                let merged = [];
+
+                // Add contacts
+                if (contacts) {
+                    contacts.forEach(c => {
+                        merged.push({
+                            full_name: c.full_name,
+                            company_name: c.company_name,
+                            phone: c.phone,
+                            email: c.email,
+                            created_at: c.created_at,
+                            source: 'CRM'
+                        });
+                    });
                 }
-                allContacts = data;
-                return data;
+
+                // Add Instagram leads
+                if (instaLeads) {
+                    instaLeads.forEach(l => {
+                        merged.push({
+                            full_name: l.nome_cliente || l.usuario,
+                            company_name: l.usuario || 'Instagram',
+                            phone: l.telefone,
+                            email: l.email,
+                            created_at: l.created_at,
+                            source: 'Instagram'
+                        });
+                    });
+                }
+
+                // Add Maps leads
+                if (mapsLeads) {
+                    mapsLeads.forEach(l => {
+                        merged.push({
+                            full_name: l.empresa,
+                            company_name: l.empresa || 'Google Maps',
+                            phone: l.telefone,
+                            email: '---',
+                            created_at: l.created_at,
+                            source: 'Google Maps'
+                        });
+                    });
+                }
+
+                // Sort by date DESC
+                merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                // De-duplicate (very simple by phone or email if present)
+                const seen = new Set();
+                const unique = merged.filter(item => {
+                    const key = (item.phone || '') + '|' + (item.email || '') + '|' + (item.full_name || '');
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+
+                allContacts = unique;
+                return unique;
             } catch (err) {
                 console.error('Fetch error:', err);
                 return [];
@@ -255,7 +318,7 @@
             const body = document.getElementById('contacts-body');
 
             if (contacts.length === 0) {
-                body.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum contato encontrado.</td></tr>';
+                body.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum contato encontrado.</td></tr>';
                 return;
             }
 
@@ -269,6 +332,7 @@
                     <td>${escapeHtml(contact.company_name || '---')}</td>
                     <td>${escapeHtml(contact.phone || '---')}</td>
                     <td>${escapeHtml(contact.email || '---')}</td>
+                    <td><span class="badge-audience" style="background: ${contact.source === 'Instagram' ? '#E1306C' : (contact.source === 'Google Maps' ? '#4285F4' : 'var(--primary-purple)')}">${contact.source}</span></td>
                     <td>${date}</td>
                 `;
                 body.appendChild(tr);
@@ -277,7 +341,7 @@
 
         async function initPage() {
             const body = document.getElementById('contacts-body');
-            body.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="ph ph-circle-notch animate-spin" style="font-size: 24px;"></i><br>Carregando contatos...</td></tr>';
+            body.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;"><i class="ph ph-circle-notch animate-spin" style="font-size: 24px;"></i><br>Carregando contatos...</td></tr>';
 
             await fetchContacts();
             renderTable(allContacts);
@@ -289,7 +353,8 @@
                     (contact.full_name?.toLowerCase().includes(term)) ||
                     (contact.company_name?.toLowerCase().includes(term)) ||
                     (contact.email?.toLowerCase().includes(term)) ||
-                    (contact.phone?.toLowerCase().includes(term))
+                    (contact.phone?.toLowerCase().includes(term)) ||
+                    (contact.source?.toLowerCase().includes(term))
                 );
                 renderTable(filtered);
             });
