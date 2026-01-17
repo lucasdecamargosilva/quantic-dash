@@ -568,12 +568,17 @@
         };
 
         btnCapture.onclick = async () => {
-            let url = activeChannel === 'instagram' ? 'https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic' : 'https://n8n.segredosdodrop.com/webhook/recebe-dados-maps';
+            let url = activeChannel === 'instagram' ?
+                'https://n8n.segredosdodrop.com/webhook/qualifica-leads' :
+                'https://n8n.segredosdodrop.com/webhook/recebe-dados-maps';
+
             let body = activeChannel === 'instagram' ?
                 { targetUrl: document.getElementById('targetUrl').value, sessionCookie: document.getElementById('sessionCookie').value } :
                 { "Termo de Pesquisa": document.getElementById('mapsQuery').value, "Local": document.getElementById('mapsLocation').value, "Numero de Leads": document.getElementById('mapsCount').value };
 
-            isExtracting = true; btnCapture.disabled = true; btnCapture.innerHTML = 'EXTRAINDO...';
+            isExtracting = true;
+            btnCapture.disabled = true;
+            btnCapture.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> EXTRAINDO...';
 
             const historyBody = activeChannel === 'instagram' ? document.getElementById('history-ia-body') : document.getElementById('history-raw-body');
             const cols = activeChannel === 'instagram' ? 7 : 6;
@@ -582,8 +587,36 @@
             if (activeChannel === 'maps' && document.getElementById('rawLeadsCard').classList.contains('collapsed')) toggleRawLeadsHistory();
             if (activeChannel === 'instagram' && document.getElementById('instaLeadsCard').classList.contains('collapsed')) toggleInstaLeadsHistory();
 
-            try { await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { }
-            isExtracting = false; fetchRawHistory(); btnCapture.disabled = false; btnCapture.innerHTML = 'INICIAR EXTRAÇÃO';
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (activeChannel === 'instagram') {
+                    if (response.ok) {
+                        if (window.showToast) window.showToast("Extração do Instagram finalizada!", "success");
+                    } else {
+                        if (window.showToast) window.showToast("Erro na extração do Instagram.", "error");
+                    }
+                }
+            } catch (e) {
+                console.error("Erro na extração:", e);
+                if (activeChannel === 'instagram' && window.showToast) {
+                    window.showToast("Erro de conexão.", "error");
+                }
+            } finally {
+                isExtracting = false;
+                // Always refresh based on channel
+                if (activeChannel === 'instagram') {
+                    await fetchIAHistory();
+                } else {
+                    await fetchRawHistory();
+                }
+                btnCapture.disabled = false;
+                btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
+            }
         };
 
         function truncateName(n, l = 20) { return n && n.length > l ? n.substring(0, l) + '...' : n; }
