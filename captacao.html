@@ -588,27 +588,43 @@
             if (activeChannel === 'instagram' && document.getElementById('instaLeadsCard').classList.contains('collapsed')) toggleInstaLeadsHistory();
 
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-
                 if (activeChannel === 'instagram') {
+                    // 1. Dispara o gatilho inicial (Fire and Forget)
+                    fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    }).catch(e => console.error("Trigger error:", e));
+
+                    // 2. Aguarda a resposta do webhook de finalização (Este libera o botão)
+                    const response = await fetch('https://n8n.segredosdodrop.com/webhook/qualifica-leads', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+
                     if (response.ok) {
                         if (window.showToast) window.showToast("Extração do Instagram finalizada!", "success");
                     } else {
                         if (window.showToast) window.showToast("Erro na extração do Instagram.", "error");
                     }
+                } else {
+                    // Lógica original para Google Maps (espera o próprio webhook)
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (response.ok) {
+                        if (window.showToast) window.showToast("Extração do Maps finalizada!", "success");
+                    }
                 }
             } catch (e) {
                 console.error("Erro na extração:", e);
-                if (activeChannel === 'instagram' && window.showToast) {
-                    window.showToast("Erro de conexão.", "error");
-                }
+                if (window.showToast) window.showToast("Erro de conexão com o servidor.", "error");
             } finally {
                 isExtracting = false;
-                // Always refresh based on channel
                 if (activeChannel === 'instagram') {
                     await fetchIAHistory();
                 } else {
