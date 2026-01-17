@@ -1539,7 +1539,8 @@
                         <span class="sidebar-label">Contato</span>
                         <div class="contact-row">
                             <input type="text" id="modal-phone" class="crm-input-compact"
-                                style="flex: 1; margin-right: 8px;" placeholder="Telefone">
+                                style="flex: 1; margin-right: 8px;" placeholder="Telefone"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             <i class="ph ph-copy copy-btn-mini" id="copy-phone"></i>
                         </div>
                         <div class="contact-row">
