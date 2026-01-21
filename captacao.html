@@ -261,15 +261,6 @@
             flex-shrink: 0;
         }
 
-        .status-pill {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-        }
-
         .loading-shimmer {
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
             background-size: 200% 100%;
@@ -284,6 +275,31 @@
             100% {
                 background-position: 200% 0;
             }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn-capture:active {
+            transform: scale(0.98);
+        }
+
+        .btn-capture:disabled {
+            background: var(--bg-card-hover);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            border: 1px solid var(--border-color);
         }
     </style>
 </head>
@@ -331,8 +347,8 @@
                                         <div class="channel-btn disabled"><i class="ph-fill ph-facebook-logo"></i></div>
                                     </div>
                                 </div>
-                                <button class="btn-capture" id="startCapture"><i class="ph-bold ph-lightning"></i>
-                                    INICIAR EXTRAÇÃO</button>
+                                <button class="btn-capture" id="startCapture" disabled><i
+                                        class="ph ph-circle-notch animate-spin"></i> VALIDANDO...</button>
                             </div>
 
                             <div id="instagramInputs" style="display: flex; flex-direction: column; gap: 16px;">
@@ -394,37 +410,33 @@
                     </div>
                 </div>
 
-                <div class="leads-table-card collapsed" id="instaLeadsCard" style="margin-top: 24px;">
-                    <div class="table-header" id="instaLeadsToggle">
+                <div class="leads-table-card collapsed" id="postsLeadsCard" style="margin-top: 24px;">
+                    <div class="table-header" id="postsLeadsToggle">
                         <div class="table-header-left">
-                            <i class="ph-bold ph-caret-down toggle-icon" id="instaLeadsIcon"></i>
+                            <i class="ph-bold ph-caret-down toggle-icon" id="postsLeadsIcon"></i>
                             <div>
-                                <h3><i class="ph-fill ph-robot"></i> Histórico de Leads Instagram</h3>
-                                <p style="font-size: 12px; color: var(--text-muted);">Analisados pela inteligência da
-                                    Quantic</p>
+                                <h3><i class="ph-fill ph-instagram-logo"></i> Histórico de Leads Instagram</h3>
+                                <p style="font-size: 12px; color: var(--text-muted);">Leads brutos capturados do
+                                    Instagram</p>
                             </div>
                         </div>
                         <div class="header-actions">
-                            <button id="refreshIAHistory" class="btn-refresh"
-                                onclick="event.stopPropagation(); fetchIAHistory();">
-                                <i class="ph ph-arrows-clockwise"></i> Atualizar
-                            </button>
+                            <button id="refreshPostsHistory" class="btn-refresh"
+                                onclick="event.stopPropagation(); fetchPostsHistory();"><i
+                                    class="ph ph-arrows-clockwise"></i> Atualizar</button>
                         </div>
                     </div>
-                    <div class="table-content" id="instaLeadsContent">
+                    <div class="table-content" id="postsLeadsContent">
                         <table class="leads-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 30px;"></th>
-                                    <th>Lead</th>
-                                    <th>Perfil</th>
+                                    <th>Nome</th>
+                                    <th>Usuário</th>
                                     <th>Bio</th>
-                                    <th>Status</th>
-                                    <th>Contato</th>
                                     <th>Data</th>
                                 </tr>
                             </thead>
-                            <tbody id="history-ia-body"></tbody>
+                            <tbody id="history-posts-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -455,13 +467,13 @@
         }
         document.getElementById('rawLeadsToggle').onclick = toggleRawLeadsHistory;
 
-        function toggleInstaLeadsHistory() {
-            document.getElementById('instaLeadsContent').classList.toggle('visible');
-            document.getElementById('instaLeadsIcon').classList.toggle('rotated');
-            document.getElementById('instaLeadsCard').classList.toggle('expanded');
-            document.getElementById('instaLeadsCard').classList.toggle('collapsed');
+        function togglePostsLeadsHistory() {
+            document.getElementById('postsLeadsContent').classList.toggle('visible');
+            document.getElementById('postsLeadsIcon').classList.toggle('rotated');
+            document.getElementById('postsLeadsCard').classList.toggle('expanded');
+            document.getElementById('postsLeadsCard').classList.toggle('collapsed');
         }
-        document.getElementById('instaLeadsToggle').onclick = toggleInstaLeadsHistory;
+        document.getElementById('postsLeadsToggle').onclick = togglePostsLeadsHistory;
 
         // Seleção
         function toggleLeadSelection(id) {
@@ -478,10 +490,14 @@
         // Buscas Supabase
         async function fetchRawHistory() {
             if (!supabaseClient) return;
+            // Se estamos extraindo maps agora, não sobrescrevemos o shimmer
+            if (isExtracting && activeChannel === 'maps') return;
+
             const tbody = document.getElementById('history-raw-body');
             try {
                 selectedLeads = [];
                 const { data } = await supabaseClient.from('leads_google_maps').select('*').order('created_at', { ascending: false });
+                if (!data) return;
                 tbody.innerHTML = data.map(l => `<tr>
                     <td><input type="checkbox" class="lead-checkbox" value="${l.id}" onchange="toggleLeadSelection('${l.id}')"></td>
                     <td><div class="profile-info"><div class="profile-avatar">${(l.empresa || 'E')[0]}</div><strong>${truncateName(l.empresa)}</strong></div></td>
@@ -493,42 +509,42 @@
             } catch (e) { console.error(e); }
         }
 
-        async function fetchIAHistory() {
+        async function fetchPostsHistory() {
             if (!supabaseClient) return;
-            const tbody = document.getElementById('history-ia-body');
+            // Se estamos extraindo insta agora, não sobrescrevemos o shimmer
+            if (isExtracting && activeChannel === 'instagram') return;
+
+            const tbody = document.getElementById('history-posts-body');
             try {
-                const { data } = await supabaseClient.from('leads_qualificados').select('*').order('created_at', { ascending: false });
+                const { data, error } = await supabaseClient.from('leads_capturados_posts').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">Nenhuma captura encontrada</td></tr>';
+                    return;
+                }
                 tbody.innerHTML = data.map(l => `<tr>
-                    <td style="text-align:center;"><i class="ph-bold ph-caret-down" style="color:#8b5cf6;"></i></td>
-                    <td><div class="profile-info"><div class="profile-avatar">${(l.nome_cliente || 'S')[0]}</div><strong>${truncateName(l.nome_cliente)}</strong></div></td>
-                    <td>@${l.usuario}</td>
-                    <td>${(l.bio || '').substring(0, 30)}...</td>
-                    <td><span class="status-pill">Qualificado</span></td>
-                    <td>${l.email || '---'}</td>
+                    <td><div class="profile-info"><div class="profile-avatar">${(l.nome_cliente || l.usuario || 'U')[0]}</div><strong>${l.nome_cliente || '---'}</strong></div></td>
+                    <td><a href="${l.url_perfil || '#'}" target="_blank" style="color: var(--primary-purple); font-weight: 600;">@${l.usuario || '---'}</a></td>
+                    <td>${(l.bio || '---').substring(0, 50)}${l.bio && l.bio.length > 50 ? '...' : ''}</td>
                     <td>${new Date(l.created_at).toLocaleDateString('pt-BR')}</td>
                 </tr>`).join('');
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">Erro ao carregar dados</td></tr>';
+            }
         }
 
-        // --- ENVIO PARA CRM COM CORREÇÃO DE ERRO NUMÉRICO ---
+        // --- ENVIO PARA CRM ---
         document.getElementById('sendToCRM').onclick = async (event) => {
             event.stopPropagation();
             if (selectedLeads.length === 0) return alert("Selecione leads primeiro!");
-
             const btn = document.getElementById('sendToCRM');
-            const originalContent = '<i class="ph-bold ph-paper-plane-tilt"></i> Enviar para CRM';
-
+            const originalContent = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Enviando...';
-
             try {
-                const { data: leads, error: fetchError } = await supabaseClient
-                    .from('leads_google_maps')
-                    .select('*')
-                    .in('id', selectedLeads);
-
+                const { data: leads, error: fetchError } = await supabaseClient.from('leads_google_maps').select('*').in('id', selectedLeads);
                 if (fetchError) throw fetchError;
-
                 const opportunitiesData = leads.map(l => ({
                     nome_oportunidade: l.empresa || 'Empresa sem nome',
                     telefone: l.telefone ? String(l.telefone) : null,
@@ -540,32 +556,88 @@
                     stage: 'Contato',
                     pipeline: 'Quantic Starter'
                 }));
-
-                const { error: insertError } = await supabaseClient
-                    .from('opportunities')
-                    .insert(opportunitiesData);
-
+                const { error: insertError } = await supabaseClient.from('opportunities').insert(opportunitiesData);
                 if (insertError) throw insertError;
-
-                btn.innerHTML = '<i class="ph-bold ph-check"></i> Leads enviados com sucesso!';
-                btn.style.background = '#059669';
-
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviado!';
                 selectedLeads = [];
                 fetchRawHistory();
-
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalContent;
-                    btn.style.background = '';
-                }, 3000);
-
+                setTimeout(() => { btn.disabled = false; btn.innerHTML = originalContent; }, 3000);
             } catch (e) {
-                console.error("Erro no envio:", e);
-                alert(`Erro ao enviar: ${e.message}`);
+                console.error(e);
+                alert(`Erro: ${e.message}`);
                 btn.disabled = false;
                 btn.innerHTML = originalContent;
             }
         };
+
+        // --- MONITORAMENTO DE JOBS ---
+        async function checkActiveJobs() {
+            if (!supabaseClient) return;
+
+            // Pega estritamente o último job da tabela
+            const { data: latestJobs, error } = await supabaseClient
+                .from('capturas_jobs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (error || !latestJobs || latestJobs.length === 0) return;
+
+            const lastJob = latestJobs[0];
+
+            // Se o último job ainda não estiver finalizado, segura a UI
+            if (lastJob.status !== 'finished') {
+                console.log("[DEBUG] Último job pendente detectado:", lastJob.job_id);
+                setExtractionUI(true, 'instagram');
+                monitorJob(lastJob.job_id);
+            }
+        }
+
+        function setExtractionUI(extracting, channel) {
+            isExtracting = extracting;
+            if (extracting) {
+                btnCapture.disabled = true;
+                btnCapture.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> EXTRAINDO...';
+
+                const historyBody = channel === 'instagram' ? document.getElementById('history-posts-body') : document.getElementById('history-raw-body');
+                const cols = channel === 'instagram' ? 4 : 6;
+                // Forçamos o shimmer
+                historyBody.innerHTML = Array(5).fill(`<tr>${Array(cols).fill('<td><div class="loading-shimmer" style="height:20px; border-radius:4px;"></div></td>').join('')}</tr>`).join('');
+
+                if (channel === 'instagram' && document.getElementById('postsLeadsCard').classList.contains('collapsed')) togglePostsLeadsHistory();
+                if (channel === 'maps' && document.getElementById('rawLeadsCard').classList.contains('collapsed')) toggleRawLeadsHistory();
+            } else {
+                btnCapture.disabled = false;
+                btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
+            }
+        }
+
+        function monitorJob(meuJobId) {
+            const channel = supabaseClient
+                .channel(`job_${meuJobId}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'capturas_jobs',
+                    filter: `job_id=eq.${meuJobId}`
+                }, async (payload) => {
+                    console.log("[DEBUG] Mudança de status detectada:", payload.new.status);
+                    if (payload.new.status === 'finished') {
+                        setExtractionUI(false);
+                        if (window.showToast) window.showToast("Extração do Instagram finalizada!", "success");
+                        fetchPostsHistory();
+                        supabaseClient.removeChannel(channel);
+                    }
+                })
+                .subscribe();
+
+            setTimeout(() => {
+                if (isExtracting) {
+                    setExtractionUI(false);
+                    supabaseClient.removeChannel(channel);
+                }
+            }, 600000);
+        }
 
         btnCapture.onclick = async () => {
             let url = activeChannel === 'instagram' ?
@@ -576,97 +648,60 @@
                 { targetUrl: document.getElementById('targetUrl').value, sessionCookie: document.getElementById('sessionCookie').value } :
                 { "Termo de Pesquisa": document.getElementById('mapsQuery').value, "Local": document.getElementById('mapsLocation').value, "Numero de Leads": document.getElementById('mapsCount').value };
 
-            isExtracting = true;
-            btnCapture.disabled = true;
-            btnCapture.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> EXTRAINDO...';
-
-            const historyBody = activeChannel === 'instagram' ? document.getElementById('history-ia-body') : document.getElementById('history-raw-body');
-            const cols = activeChannel === 'instagram' ? 7 : 6;
-            historyBody.innerHTML = Array(5).fill(`<tr>${Array(cols).fill('<td><div class="loading-shimmer" style="height:20px; border-radius:4px;"></div></td>').join('')}</tr>`).join('');
-
-            if (activeChannel === 'maps' && document.getElementById('rawLeadsCard').classList.contains('collapsed')) toggleRawLeadsHistory();
-            if (activeChannel === 'instagram' && document.getElementById('instaLeadsCard').classList.contains('collapsed')) toggleInstaLeadsHistory();
+            setExtractionUI(true, activeChannel);
 
             try {
                 if (activeChannel === 'instagram') {
-                    console.log('[DEBUG] Starting Instagram extraction flow');
-
-                    // 1. Configura o Realtime ANTES de disparar o gatilho (para não perder o evento)
-                    const channel = supabaseClient
-                        .channel('extraction_updates')
-                        .on('postgres_changes', {
-                            event: 'INSERT',
-                            schema: 'public',
-                            table: 'capturas_jobs',
-                            filter: "status=eq.finished"
-                        }, async (payload) => {
-                            console.log('[REALTIME] Event received, releasing button:', payload);
-
-                            isExtracting = false;
-                            btnCapture.disabled = false;
-                            btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
-
-                            if (window.showToast) window.showToast("Extração do Instagram finalizada!", "success");
-
-                            await fetchIAHistory();
-                            supabaseClient.removeChannel(channel);
-                        })
-                        .subscribe((status) => {
-                            console.log('[DEBUG] Realtime subscription status:', status);
-                        });
-
-                    // 2. Dispara o gatilho inicial
-                    console.log('[DEBUG] Calling trigger webhook');
-                    await fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    });
-                    console.log('[DEBUG] Trigger webhook responded');
-
-                    // Timeout de segurança (opcional, 5 minutos)
-                    setTimeout(() => {
-                        if (isExtracting && activeChannel === 'instagram') {
-                            console.log('[DEBUG] Security timeout hit, forcing release');
-                            isExtracting = false;
-                            btnCapture.disabled = false;
-                            btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
-                            supabaseClient.removeChannel(channel);
-                            fetchIAHistory();
-                        }
-                    }, 300000);
-
-                } else {
-                    console.log('[DEBUG] Starting Maps extraction flow (Sync)');
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body)
                     });
-
+                    const data = await response.json();
+                    if (data.job_id) {
+                        console.log("[DEBUG] Novo Job ID:", data.job_id);
+                        monitorJob(data.job_id);
+                    } else {
+                        setExtractionUI(false);
+                    }
+                } else {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
                     if (response.ok) {
                         if (window.showToast) window.showToast("Extração do Maps finalizada!", "success");
                     }
-
-                    console.log('[DEBUG] Maps extraction done, releasing button');
-                    isExtracting = false;
+                    setExtractionUI(false);
                     await fetchRawHistory();
-                    btnCapture.disabled = false;
-                    btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
                 }
             } catch (e) {
-                console.error("[DEBUG] Extraction Error - releasing button:", e);
-                if (window.showToast) window.showToast("Erro de conexão.", "error");
-                isExtracting = false;
-                btnCapture.disabled = false;
-                btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
+                console.error("[DEBUG] Erro:", e);
+                setExtractionUI(false);
             }
         };
 
         function truncateName(n, l = 20) { return n && n.length > l ? n.substring(0, l) + '...' : n; }
         async function initSupabase() { if (window.CONFIG_LOADED) await window.CONFIG_LOADED; supabaseClient = window.supabaseClient; return !!supabaseClient; }
-        document.getElementById('refreshIAHistory').onclick = fetchIAHistory;
-        document.addEventListener('DOMContentLoaded', async () => { if (await initSupabase()) { fetchRawHistory(); fetchIAHistory(); } });
+        document.getElementById('refreshRawHistory').onclick = fetchRawHistory;
+        document.getElementById('refreshPostsHistory').onclick = fetchPostsHistory;
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await initSupabase()) {
+                console.log("[QUANTIC] Sistema pronto. Verificando estado...");
+                // 1. Primeiro verificamos se há jobs ativos para travar a UI imediatamente
+                await checkActiveJobs();
+
+                // 2. Depois habilitamos o botão se não estiver extraindo
+                if (!isExtracting) {
+                    setExtractionUI(false);
+                }
+
+                // 3. Carregamos o histórico em paralelo
+                fetchRawHistory();
+                fetchPostsHistory();
+            }
+        });
     </script>
 </body>
 
