@@ -234,6 +234,27 @@
             gap: 8px;
         }
 
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: white;
+            padding: 8px 12px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-select:hover {
+            border-color: var(--primary-purple);
+        }
+
+        .filter-select option {
+            background: var(--bg-card);
+            color: white;
+        }
+
         .lead-checkbox {
             width: 18px;
             height: 18px;
@@ -300,6 +321,214 @@
             color: var(--text-muted);
             cursor: not-allowed;
             border: 1px solid var(--border-color);
+        }
+
+        /* Status Badges */
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-pill.qualified {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-pill.disqualified {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .score-badge {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary-purple);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        /* Modal Details */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        /* Modal Details - Split Layout */
+        .modal {
+            display: none;
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .modal.visible {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 1100px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+            overflow: hidden;
+        }
+
+        /* Corta o scroll interno pra usar o do modal */
+
+
+        .modal-body {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            flex: 1;
+            overflow: hidden;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .modal-sidebar {
+            background: rgba(255, 255, 255, 0.02);
+            padding: var(--spacing-lg);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .modal-main {
+            padding: var(--spacing-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: var(--spacing-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-header .profile-info {
+            gap: 16px;
+        }
+
+        .close-modal {
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--text-gray);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .info-block {
+            margin-bottom: 20px;
+        }
+
+        .info-block label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .info-block p,
+        .info-block div {
+            font-size: 15px;
+            color: white;
+            line-height: 1.6;
+        }
+
+        .insight-box {
+            padding: 16px;
+            background: rgba(139, 92, 246, 0.1);
+            border-left: 4px solid var(--primary-purple);
+            border-radius: 4px;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .score-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .score-section .score-badge {
+            font-size: 24px;
+            padding: 8px 16px;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .btn-view {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary-purple);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-view:hover {
+            background: var(--primary-purple);
+            color: white;
         }
     </style>
 </head>
@@ -416,24 +645,35 @@
                             <i class="ph-bold ph-caret-down toggle-icon" id="postsLeadsIcon"></i>
                             <div>
                                 <h3><i class="ph-fill ph-instagram-logo"></i> Histórico de Leads Instagram</h3>
-                                <p style="font-size: 12px; color: var(--text-muted);">Leads brutos capturados do
-                                    Instagram</p>
+                                <p style="font-size: 12px; color: var(--text-muted);">Processados e Analisados pela IA
+                                </p>
                             </div>
                         </div>
                         <div class="header-actions">
+                            <select id="instaStatusFilter" class="filter-select" onclick="event.stopPropagation();"
+                                onchange="fetchPostsHistory();">
+                                <option value="todos">Todos os Leads</option>
+                                <option value="qualificado">Qualificados</option>
+                                <option value="desqualificado">Desqualificados</option>
+                            </select>
                             <button id="refreshPostsHistory" class="btn-refresh"
                                 onclick="event.stopPropagation(); fetchPostsHistory();"><i
                                     class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                            <button id="sendInstaToCRM" class="btn-crm" onclick="event.stopPropagation();"><i
+                                    class="ph-bold ph-paper-plane-tilt"></i> Enviar para CRM</button>
                         </div>
                     </div>
                     <div class="table-content" id="postsLeadsContent">
                         <table class="leads-table">
                             <thead>
                                 <tr>
-                                    <th>Nome</th>
+                                    <th style="width: 40px;"><input type="checkbox"
+                                            onclick="toggleSelectAllInsta(this)"></th>
+                                    <th>Lead</th>
                                     <th>Usuário</th>
-                                    <th>Bio</th>
-                                    <th>Data</th>
+                                    <th>Score</th>
+                                    <th>Status</th>
+                                    <th style="width: 50px;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="history-posts-body"></tbody>
@@ -444,9 +684,79 @@
         </div>
     </div>
 
+    <!-- Modal de Detalhes do Lead -->
+    <div id="leadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="profile-info">
+                    <div class="profile-avatar" id="modalAvatar" style="width: 48px; height: 48px; font-size: 20px;">S
+                    </div>
+                    <div>
+                        <h2 id="modalName" style="margin: 0; font-size: 18px;">Nome do Lead</h2>
+                        <a id="modalUser" href="#" target="_blank"
+                            style="color: var(--primary-purple); font-size: 16px; font-weight: 600;">@usuario</a>
+                    </div>
+                </div>
+                <button class="close-modal" onclick="closeLeadDetails()"><i class="ph ph-x"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Lateral: Informações Fundamentais -->
+                <aside class="modal-sidebar">
+                    <div class="info-block">
+                        <label>Qualificação</label>
+                        <div class="score-section">
+                            <div>
+                                <small
+                                    style="display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Score</small>
+                                <div id="modalScore" class="score-badge">0</div>
+                            </div>
+                            <div>
+                                <small
+                                    style="display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Status</small>
+                                <div id="modalStatus">---</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-block">
+                        <label>Contatos</label>
+                        <p id="modalEmail" style="word-break: break-all; margin-bottom: 4px;">---</p>
+                        <p id="modalPhone">---</p>
+                    </div>
+                    <div class="info-block">
+                        <label>Bio do Perfil</label>
+                        <p id="modalBio" style="font-size: 12px; opacity: 0.8;">---</p>
+                    </div>
+                </aside>
+
+                <!-- Principal: Análise e Insights -->
+                <main class="modal-main">
+                    <div class="info-block">
+                        <label><i class="ph-fill ph-magic-wand"></i> Insight da IA</label>
+                        <div id="modalInsight" class="insight-box">---</div>
+                    </div>
+                    <div class="info-block">
+                        <label><i class="ph-fill ph-broadcast"></i> Sinais Detectados</label>
+                        <p id="modalSignals" style="color: var(--primary-purple); font-weight: 600;">---</p>
+                    </div>
+                    <div class="info-block">
+                        <label><i class="ph-fill ph-quotes"></i> Trechos Relevantes</label>
+                        <p id="modalSnippets" style="font-style: italic; color: var(--text-gray); font-size: 12px;">---
+                        </p>
+                    </div>
+                    <div class="info-block">
+                        <label><i class="ph-fill ph-note-pencils"></i> Observações</label>
+                        <p id="modalNotes">---</p>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
     <script>
         const btnCapture = document.getElementById('startCapture');
-        let activeChannel = 'instagram', supabaseClient, isExtracting = false, selectedLeads = [];
+        let activeChannel = 'instagram', supabaseClient, isExtracting = false, selectedLeads = [], selectedInstaLeads = [];
+        window.__leadsData = {}; // Cache global para dados do modal
 
         // Canais e Interface
         document.getElementById('channel-instagram').onclick = () => { activeChannel = 'instagram'; updateChannelUI('instagram'); };
@@ -481,10 +791,21 @@
             if (idx > -1) selectedLeads.splice(idx, 1); else selectedLeads.push(id);
         }
 
+        function toggleInstaLeadSelection(id) {
+            const idx = selectedInstaLeads.indexOf(id);
+            if (idx > -1) selectedInstaLeads.splice(idx, 1); else selectedInstaLeads.push(id);
+        }
+
         function toggleSelectAll(source) {
             const cbs = document.querySelectorAll('.lead-checkbox');
             selectedLeads = [];
             cbs.forEach(cb => { cb.checked = source.checked; if (source.checked) selectedLeads.push(cb.value); });
+        }
+
+        function toggleSelectAllInsta(source) {
+            const cbs = document.querySelectorAll('.insta-lead-checkbox');
+            selectedInstaLeads = [];
+            cbs.forEach(cb => { cb.checked = source.checked; if (source.checked) selectedInstaLeads.push(cb.value); });
         }
 
         // Buscas Supabase
@@ -515,24 +836,106 @@
             if (isExtracting && activeChannel === 'instagram') return;
 
             const tbody = document.getElementById('history-posts-body');
+            const filterValue = document.getElementById('instaStatusFilter').value;
+
             try {
-                const { data, error } = await supabaseClient.from('leads_capturados_posts').select('*').order('created_at', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">Nenhuma captura encontrada</td></tr>';
+                // Busca das duas tabelas em paralelo
+                const [reqQual, reqFrio] = await Promise.all([
+                    supabaseClient.from('leads_qualificados').select('*').order('created_at', { ascending: false }),
+                    supabaseClient.from('leads_frios').select('*').order('created_at', { ascending: false })
+                ]);
+
+                let leads = [
+                    ...(reqQual.data || []).map(l => ({ ...l, status: 'Qualificado' })),
+                    ...(reqFrio.data || []).map(l => ({ ...l, status: 'Desqualificado' }))
+                ];
+
+                // Filtro
+                if (filterValue === 'qualificado') {
+                    leads = leads.filter(l => l.status === 'Qualificado');
+                } else if (filterValue === 'desqualificado') {
+                    leads = leads.filter(l => l.status === 'Desqualificado');
+                }
+
+                // Ordenação: Qualificados primeiro, depois por data
+                leads.sort((a, b) => {
+                    if (a.status === 'Qualificado' && b.status !== 'Qualificado') return -1;
+                    if (a.status !== 'Qualificado' && b.status === 'Qualificado') return 1;
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
+
+                if (leads.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Nenhum lead encontrado</td></tr>';
                     return;
                 }
-                tbody.innerHTML = data.map(l => `<tr>
-                    <td><div class="profile-info"><div class="profile-avatar">${(l.nome_cliente || l.usuario || 'U')[0]}</div><strong>${l.nome_cliente || '---'}</strong></div></td>
-                    <td><a href="${l.url_perfil || '#'}" target="_blank" style="color: var(--primary-purple); font-weight: 600;">@${l.usuario || '---'}</a></td>
-                    <td>${(l.bio || '---').substring(0, 50)}${l.bio && l.bio.length > 50 ? '...' : ''}</td>
-                    <td>${new Date(l.created_at).toLocaleDateString('pt-BR')}</td>
-                </tr>`).join('');
+
+                tbody.innerHTML = leads.map(l => {
+                    // Armazena no cache global para o modal
+                    window.__leadsData[l.id] = l;
+                    const statusClass = l.status === 'Qualificado' ? 'qualified' : 'disqualified';
+
+                    return `<tr>
+                        <td><input type="checkbox" class="insta-lead-checkbox" value="${l.id}" onchange="toggleInstaLeadSelection('${l.id}')"></td>
+                        <td><div class="profile-info"><div class="profile-avatar">${(l.nome_cliente || l.usuario || 'U')[0]}</div><strong>${l.nome_cliente || '---'}</strong></div></td>
+                        <td><a href="${l.url_perfil || '#'}" target="_blank" style="color: var(--primary-purple); font-weight: 600;">@${l.usuario || '---'}</a></td>
+                        <td><span class="score-badge">${l.score_qualificacao || 0}</span></td>
+                        <td><span class="status-pill ${statusClass}">${l.status}</span></td>
+                        <td>
+                            <button class="btn-view" onclick="showLeadDetails('${l.id}')">
+                                <i class="ph ph-eye"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join('');
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">Erro ao carregar dados</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: var(--text-muted);">Erro ao carregar dados</td></tr>';
             }
         }
+
+        function showLeadDetails(id) {
+            const lead = window.__leadsData[id];
+            if (!lead) return;
+
+            const fv = (v) => (!v || v === 'string|null' || v === 'null' || String(v).toLowerCase() === 'undefined') ? '---' : v;
+
+            document.getElementById('modalAvatar').textContent = (lead.nome_cliente || lead.usuario || 'U')[0];
+            document.getElementById('modalName').textContent = lead.nome_cliente || 'Sem Nome';
+            document.getElementById('modalUser').textContent = '@' + (lead.usuario || '---');
+            document.getElementById('modalUser').href = lead.url_perfil || '#';
+            document.getElementById('modalScore').textContent = lead.score_qualificacao || 0;
+
+            const statusClass = lead.status === 'Qualificado' ? 'qualified' : 'disqualified';
+            document.getElementById('modalStatus').innerHTML = `<span class="status-pill ${statusClass}">${lead.status}</span>`;
+
+            document.getElementById('modalEmail').textContent = fv(lead.email);
+            document.getElementById('modalPhone').textContent = fv(lead.telefone || lead.telephone);
+            document.getElementById('modalBio').textContent = fv(lead.bio);
+            document.getElementById('modalSignals').textContent = fv(lead.sinais_detectados);
+            document.getElementById('modalInsight').textContent = fv(lead.insight_ia);
+            document.getElementById('modalSnippets').textContent = fv(lead.trechos_relevantes);
+            document.getElementById('modalNotes').textContent = fv(lead.observacoes);
+
+            // Rola a página principal para uma posição ideal para ver o modal completo
+            window.scrollTo({ top: 300, behavior: 'smooth' });
+
+            // Pequeno delay para garantir que o scroll termine antes de abrir o modal
+            setTimeout(() => {
+                document.getElementById('leadModal').classList.add('visible');
+                document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
+            }, 300);
+        }
+
+        function closeLeadDetails() {
+            document.getElementById('leadModal').classList.remove('visible');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Fechar modal ao clicar fora
+        window.onclick = (event) => {
+            const modal = document.getElementById('leadModal');
+            if (event.target == modal) closeLeadDetails();
+        };
 
         // --- ENVIO PARA CRM ---
         document.getElementById('sendToCRM').onclick = async (event) => {
@@ -545,22 +948,119 @@
             try {
                 const { data: leads, error: fetchError } = await supabaseClient.from('leads_google_maps').select('*').in('id', selectedLeads);
                 if (fetchError) throw fetchError;
-                const opportunitiesData = leads.map(l => ({
-                    nome_oportunidade: l.empresa || 'Empresa sem nome',
-                    telefone: l.telefone ? String(l.telefone) : null,
-                    site: l.site || '',
-                    categoria: l.categoria_negocio || '',
-                    tags: l.tags || '',
-                    fonte_oportunidade: l.fonte_oportunidade || 'Google Maps',
-                    lead_status: 'Novo',
-                    stage: 'Contato',
-                    pipeline: 'Quantic Starter'
-                }));
+
+                // Função para limpar telefone (remove formatação)
+                const cleanPhone = (phone) => {
+                    if (!phone) return null;
+                    // Remove tudo que não é número
+                    const cleaned = String(phone).replace(/\D/g, '');
+                    return cleaned.length > 0 ? cleaned : null;
+                };
+
+                const opportunitiesData = leads.map(l => {
+                    // Prepara array de tags incluindo QUALIFICADO e removendo QUENTE
+                    let tagsArray = [];
+                    if (l.tags) {
+                        tagsArray = Array.isArray(l.tags) ? l.tags : l.tags.split(',').map(t => t.trim()).filter(t => t);
+                    }
+                    // Remove tag QUENTE se existir
+                    tagsArray = tagsArray.filter(tag => tag.toUpperCase() !== 'QUENTE');
+                    // Adiciona QUALIFICADO se não existir
+                    if (!tagsArray.includes('QUALIFICADO')) {
+                        tagsArray.push('QUALIFICADO');
+                    }
+
+                    return {
+                        nome_oportunidade: l.empresa || 'Empresa sem nome',
+                        telefone: cleanPhone(l.telefone),
+                        site: l.site || '',
+                        categoria: l.categoria_negocio || '',
+                        tags: tagsArray,
+                        fonte_oportunidade: l.fonte_oportunidade || 'Google Maps',
+                        lead_status: 'Novo',
+                        stage: 'Contato',
+                        pipeline: 'Quantic Starter'
+                    };
+                });
                 const { error: insertError } = await supabaseClient.from('opportunities').insert(opportunitiesData);
                 if (insertError) throw insertError;
                 btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviado!';
                 selectedLeads = [];
                 fetchRawHistory();
+                setTimeout(() => { btn.disabled = false; btn.innerHTML = originalContent; }, 3000);
+            } catch (e) {
+                console.error(e);
+                alert(`Erro: ${e.message}`);
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        };
+
+        // --- ENVIO INSTAGRAM PARA CRM ---
+        document.getElementById('sendInstaToCRM').onclick = async (event) => {
+            event.stopPropagation();
+            if (selectedInstaLeads.length === 0) return alert("Selecione leads do Instagram primeiro!");
+            const btn = document.getElementById('sendInstaToCRM');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Enviando...';
+            try {
+                // Busca leads das duas tabelas
+                const [reqQual, reqFrio] = await Promise.all([
+                    supabaseClient.from('leads_qualificados').select('*').in('id', selectedInstaLeads),
+                    supabaseClient.from('leads_frios').select('*').in('id', selectedInstaLeads)
+                ]);
+
+                // Marca cada lead com sua origem
+                const leadsQualificados = (reqQual.data || []).map(l => ({ ...l, _origem: 'qualificado' }));
+                const leadsFrios = (reqFrio.data || []).map(l => ({ ...l, _origem: 'frio' }));
+                const leads = [...leadsQualificados, ...leadsFrios];
+
+                if (leads.length === 0) throw new Error('Nenhum lead encontrado');
+
+                // Função para limpar valores inválidos
+                const cleanValue = (v) => {
+                    if (!v || v === 'string|null' || v === 'null' || String(v).toLowerCase() === 'undefined') return null;
+                    return String(v).trim();
+                };
+
+                // Função para limpar telefone (remove formatação)
+                const cleanPhone = (phone) => {
+                    if (!phone || phone === 'string|null' || phone === 'null' || String(phone).toLowerCase() === 'undefined') return null;
+                    // Remove tudo que não é número
+                    const cleaned = String(phone).replace(/\D/g, '');
+                    return cleaned.length > 0 ? cleaned : null;
+                };
+
+                const opportunitiesData = leads.map(l => {
+                    // Define tags e status baseado na tabela de origem
+                    const isQualificado = l._origem === 'qualificado';
+                    const statusTag = isQualificado ? 'QUALIFICADO' : 'DESQUALIFICADO';
+                    const leadStatus = isQualificado ? 'Qualificado' : 'Desqualificado';
+
+                    return {
+                        nome_oportunidade: l.nome_cliente || l.usuario || 'Lead Instagram',
+                        telefone: cleanPhone(l.telefone || l.telephone),
+                        email: cleanValue(l.email),
+                        site: l.url_perfil || '',
+                        fonte_oportunidade: 'Instagram',
+                        lead_status: leadStatus,
+                        pipeline: 'Quantic Starter',
+                        stage: 'Contato',
+                        tags: [statusTag],
+                        sinais_detectados: l.sinais_detectados || null,
+                        trechos_relevantes: l.trechos_relevantes || null,
+                        observacoes: l.observacoes || null,
+                        insight_ia: l.insight_ia || null
+                    };
+                });
+
+                const { error: insertError } = await supabaseClient.from('opportunities').insert(opportunitiesData);
+                if (insertError) throw insertError;
+
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviado!';
+                selectedInstaLeads = [];
+                fetchPostsHistory();
                 setTimeout(() => { btn.disabled = false; btn.innerHTML = originalContent; }, 3000);
             } catch (e) {
                 console.error(e);
@@ -600,8 +1100,8 @@
                 btnCapture.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> EXTRAINDO...';
 
                 const historyBody = channel === 'instagram' ? document.getElementById('history-posts-body') : document.getElementById('history-raw-body');
-                const cols = channel === 'instagram' ? 4 : 6;
-                // Forçamos o shimmer
+                const cols = channel === 'instagram' ? 5 : 6;
+                // Forçamos o shimmer nas tabelas relevantes
                 historyBody.innerHTML = Array(5).fill(`<tr>${Array(cols).fill('<td><div class="loading-shimmer" style="height:20px; border-radius:4px;"></div></td>').join('')}</tr>`).join('');
 
                 if (channel === 'instagram' && document.getElementById('postsLeadsCard').classList.contains('collapsed')) togglePostsLeadsHistory();
