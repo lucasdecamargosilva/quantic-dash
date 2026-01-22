@@ -174,20 +174,103 @@ END;
 $$;
 
 -- ============================================
--- TRIGGERS AUTOMÁTICOS
--- Incrementam contador quando leads são salvos
+-- 1. ADICIONAR COLUNA USER_ID NAS TABELAS DE LEADS (Caso não existam)
+-- ============================================
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_qualificados' AND column_name='user_id') THEN
+        ALTER TABLE public.leads_qualificados ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_frios' AND column_name='user_id') THEN
+        ALTER TABLE public.leads_frios ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_google_maps' AND column_name='user_id') THEN
+        ALTER TABLE public.leads_google_maps ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_capturados_posts' AND column_name='user_id') THEN
+        ALTER TABLE public.leads_capturados_posts ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='opportunities' AND column_name='user_id') THEN
+        ALTER TABLE public.opportunities ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='capturas_jobs' AND column_name='user_id') THEN
+        ALTER TABLE public.capturas_jobs ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='contacts' AND column_name='user_id') THEN
+        ALTER TABLE public.contacts ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='custos_modelo' AND column_name='user_id') THEN
+        ALTER TABLE public.custos_modelo ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clientes' AND column_name='user_id') THEN
+        ALTER TABLE public.clientes ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    -- Adicionando JOB_ID nas tabelas de leads para permitir o vínculo com o dono da captura
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_qualificados' AND column_name='job_id') THEN
+        ALTER TABLE public.leads_qualificados ADD COLUMN job_id text;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_frios' AND column_name='job_id') THEN
+        ALTER TABLE public.leads_frios ADD COLUMN job_id text;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_google_maps' AND column_name='job_id') THEN
+        ALTER TABLE public.leads_google_maps ADD COLUMN job_id text;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_capturados_posts' AND column_name='job_id') THEN
+        ALTER TABLE public.leads_capturados_posts ADD COLUMN job_id text;
+    END IF;
+
+    -- Garantindo user_id em todas as tabelas de leads para filtragem futura
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_qualificados' AND column_name='user_id') THEN
+        ALTER TABLE public.leads_qualificados ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_frios' AND column_name='user_id') THEN
+        ALTER TABLE public.leads_frios ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_google_maps' AND column_name='user_id') THEN
+        ALTER TABLE public.leads_google_maps ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads_capturados_posts' AND column_name='user_id') THEN
+        ALTER TABLE public.leads_capturados_posts ADD COLUMN user_id uuid REFERENCES auth.users(id);
+    END IF;
+END $$;
+
+-- ============================================
+-- 2. TRIGGERS ATUALIZADOS (OPÇÃO 2: Jobs como Ponte)
+-- Busca o dono do lead consultando quem iniciou o job_id
 -- ============================================
 
 -- Função trigger para Instagram (leads_qualificados)
 CREATE OR REPLACE FUNCTION auto_count_instagram_qualified()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_user_id uuid;
 BEGIN
-  -- Incrementa contador automaticamente usando o usuário autenticado
-  PERFORM increment_lead_count(
-    auth.uid(),  -- Usa o usuário autenticado atual
-    'instagram',
-    1
-  );
+  -- Busca o user_id na tabela capturas_jobs usando o job_id do lead
+  -- Nota: Certifique-se que o registro do lead tenha a coluna job_id
+  SELECT user_id INTO v_user_id 
+  FROM public.capturas_jobs 
+  WHERE job_id = NEW.job_id 
+  LIMIT 1;
+
+  IF v_user_id IS NOT NULL THEN
+    PERFORM increment_lead_count(v_user_id, 'instagram', 1);
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -195,13 +278,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Função trigger para Instagram (leads_frios)
 CREATE OR REPLACE FUNCTION auto_count_instagram_cold()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_user_id uuid;
 BEGIN
-  -- Incrementa contador automaticamente usando o usuário autenticado
-  PERFORM increment_lead_count(
-    auth.uid(),  -- Usa o usuário autenticado atual
-    'instagram',
-    1
-  );
+  SELECT user_id INTO v_user_id 
+  FROM public.capturas_jobs 
+  WHERE job_id = NEW.job_id 
+  LIMIT 1;
+
+  IF v_user_id IS NOT NULL THEN
+    PERFORM increment_lead_count(v_user_id, 'instagram', 1);
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -209,13 +296,18 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Função trigger para Google Maps
 CREATE OR REPLACE FUNCTION auto_count_google_maps()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_user_id uuid;
 BEGIN
-  -- Incrementa contador automaticamente usando o usuário autenticado
-  PERFORM increment_lead_count(
-    auth.uid(),  -- Usa o usuário autenticado atual
-    'google_maps',
-    1
-  );
+  -- Busca o user_id na tabela capturas_jobs usando o job_id do lead
+  SELECT user_id INTO v_user_id 
+  FROM public.capturas_jobs 
+  WHERE job_id = NEW.job_id 
+  LIMIT 1;
+
+  IF v_user_id IS NOT NULL THEN
+    PERFORM increment_lead_count(v_user_id, 'google_maps', 1);
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

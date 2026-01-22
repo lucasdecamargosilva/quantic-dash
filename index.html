@@ -257,6 +257,7 @@
                 grid-template-columns: 1fr;
             }
         }
+
         /* ===== FIM CAPTURE CARDS GRID ===== */
     </style>
 </head>
@@ -346,11 +347,13 @@
                                         <div class="capture-value" id="kpi-leads-captured-value">0</div>
                                         <div class="capture-breakdown">
                                             <div class="breakdown-row">
-                                                <span class="breakdown-label"><i class="ph-fill ph-instagram-logo"></i> Instagram</span>
+                                                <span class="breakdown-label"><i class="ph-fill ph-instagram-logo"></i>
+                                                    Instagram</span>
                                                 <span id="kpi-instagram-value" class="breakdown-count">0</span>
                                             </div>
                                             <div class="breakdown-row">
-                                                <span class="breakdown-label"><i class="ph-fill ph-map-pin"></i> Maps</span>
+                                                <span class="breakdown-label"><i class="ph-fill ph-map-pin"></i>
+                                                    Maps</span>
                                                 <span id="kpi-maps-value" class="breakdown-count">0</span>
                                             </div>
                                         </div>
@@ -840,10 +843,15 @@
             try {
                 console.debug('[loadCaptureMetrics] Iniciando carregamento...');
 
+                // Obtém o usuário logado para filtrar por user_id
+                const { data: { user } } = await captureSupabase.auth.getUser();
+                if (!user) return;
+
                 // 1. Leads Capturados - Instagram (leads_capturados_posts)
                 const { count: instagramCount, error: err1 } = await captureSupabase
                     .from('leads_capturados_posts')
-                    .select('*', { count: 'exact', head: true });
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
 
                 const safeInstagram = instagramCount || 0;
                 console.debug('[loadCaptureMetrics] Instagram:', safeInstagram, 'erro:', err1);
@@ -851,7 +859,8 @@
                 // 2. Leads Capturados - Google Maps (leads_google_maps)
                 const { count: mapsCount, error: err2 } = await captureSupabase
                     .from('leads_google_maps')
-                    .select('*', { count: 'exact', head: true });
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
 
                 const safeMaps = mapsCount || 0;
                 console.debug('[loadCaptureMetrics] Maps:', safeMaps, 'erro:', err2);
@@ -859,7 +868,8 @@
                 // 3. Leads Qualificados (leads_qualificados)
                 const { count: qualifiedCount, error: err3 } = await captureSupabase
                     .from('leads_qualificados')
-                    .select('*', { count: 'exact', head: true });
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
 
                 const safeQualified = qualifiedCount || 0;
                 console.debug('[loadCaptureMetrics] Qualified:', safeQualified, 'erro:', err3);
@@ -868,7 +878,8 @@
                 const { count: scheduledCount, error: err4 } = await captureSupabase
                     .from('opportunities')
                     .select('*', { count: 'exact', head: true })
-                    .eq('stage', 'Reunião Agendada');
+                    .eq('stage', 'Reunião Agendada')
+                    .eq('user_id', user.id);
 
                 const safeScheduled = scheduledCount || 0;
                 console.debug('[loadCaptureMetrics] Reuniões Agendadas:', safeScheduled, 'erro:', err4);
@@ -877,7 +888,8 @@
                 const { count: completedCount, error: err5 } = await captureSupabase
                     .from('opportunities')
                     .select('*', { count: 'exact', head: true })
-                    .eq('stage', 'Reunião Realizada');
+                    .eq('stage', 'Reunião Realizada')
+                    .eq('user_id', user.id);
 
                 const safeCompleted = completedCount || 0;
                 console.debug('[loadCaptureMetrics] Reuniões Realizadas:', safeCompleted, 'erro:', err5);
@@ -886,7 +898,8 @@
                 const { count: proposalsCount, error: err6 } = await captureSupabase
                     .from('opportunities')
                     .select('*', { count: 'exact', head: true })
-                    .eq('stage', 'Proposta Enviada');
+                    .eq('stage', 'Proposta Enviada')
+                    .eq('user_id', user.id);
 
                 const safeProposals = proposalsCount || 0;
                 console.debug('[loadCaptureMetrics] Propostas Enviadas:', safeProposals, 'erro:', err6);
@@ -895,7 +908,8 @@
                 const { count: salesCount, error: err7 } = await captureSupabase
                     .from('opportunities')
                     .select('*', { count: 'exact', head: true })
-                    .eq('stage', 'Venda Realizada');
+                    .eq('stage', 'Venda Realizada')
+                    .eq('user_id', user.id);
 
                 const safeSales = salesCount || 0;
                 console.debug('[loadCaptureMetrics] Vendas Realizadas:', safeSales, 'erro:', err7);

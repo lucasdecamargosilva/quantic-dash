@@ -239,20 +239,27 @@
             if (!sbClient) return [];
 
             try {
+                // Obtém usuário para filtro
+                const { data: { user } } = await sbClient.auth.getUser();
+                if (!user) return [];
+
                 // 1. Fetch from consolidated contacts
                 const { data: contacts, error: errC } = await sbClient
                     .from('contacts')
-                    .select('*');
+                    .select('*')
+                    .eq('user_id', user.id);
 
                 // 2. Fetch from Instagram (leads_qualificados)
                 const { data: instaLeads, error: errI } = await sbClient
                     .from('leads_qualificados')
-                    .select('*');
+                    .select('*')
+                    .eq('user_id', user.id);
 
                 // 3. Fetch from Google Maps (leads_google_maps)
                 const { data: mapsLeads, error: errM } = await sbClient
                     .from('leads_google_maps')
-                    .select('*');
+                    .select('*')
+                    .eq('user_id', user.id);
 
                 let merged = [];
 

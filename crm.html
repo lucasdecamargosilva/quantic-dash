@@ -492,6 +492,18 @@
             color: white !important;
         }
 
+        .tag-qualificado {
+            background: #10b981 !important;
+            /* Verde claro */
+            color: white !important;
+        }
+
+        .tag-desqualificado {
+            background: #ef4444 !important;
+            /* Vermelho */
+            color: white !important;
+        }
+
         /* Updated Modal Layout - Split View */
         .modal-body-split {
             display: grid;
@@ -2240,11 +2252,28 @@
                     return matchesSearch && matchesResp;
                 });
 
+                // Sort leads: QUALIFICADO tag first, then by created date
+                const sortedLeads = filteredLeads.sort((a, b) => {
+                    const aHasQualificado = (a.tags || []).some(tag =>
+                        typeof tag === 'string' && tag.toUpperCase().includes('QUALIFICADO') && !tag.toUpperCase().includes('DESQUALIFICADO')
+                    );
+                    const bHasQualificado = (b.tags || []).some(tag =>
+                        typeof tag === 'string' && tag.toUpperCase().includes('QUALIFICADO') && !tag.toUpperCase().includes('DESQUALIFICADO')
+                    );
+
+                    // QUALIFICADO sempre primeiro
+                    if (aHasQualificado && !bHasQualificado) return -1;
+                    if (!aHasQualificado && bHasQualificado) return 1;
+
+                    // Se ambos têm ou não têm QUALIFICADO, ordena por data (mais recente primeiro)
+                    return 0;
+                });
+
                 // Clear lists
                 document.querySelectorAll('.opportunity-list').forEach(list => { list.innerHTML = ''; });
 
                 // Re-inject leads
-                filteredLeads.forEach(opp => {
+                sortedLeads.forEach(opp => {
                     const listId = safeListId(opp.stage || 'Contato');
                     const list = document.getElementById(listId);
                     if (list) {
@@ -2279,11 +2308,6 @@
                             displayTags.push('GOOGLE MAPS');
                         }
 
-                        // Adiciona tag QUENTE 🔥 se status for quente (compatível com leads do instagram sem tag)
-                        if ((status.includes('quente') || status.includes('hot')) && !displayTags.some(t => t.toLowerCase().includes('quente'))) {
-                            displayTags.push('QUENTE 🔥');
-                        }
-
                         card.innerHTML = `
                         <span class="client-name">${escapeHtml(opp.name)}</span>
                         <span class="company-name">${escapeHtml(companyDisplay)}</span>
@@ -2294,6 +2318,8 @@
                             if (tagLower.includes('quente')) typeClass = 'tag-hot';
                             if (tagLower.includes('maps')) typeClass = 'tag-maps';
                             if (tagLower.includes('instagram')) typeClass = 'tag-instagram';
+                            if (tagLower.includes('qualificado') && !tagLower.includes('desqualificado')) typeClass = 'tag-qualificado';
+                            if (tagLower.includes('desqualificado')) typeClass = 'tag-desqualificado';
                             return `<span class="tag ${typeClass}">${escapeHtml(tag)}</span>`;
                         }).join('')}
                         </div>

@@ -196,11 +196,15 @@ async function fetchAICostsByPeriod(startDate, endDate) {
     });
 
     try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return;
+
         const { data, error } = await supabaseClient
             .from('custos_modelo')
             .select('*')
             .gte('data_request', startDate)
             .lte('data_request', endDate)
+            .eq('user_id', user.id)
             .order('data_request', { ascending: true });
 
         if (error) {
@@ -248,9 +252,13 @@ async function fetchClientes() {
     window.logDebug("Fetching clientes data...");
 
     try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return;
+
         const { data, error } = await supabaseClient
             .from('clientes')
             .select('*')
+            .eq('user_id', user.id)
             .order('cliente', { ascending: true }); // Nome exato da coluna conforme schema
 
         if (error) {

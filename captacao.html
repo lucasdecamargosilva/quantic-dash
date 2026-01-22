@@ -611,6 +611,262 @@
         .limit-card.danger i {
             color: #ef4444;
         }
+
+        /* --- Modal de Limite Premium --- */
+        .limit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* --- Modal de Limite ULTRA PREMIUM --- */
+        .limit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(8, 8, 16, 0.9);
+            backdrop-filter: blur(12px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: all;
+        }
+
+        .limit-modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .limit-modal {
+            background: linear-gradient(165deg, rgba(26, 26, 46, 0.95) 0%, rgba(15, 15, 30, 0.98) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 24px;
+            width: 95%;
+            max-width: 680px;
+            padding: 40px;
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(139, 92, 246, 0.15),
+                inset 0 0 20px rgba(255, 255, 255, 0.02);
+            transform: scale(0.9) translateY(30px);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .limit-modal::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .limit-modal-overlay.active .limit-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .btn-limit-close-x {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.4);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 20px;
+            z-index: 10;
+        }
+
+        .btn-limit-close-x:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .limit-modal-layout {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+            position: relative;
+        }
+
+        .limit-modal-icon-container {
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .limit-modal-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f87171;
+            font-size: 40px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.1);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .limit-modal-main {
+            flex-grow: 1;
+        }
+
+        .limit-modal-title {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.7));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .limit-modal-description {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+            max-width: 480px;
+        }
+
+        .limit-modal-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .stats-mini-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+
+        .stats-mini-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .stats-mini-card .label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .stats-mini-card .value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .stats-mini-card.active .value {
+            color: #a78bfa;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+
+        .limit-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .btn-upgrade-modal-premium {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 36px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-upgrade-modal-premium:hover {
+            transform: scale(1.05) translateY(-3px);
+            box-shadow: 0 15px 30px rgba(139, 92, 246, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .btn-upgrade-modal-premium i {
+            font-size: 20px;
+            animation: rocket-vibrate 0.5s infinite linear;
+        }
+
+        @keyframes rocket-vibrate {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            25% {
+                transform: translate(1px, -1px);
+            }
+
+            50% {
+                transform: translate(-1px, 1px);
+            }
+
+            75% {
+                transform: translate(1px, 1px);
+            }
+
+            100% {
+                transform: translate(0, 0);
+            }
+        }
     </style>
 </head>
 
@@ -633,6 +889,7 @@
                 <a href="captacao.html" class="nav-link active"><i class="ph-fill ph-funnel"></i><span
                         class="link-text">Captação</span></a>
             </nav>
+            <div class="sidebar-footer"></div>
         </aside>
 
         <div class="main-content">
@@ -781,10 +1038,63 @@
                             <tbody id="history-posts-body"></tbody>
                         </table>
                     </div>
+                </div> <!-- /capture-grid -->
+            </div> <!-- /app-container -->
+        </div> <!-- /main-content -->
+    </div> <!-- /dashboard-container -->
+
+    <!-- Modal de Limite de Leads ULTRA PREMIUM -->
+    <div id="limitModalOverlay" class="limit-modal-overlay" onclick="if(event.target === this) closeLimitModal()">
+        <div class="limit-modal" onclick="event.stopPropagation()">
+            <button class="btn-limit-close-x" onclick="closeLimitModal()">
+                <i class="ph ph-x"></i>
+            </button>
+
+            <div class="limit-modal-layout">
+                <div class="limit-modal-icon-container">
+                    <div class="limit-modal-icon">
+                        <i class="ph-fill ph-warning-octagon"></i>
+                    </div>
+                </div>
+
+                <div class="limit-modal-main">
+                    <h2 class="limit-modal-title">Limite Diário Atingido!</h2>
+                    <p class="limit-modal-description">
+                        Você atingiu o teto de extrações do seu plano. Desbloqueie o potencial total da nossa IA para
+                        escalar suas vendas.
+                    </p>
+
+                    <div class="limit-modal-stats-grid">
+                        <div class="stats-mini-card">
+                            <span class="label">Plano</span>
+                            <span id="modalPlanName" class="value">---</span>
+                        </div>
+                        <div class="stats-mini-card active">
+                            <span class="label">Restante</span>
+                            <span id="modalRemaining" class="value">0</span>
+                        </div>
+                        <div class="stats-mini-card">
+                            <span class="label">Usado Hoje</span>
+                            <span id="modalUsed" class="value">0/0</span>
+                        </div>
+                        <div class="stats-mini-card">
+                            <span class="label">Pedido</span>
+                            <span id="modalRequested" class="value">0</span>
+                        </div>
+                    </div>
+
+                    <div class="limit-modal-footer">
+                        <button class="btn-upgrade-modal-premium"
+                            onclick="window.open('https://buy.stripe.com/example', '_blank')">
+                            Fazer Upgrade Agora
+                            <i class="ph-fill ph-rocket-launch"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
 
     <!-- Modal de Detalhes do Lead -->
     <div id="leadModal" class="modal">
@@ -912,14 +1222,18 @@
 
         // Buscas Supabase
         async function fetchRawHistory() {
-            if (!supabaseClient) return;
+            if (!supabaseClient || !leadLimits?.currentUser?.id) return;
             // Se estamos extraindo maps agora, não sobrescrevemos o shimmer
             if (isExtracting && activeChannel === 'maps') return;
 
             const tbody = document.getElementById('history-raw-body');
             try {
                 selectedLeads = [];
-                const { data } = await supabaseClient.from('leads_google_maps').select('*').order('created_at', { ascending: false });
+                const { data } = await supabaseClient
+                    .from('leads_google_maps')
+                    .select('*')
+                    .eq('user_id', leadLimits.currentUser.id)
+                    .order('created_at', { ascending: false });
                 if (!data) return;
                 tbody.innerHTML = data.map(l => `<tr>
                     <td><input type="checkbox" class="lead-checkbox" value="${l.id}" onchange="toggleLeadSelection('${l.id}')"></td>
@@ -943,8 +1257,16 @@
             try {
                 // Busca das duas tabelas em paralelo
                 const [reqQual, reqFrio] = await Promise.all([
-                    supabaseClient.from('leads_qualificados').select('*').order('created_at', { ascending: false }),
-                    supabaseClient.from('leads_frios').select('*').order('created_at', { ascending: false })
+                    supabaseClient
+                        .from('leads_qualificados')
+                        .select('*')
+                        .eq('user_id', leadLimits.currentUser.id)
+                        .order('created_at', { ascending: false }),
+                    supabaseClient
+                        .from('leads_frios')
+                        .select('*')
+                        .eq('user_id', leadLimits.currentUser.id)
+                        .order('created_at', { ascending: false })
                 ]);
 
                 let leads = [
@@ -1081,7 +1403,8 @@
                         fonte_oportunidade: l.fonte_oportunidade || 'Google Maps',
                         lead_status: 'Novo',
                         stage: 'Contato',
-                        pipeline: 'Quantic Starter'
+                        pipeline: 'Quantic Starter',
+                        user_id: leadLimits?.currentUser?.id || null // Define o dono da oportunidade
                     };
                 });
                 const { error: insertError } = await supabaseClient.from('opportunities').insert(opportunitiesData);
@@ -1153,7 +1476,8 @@
                         sinais_detectados: l.sinais_detectados || null,
                         trechos_relevantes: l.trechos_relevantes || null,
                         observacoes: l.observacoes || null,
-                        insight_ia: l.insight_ia || null
+                        insight_ia: l.insight_ia || null,
+                        user_id: leadLimits?.currentUser?.id || null // Define o dono da oportunidade
                     };
                 });
 
@@ -1174,12 +1498,13 @@
 
         // --- MONITORAMENTO DE JOBS ---
         async function checkActiveJobs() {
-            if (!supabaseClient) return;
+            if (!supabaseClient || !leadLimits?.currentUser?.id) return;
 
-            // Pega estritamente o último job da tabela
+            // Pega estritamente o último job DESTE usuário
             const { data: latestJobs, error } = await supabaseClient
                 .from('capturas_jobs')
                 .select('*')
+                .eq('user_id', leadLimits.currentUser.id)
                 .order('created_at', { ascending: false })
                 .limit(1);
 
@@ -1267,16 +1592,13 @@
 
                 // ❌ BLOQUEAR se não pode capturar
                 if (!check.can_capture) {
-                    const errorMsg = leadLimits.formatLimitError(check);
-                    alert(errorMsg);
+                    showLimitModal(check);
                     return; // NÃO PERMITE EXTRAIR
                 }
 
                 // ⚠️ AVISAR se está perto do limite (Instagram)
                 if (activeChannel === 'instagram' && check.remaining === 0) {
-                    alert(`❌ Limite de leads do Instagram atingido!\n\n` +
-                        `Você já capturou ${check.current_count}/${check.limit} leads hoje.\n` +
-                        `Faça upgrade do seu plano para capturar mais leads!`);
+                    showLimitModal(check);
                     return;
                 }
 
@@ -1297,9 +1619,21 @@
                 'https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic' :
                 'https://n8n.segredosdodrop.com/webhook/recebe-dados-maps';
 
+            // Pega o ID do usuário atual para enviar ao n8n
+            const userId = leadLimits?.currentUser?.id || null;
+
             let body = activeChannel === 'instagram' ?
-                { targetUrl: document.getElementById('targetUrl').value, sessionCookie: document.getElementById('sessionCookie').value } :
-                { "Termo de Pesquisa": document.getElementById('mapsQuery').value, "Local": document.getElementById('mapsLocation').value, "Numero de Leads": document.getElementById('mapsCount').value };
+                {
+                    targetUrl: document.getElementById('targetUrl').value,
+                    sessionCookie: document.getElementById('sessionCookie').value,
+                    userId: userId
+                } :
+                {
+                    "Termo de Pesquisa": document.getElementById('mapsQuery').value,
+                    "Local": document.getElementById('mapsLocation').value,
+                    "Numero de Leads": document.getElementById('mapsCount').value,
+                    userId: userId
+                };
 
             setExtractionUI(true, activeChannel);
 
@@ -1423,7 +1757,34 @@
             }
         }
 
+        function showLimitModal(check) {
+            const overlay = document.getElementById('limitModalOverlay');
+            if (!overlay) return;
+
+            document.getElementById('modalPlanName').textContent = check.plan.toUpperCase();
+            document.getElementById('modalRemaining').textContent = `${check.remaining} leads`;
+            document.getElementById('modalUsed').textContent = `${check.current_count}/${check.limit}`;
+            document.getElementById('modalRequested').textContent = `${check.requested} leads`;
+
+            // Levar scroll para o topo para visualizar o contexto da captação
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Travar scroll do fundo
+            document.body.style.overflow = 'hidden';
+
+            overlay.classList.add('active');
+        }
+
+        function closeLimitModal() {
+            const overlay = document.getElementById('limitModalOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+                document.body.style.overflow = ''; // Restaura o scroll
+            }
+        }
+
         function truncateName(n, l = 20) { return n && n.length > l ? n.substring(0, l) + '...' : n; }
+
         async function initSupabase() { if (window.CONFIG_LOADED) await window.CONFIG_LOADED; supabaseClient = window.supabaseClient; return !!supabaseClient; }
         document.getElementById('refreshRawHistory').onclick = fetchRawHistory;
         document.getElementById('refreshPostsHistory').onclick = fetchPostsHistory;

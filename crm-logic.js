@@ -35,6 +35,10 @@ async function fetchCrmData(pipelineName = 'starter') {
         // Se receber um identificador curto, converte para nome completo
         const fullPipelineName = pipelineMap[pipelineName.toLowerCase()] || pipelineName;
 
+        // Obtém o usuário logado para filtrar por user_id
+        const { data: { user } } = await crmClient.auth.getUser();
+        if (!user) return [];
+
         const { data, error } = await crmClient
             .from('opportunities')
             .select(`
@@ -49,7 +53,8 @@ async function fetchCrmData(pipelineName = 'starter') {
                 site,
                 tags
             `)
-            .eq('pipeline', fullPipelineName);
+            .eq('pipeline', fullPipelineName)
+            .eq('user_id', user.id);
 
         if (error) {
             console.error('Error fetching CRM data:', error);
@@ -93,11 +98,15 @@ async function updateOpportunityDetails(oppId, contactId, details) {
 
         // 1. Update Opportunity (responsible, tags)
         if (oppData && Object.keys(oppData).length > 0) {
+            const { data: { user } } = await crmClient.auth.getUser();
+            if (!user) return;
+
             console.log('[CRM-DEBUG] Updating opportunity ID:', oppId, 'with data:', oppData);
             const { error: oppError } = await crmClient
                 .from('opportunities')
                 .update(oppData)
-                .eq('id', oppId);
+                .eq('id', oppId)
+                .eq('user_id', user.id);
 
             if (oppError) {
                 console.error('Error updating opportunity:', oppError);
@@ -133,10 +142,14 @@ async function updateLeadStage(leadId, newStage) {
     if (!crmClient) return;
 
     try {
+        const { data: { user } } = await crmClient.auth.getUser();
+        if (!user) return;
+
         const { error } = await crmClient
             .from('opportunities')
             .update({ stage: newStage, updated_at: new Date().toISOString() })
-            .eq('id', leadId);
+            .eq('id', leadId)
+            .eq('user_id', user.id);
 
         if (error) {
             console.error('Error updating stage in DB:', error);
@@ -155,6 +168,9 @@ async function deleteOpportunity(oppId) {
     }
 
     try {
+        const { data: { user } } = await crmClient.auth.getUser();
+        if (!user) return false;
+
         console.log('[CRM-DEBUG] Attempting to delete opportunity ID:', oppId, 'Type:', typeof oppId);
 
         // Using .select() after delete to confirm if rows were actually affected
@@ -162,6 +178,7 @@ async function deleteOpportunity(oppId) {
             .from('opportunities')
             .delete()
             .eq('id', oppId)
+            .eq('user_id', user.id)
             .select();
 
         if (error) {
@@ -190,6 +207,10 @@ async function fetchPipelineSummary() {
     if (!crmClient) return { total: { starter: 0, growth: 0, enterprise: 0 }, stages: { starter: {}, growth: {}, enterprise: {} } };
 
     try {
+        // Obtém o usuário logado para filtrar por user_id
+        const { data: { user } } = await crmClient.auth.getUser();
+        if (!user) return { total: { starter: 0, growth: 0, enterprise: 0 }, stages: { starter: {}, growth: {}, enterprise: {} } };
+
         const { data, error } = await crmClient
             .from('opportunities')
             .select(`
@@ -197,7 +218,8 @@ async function fetchPipelineSummary() {
                 stage, 
                 responsible_name,
                 fonte_oportunidade
-            `);
+            `)
+            .eq('user_id', user.id);
 
         if (error) throw error;
 
@@ -259,10 +281,26 @@ async function fetchAILeadInfo(username) {
     if (!crmClient || !username) return null;
 
     try {
+        // Remove @ if present for better matching
+        const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
+
+        // First try to find in opportunities table by nome_oportunidade or site (url_perfil)
+        const { data: oppData, error: oppError } = await crmClient
+            .from('opportunities')
+            .select('sinais_detectados, trechos_relevantes, observacoes, insight_ia')
+            .or(`nome_oportunidade.ilike.%${cleanUsername}%,site.ilike.%${cleanUsername}%`)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (!oppError && oppData && oppData.length > 0) {
+            return oppData[0];
+        }
+
+        // Fallback: try leads_qualificados table for legacy data
         const { data, error } = await crmClient
             .from('leads_qualificados')
             .select('*')
-            .eq('usuario', username)
+            .eq('usuario', cleanUsername)
             .order('created_at', { ascending: false })
             .limit(1);
 

@@ -14,35 +14,37 @@ BEGIN
   -- Apenas executa se o status contiver 'Qualificado' ou 'Quente'
   IF New.status ILIKE '%Qualificado%' OR New.status ILIKE '%quente%' THEN
     
-    -- Tenta encontrar um contato existente (pelo email ou usuário/instagram)
+    -- Tenta encontrar um contato existente do próprio usuário
     SELECT id INTO new_contact_id FROM contacts 
-    WHERE (email = NEW.email AND NEW.email IS NOT NULL AND NEW.email != '') 
-       OR (company_name = NEW.usuario AND NEW.usuario IS NOT NULL);
+    WHERE user_id = NEW.user_id
+      AND ((email = NEW.email AND NEW.email IS NOT NULL AND NEW.email != '') 
+       OR (company_name = NEW.usuario AND NEW.usuario IS NOT NULL));
 
-    -- Se não existir contato, cria um novo
+    -- Se não existir contato, cria um novo vinculado ao usuário
     IF new_contact_id IS NULL THEN
-      INSERT INTO contacts (full_name, company_name, phone, email, created_at)
+      INSERT INTO contacts (full_name, company_name, phone, email, created_at, user_id)
       VALUES (
-        COALESCE(NEW.nome_cliente, NEW.usuario, 'Lead IA'), -- Nome
-        NEW.usuario, -- Empresa (usamos o @ do instagram como empresa provisoriamente)
+        COALESCE(NEW.nome_cliente, NEW.usuario, 'Lead IA'),
+        NEW.usuario,
         NEW.telefone,
         NEW.email,
-        NOW()
+        NOW(),
+        NEW.user_id
       )
       RETURNING id INTO new_contact_id;
     END IF;
 
-    -- Verifica se já existe uma oportunidade para este contato no CRM
-    -- Se não existir, cria o Card no CRM
-    IF NOT EXISTS (SELECT 1 FROM opportunities WHERE contact_id = new_contact_id) THEN
-      INSERT INTO opportunities (contact_id, stage, pipeline, responsible_name, tags, created_at)
+    -- Cria o Card no CRM vinculado ao usuário
+    IF NOT EXISTS (SELECT 1 FROM opportunities WHERE contact_id = new_contact_id AND user_id = NEW.user_id) THEN
+      INSERT INTO opportunities (contact_id, stage, pipeline, responsible_name, tags, created_at, user_id)
       VALUES (
         new_contact_id,
         default_stage,
         default_pipeline,
-        'IA', -- Responsável inicial
+        'IA',
         ARRAY['Lead IA'],
-        NOW()
+        NOW(),
+        NEW.user_id
       );
     END IF;
 
