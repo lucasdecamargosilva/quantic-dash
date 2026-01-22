@@ -182,9 +182,9 @@ $$;
 CREATE OR REPLACE FUNCTION auto_count_instagram_qualified()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Incrementa contador automaticamente
+  -- Incrementa contador automaticamente usando o usuário autenticado
   PERFORM increment_lead_count(
-    NEW.user_id,
+    auth.uid(),  -- Usa o usuário autenticado atual
     'instagram',
     1
   );
@@ -196,9 +196,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION auto_count_instagram_cold()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Incrementa contador automaticamente
+  -- Incrementa contador automaticamente usando o usuário autenticado
   PERFORM increment_lead_count(
-    NEW.user_id,
+    auth.uid(),  -- Usa o usuário autenticado atual
     'instagram',
     1
   );
@@ -210,9 +210,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION auto_count_google_maps()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Incrementa contador automaticamente
+  -- Incrementa contador automaticamente usando o usuário autenticado
   PERFORM increment_lead_count(
-    NEW.user_id,
+    auth.uid(),  -- Usa o usuário autenticado atual
     'google_maps',
     1
   );
