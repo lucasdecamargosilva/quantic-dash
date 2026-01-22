@@ -504,6 +504,13 @@
             color: white !important;
         }
 
+        .tag-tel-fixo {
+            background: #a855f7 !important;
+            /* Roxo Quantic Vibrante */
+            color: white !important;
+            font-weight: 800 !important;
+        }
+
         /* Updated Modal Layout - Split View */
         .modal-body-split {
             display: grid;
@@ -2318,6 +2325,7 @@
                             if (tagLower.includes('quente')) typeClass = 'tag-hot';
                             if (tagLower.includes('maps')) typeClass = 'tag-maps';
                             if (tagLower.includes('instagram')) typeClass = 'tag-instagram';
+                            if (tagLower.includes('fixo')) typeClass = 'tag-tel-fixo';
                             if (tagLower.includes('qualificado') && !tagLower.includes('desqualificado')) typeClass = 'tag-qualificado';
                             if (tagLower.includes('desqualificado')) typeClass = 'tag-desqualificado';
                             return `<span class="tag ${typeClass}">${escapeHtml(tag)}</span>`;
