@@ -17,6 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <script src="auth.js"></script>
+    <script src="lead-limits.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
@@ -530,6 +531,86 @@
             background: var(--primary-purple);
             color: white;
         }
+
+        /* Lead Limits Indicators */
+        .limits-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .limit-card {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: rgba(139, 92, 246, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .limit-card i {
+            font-size: 28px;
+            color: var(--primary-purple);
+        }
+
+        .limit-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .limit-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .limit-usage {
+            font-size: 16px;
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        .limit-usage.warning {
+            color: #f59e0b;
+        }
+
+        .limit-usage.danger {
+            color: #ef4444;
+        }
+
+        .limit-remaining {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .limit-card.warning {
+            border-color: rgba(251, 191, 36, 0.3);
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        .limit-card.warning i {
+            color: #f59e0b;
+        }
+
+        .limit-card.danger {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .limit-card.danger i {
+            color: #ef4444;
+        }
     </style>
 </head>
 
@@ -559,6 +640,27 @@
                 <header class="main-header">
                     <h1 class="page-title">Captação de Leads IA</h1>
                 </header>
+
+                <!-- Lead Limits Indicators -->
+                <div class="limits-container" id="limitsContainer">
+                    <div class="limit-card" id="instagram-limit-card">
+                        <i class="ph-fill ph-instagram-logo"></i>
+                        <div class="limit-info">
+                            <span class="limit-label">Instagram</span>
+                            <span class="limit-usage" id="instagram-usage">0/100 leads</span>
+                            <small class="limit-remaining" id="instagram-remaining">100 disponíveis</small>
+                        </div>
+                    </div>
+
+                    <div class="limit-card" id="google_maps-limit-card">
+                        <i class="ph-fill ph-map-pin"></i>
+                        <div class="limit-info">
+                            <span class="limit-label">Google Maps</span>
+                            <span class="limit-usage" id="google_maps-usage">0/100 leads</span>
+                            <small class="limit-remaining" id="google_maps-remaining">100 disponíveis</small>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="capture-grid">
                     <div class="config-card">
@@ -755,7 +857,7 @@
 
     <script>
         const btnCapture = document.getElementById('startCapture');
-        let activeChannel = 'instagram', supabaseClient, isExtracting = false, selectedLeads = [], selectedInstaLeads = [];
+        let activeChannel = 'instagram', supabaseClient, isExtracting = false, selectedLeads = [], selectedInstaLeads = [], leadLimits;
         window.__leadsData = {}; // Cache global para dados do modal
 
         // Canais e Interface
@@ -1126,6 +1228,12 @@
                         setExtractionUI(false);
                         if (window.showToast) window.showToast("Extração do Instagram finalizada!", "success");
                         fetchPostsHistory();
+
+                        // Atualiza limites (triggers já contaram automaticamente)
+                        setTimeout(async () => {
+                            await updateLimitsUI();
+                        }, 2000);
+
                         supabaseClient.removeChannel(channel);
                     }
                 })
@@ -1140,6 +1248,51 @@
         }
 
         btnCapture.onclick = async () => {
+            // ============================================
+            // VERIFICAR LIMITES DE LEADS ANTES DE EXTRAIR
+            // ============================================
+
+            if (leadLimits) {
+                const channel = activeChannel === 'instagram' ? 'instagram' : 'google_maps';
+
+                // Para Google Maps, sabemos quantos leads o usuário quer
+                // Para Instagram, verificamos se ainda tem limite disponível
+                let requestedLeads = 1;
+
+                if (activeChannel === 'maps') {
+                    requestedLeads = parseInt(document.getElementById('mapsCount').value) || 20;
+                }
+
+                const check = await leadLimits.canCaptureLeads(channel, requestedLeads);
+
+                // ❌ BLOQUEAR se não pode capturar
+                if (!check.can_capture) {
+                    const errorMsg = leadLimits.formatLimitError(check);
+                    alert(errorMsg);
+                    return; // NÃO PERMITE EXTRAIR
+                }
+
+                // ⚠️ AVISAR se está perto do limite (Instagram)
+                if (activeChannel === 'instagram' && check.remaining === 0) {
+                    alert(`❌ Limite de leads do Instagram atingido!\n\n` +
+                        `Você já capturou ${check.current_count}/${check.limit} leads hoje.\n` +
+                        `Faça upgrade do seu plano para capturar mais leads!`);
+                    return;
+                }
+
+                // ⚠️ AVISAR se está perto do limite
+                const warning = leadLimits.formatWarning(check);
+                if (warning && window.showToast) {
+                    window.showToast(warning, 'warning');
+                }
+
+                console.log(`✅ Pode capturar! Restam ${check.remaining} leads no limite de hoje.`);
+            }
+
+            // ============================================
+            // PROSSEGUIR COM EXTRAÇÃO
+            // ============================================
+
             let url = activeChannel === 'instagram' ?
                 'https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic' :
                 'https://n8n.segredosdodrop.com/webhook/recebe-dados-maps';
@@ -1172,6 +1325,11 @@
                     });
                     if (response.ok) {
                         if (window.showToast) window.showToast("Extração do Maps finalizada!", "success");
+
+                        // Atualiza limites após alguns segundos (triggers contam automaticamente)
+                        setTimeout(async () => {
+                            await updateLimitsUI();
+                        }, 3000);
                     }
                     setExtractionUI(false);
                     await fetchRawHistory();
@@ -1182,6 +1340,89 @@
             }
         };
 
+        // ============================================
+        // SISTEMA DE LIMITES DE LEADS
+        // ============================================
+
+        async function initLeadLimits() {
+            if (!window.LeadLimitsManager) {
+                console.warn('[LeadLimits] LeadLimitsManager não carregado ainda');
+                return false;
+            }
+
+            if (!supabaseClient) {
+                console.error('[LeadLimits] Supabase não inicializado');
+                return false;
+            }
+
+            try {
+                leadLimits = new window.LeadLimitsManager(supabaseClient);
+                const success = await leadLimits.init();
+
+                if (success) {
+                    console.log('✅ Sistema de limites de LEADS inicializado');
+                    await updateLimitsUI();
+                    return true;
+                }
+            } catch (error) {
+                console.error('[LeadLimits] Erro ao inicializar:', error);
+            }
+
+            return false;
+        }
+
+        async function updateLimitsUI() {
+            if (!leadLimits) return;
+
+            try {
+                const stats = await leadLimits.getDailyStats();
+
+                if (!stats) return;
+
+                // Atualiza Instagram
+                updateLimitCard('instagram', stats.instagram);
+
+                // Atualiza Google Maps
+                updateLimitCard('google_maps', stats.google_maps);
+
+                console.log(`📊 Leads capturados hoje:
+  Instagram: ${stats.instagram.used}/${stats.instagram.limit} (${stats.instagram.remaining} restantes)
+  Google Maps: ${stats.google_maps.used}/${stats.google_maps.limit} (${stats.google_maps.remaining} restantes)
+  Plano: ${stats.plan.toUpperCase()}`);
+
+            } catch (error) {
+                console.error('[LeadLimits] Erro ao atualizar UI:', error);
+            }
+        }
+
+        function updateLimitCard(channel, data) {
+            const usageEl = document.getElementById(`${channel}-usage`);
+            const remainingEl = document.getElementById(`${channel}-remaining`);
+            const cardEl = document.getElementById(`${channel}-limit-card`);
+
+            if (!usageEl || !remainingEl || !cardEl) return;
+
+            // Atualiza textos
+            usageEl.textContent = `${data.used}/${data.limit} leads`;
+            remainingEl.textContent = `${data.remaining} disponíveis`;
+
+            // Calcula porcentagem
+            const percentage = (data.used / data.limit) * 100;
+
+            // Remove classes antigas
+            usageEl.classList.remove('warning', 'danger');
+            cardEl.classList.remove('warning', 'danger');
+
+            // Adiciona classes baseado na porcentagem
+            if (percentage >= 100) {
+                usageEl.classList.add('danger');
+                cardEl.classList.add('danger');
+            } else if (percentage >= 80) {
+                usageEl.classList.add('warning');
+                cardEl.classList.add('warning');
+            }
+        }
+
         function truncateName(n, l = 20) { return n && n.length > l ? n.substring(0, l) + '...' : n; }
         async function initSupabase() { if (window.CONFIG_LOADED) await window.CONFIG_LOADED; supabaseClient = window.supabaseClient; return !!supabaseClient; }
         document.getElementById('refreshRawHistory').onclick = fetchRawHistory;
@@ -1189,17 +1430,24 @@
         document.addEventListener('DOMContentLoaded', async () => {
             if (await initSupabase()) {
                 console.log("[QUANTIC] Sistema pronto. Verificando estado...");
-                // 1. Primeiro verificamos se há jobs ativos para travar a UI imediatamente
+
+                // 1. Inicializar sistema de limites de leads
+                await initLeadLimits();
+
+                // 2. Verificar jobs ativos para travar a UI imediatamente
                 await checkActiveJobs();
 
-                // 2. Depois habilitamos o botão se não estiver extraindo
+                // 3. Habilitar botão se não estiver extraindo
                 if (!isExtracting) {
                     setExtractionUI(false);
                 }
 
-                // 3. Carregamos o histórico em paralelo
+                // 4. Carregar histórico em paralelo
                 fetchRawHistory();
                 fetchPostsHistory();
+
+                // 5. Atualizar limites periodicamente (a cada 30 segundos)
+                setInterval(updateLimitsUI, 30000);
             }
         });
     </script>
