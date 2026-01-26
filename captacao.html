@@ -757,6 +757,7 @@
             font-weight: 800;
             background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.7));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 10px;
             letter-spacing: -0.5px;
@@ -973,6 +974,11 @@
                             </div>
                         </div>
                         <div class="header-actions">
+                            <select id="mapsHistoryFilter" class="filter-select" onclick="event.stopPropagation();"
+                                onchange="fetchRawHistory();">
+                                <option value="todos">Histórico Completo</option>
+                                <option value="recentes" selected>Últimos Leads Capturados</option>
+                            </select>
                             <button id="refreshRawHistory" class="btn-refresh"
                                 onclick="event.stopPropagation(); fetchRawHistory();"><i
                                     class="ph ph-arrows-clockwise"></i> Atualizar</button>
@@ -1228,13 +1234,31 @@
             if (isExtracting && activeChannel === 'maps') return;
 
             const tbody = document.getElementById('history-raw-body');
+            const filterValue = document.getElementById('mapsHistoryFilter')?.value || 'todos';
+
             try {
                 selectedLeads = [];
-                const { data } = await supabaseClient
+                let query = supabaseClient
                     .from('leads_google_maps')
                     .select('*')
                     .eq('user_id', leadLimits.currentUser.id)
                     .order('created_at', { ascending: false });
+
+                if (filterValue === 'recentes') {
+                    // Busca o timestamp do último insert para pegar o lote completo
+                    const { data: lastTimestamp } = await supabaseClient
+                        .from('leads_google_maps')
+                        .select('created_at')
+                        .eq('user_id', leadLimits.currentUser.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    if (lastTimestamp && lastTimestamp.length > 0) {
+                        query = query.eq('created_at', lastTimestamp[0].created_at);
+                    }
+                }
+
+                const { data } = await query;
                 if (!data) return;
                 tbody.innerHTML = data.map(l => `<tr>
                     <td><input type="checkbox" class="lead-checkbox" value="${l.id}" onchange="toggleLeadSelection('${l.id}')"></td>

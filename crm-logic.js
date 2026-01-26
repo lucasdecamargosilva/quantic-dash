@@ -161,6 +161,30 @@ async function updateLeadStage(leadId, newStage) {
         console.error('Update stage catch error:', err);
     }
 }
+
+async function batchUpdateLeadStages(leadIds, newStage) {
+    if (!crmClient || !leadIds || leadIds.length === 0) return;
+
+    try {
+        const { data: { user } } = await crmClient.auth.getUser();
+        if (!user) return;
+
+        const { error } = await crmClient
+            .from('opportunities')
+            .update({ stage: newStage, updated_at: new Date().toISOString() })
+            .in('id', leadIds)
+            .eq('user_id', user.id);
+
+        if (error) {
+            console.error('Error batch updating stages in DB:', error);
+            if (window.showToast) window.showToast("Erro ao atualizar etapas", "error");
+        } else {
+            if (window.showToast) window.showToast(`${leadIds.length} etapas atualizadas!`, "success");
+        }
+    } catch (err) {
+        console.error('Batch update stage catch error:', err);
+    }
+}
 async function deleteOpportunity(oppId) {
     if (!crmClient) {
         console.error('CRM client not initialized');
@@ -337,7 +361,8 @@ window.CRM_LOGIC = {
     fetchAILeadInfo,
     subscribeToCrmChanges,
     initCrmSupabase,
-    deleteOpportunity
+    deleteOpportunity,
+    batchUpdateLeadStages
 };
 
 /* ===== CRM_LOGIC logging wrappers =====
@@ -393,7 +418,8 @@ window.CRM_LOGIC = {
         'fetchAILeadInfo',
         'updateOpportunityDetails',
         'updateLeadStage',
-        'deleteOpportunity'
+        'deleteOpportunity',
+        'batchUpdateLeadStages'
     ];
     const methodsSync = [
         'subscribeToCrmChanges'

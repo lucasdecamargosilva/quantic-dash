@@ -96,6 +96,41 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-white);
+            margin: 0;
+        }
+
+        .header-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .select-all-column {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .select-all-column:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: var(--primary-purple);
+            color: var(--primary-purple);
+        }
+
+        .select-all-column.active {
+            background: var(--primary-purple);
+            border-color: var(--primary-purple);
+            color: white;
+            box-shadow: 0 0 10px var(--primary-purple-glow);
         }
 
         .opportunity-count {
@@ -1394,6 +1429,163 @@
             background: #1a1a1a;
             color: white;
         }
+
+        /* Checkbox styles */
+        .opportunity-checkbox-wrapper {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 10;
+        }
+
+        .opportunity-checkbox-custom {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: transparent;
+            font-size: 12px;
+        }
+
+        .opportunity-card:hover .opportunity-checkbox-custom {
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .opportunity-card.selected .opportunity-checkbox-custom {
+            background: var(--primary-purple);
+            border-color: var(--primary-purple);
+            color: white;
+        }
+
+        .opportunity-card.selected {
+            border-color: var(--primary-purple) !important;
+            background: rgba(139, 92, 246, 0.08) !important;
+        }
+
+        .opportunity-card.dragging-multiple {
+            opacity: 0.6;
+            transform: scale(0.98);
+            border-style: dashed;
+        }
+
+        /* Bulk action bar */
+        .bulk-action-bar {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            background: #12121e;
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            padding: 12px 24px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            z-index: 10000;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(15px);
+        }
+
+        .bulk-action-bar.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .selected-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-right: 24px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .selected-count-badge {
+            background: var(--primary-purple);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .selected-text {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .bulk-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .bulk-stage-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            min-width: 180px;
+            cursor: pointer;
+        }
+
+        .bulk-stage-select:focus {
+            border-color: var(--primary-purple);
+        }
+
+        .bulk-apply-btn {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bulk-apply-btn:hover:not(:disabled) {
+            background: #7c3aed;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .bulk-apply-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .bulk-close-btn {
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .bulk-close-btn:hover {
+            color: white;
+        }
     </style>
 </head>
 
@@ -1636,59 +1828,83 @@
                 </div>
             </div>
         </div>
-    </div>
+        <!-- Bulk Action Bar -->
+        <div class="bulk-action-bar" id="bulk-action-bar">
+            <div class="selected-info">
+                <div class="selected-count-badge" id="selected-count-badge">0</div>
+                <span class="selected-text">Leads Selecionados</span>
+            </div>
+            <div class="bulk-controls">
+                <select id="bulk-stage-select" class="bulk-stage-select">
+                    <option value="" disabled selected>Mover para etapa...</option>
+                    <!-- Stages will be injected here -->
+                </select>
+                <button class="bulk-apply-btn" id="bulk-apply-btn">
+                    <i class="ph ph-check"></i> Aplicar
+                </button>
+                <button class="bulk-close-btn" onclick="clearSelection()">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+        </div>
 
-    <script src="crm-logic.js"></script>
-    <script src="script.js"></script>
-    <script>
-        // Debug inicial do script
-        console.debug('[CRM-SCRIPT] crm.js carregado');
+        <script src="crm-logic.js"></script>
+        <script src="script.js"></script>
+        <script>
+            // Debug inicial do script
+            console.debug('[CRM-SCRIPT] crm.js carregado');
 
-        const stages = [
-            "Contato",
-            "Mensagem Enviada",
-            "Mensagem Enviada 2",
-            "Mensagem Enviada 3",
-            "Conexão",
-            "Reunião Agendada",
-            "Reunião Realizada",
-            "Proposta Enviada",
-            "Venda Realizada",
-            "Perdida"
-        ];
+            const stages = [
+                "Contato",
+                "Mensagem Enviada",
+                "Mensagem Enviada 2",
+                "Mensagem Enviada 3",
+                "Conexão",
+                "Reunião Agendada",
+                "Reunião Realizada",
+                "Proposta Enviada",
+                "Venda Realizada",
+                "Perdida"
+            ];
 
-        let draggedLeadId = null;
-        // Use o identificador curto (coerente com data-pipeline nos botões)
-        let currentPipeline = 'starter';
+            let draggedLeadId = null;
+            // Use o identificador curto (coerente com data-pipeline nos botões)
+            let currentPipeline = 'starter';
+            let selectedLeads = new Set();
 
-        // helper: gera ID de lista seguro a partir do nome da etapa
-        function safeListId(stage) {
-            try {
-                if (!stage) return 'list-Contato';
-                // usa encodeURIComponent e substitui '%' por '-' para manter ID válido
-                return 'list-' + encodeURIComponent(String(stage)).replace(/%/g, '-');
-            } catch (e) {
-                console.warn('[safeListId] stage inválido:', stage, e);
-                return 'list-Contato';
+            // helper: gera ID de lista seguro a partir do nome da etapa
+            function safeListId(stage) {
+                try {
+                    if (!stage) return 'list-Contato';
+                    // usa encodeURIComponent e substitui '%' por '-' para manter ID válido
+                    return 'list-' + encodeURIComponent(String(stage)).replace(/%/g, '-');
+                } catch (e) {
+                    console.warn('[safeListId] stage inválido:', stage, e);
+                    return 'list-Contato';
+                }
             }
-        }
 
-        function renderBoard() {
-            console.debug('[CRM-SCRIPT] renderBoard start, stages count:', stages.length);
-            const board = document.getElementById('crm-board');
-            if (!board) {
-                console.error('[renderBoard] elemento #crm-board não encontrado');
-                return;
-            }
-            board.innerHTML = '';
+            function renderBoard() {
+                console.debug('[CRM-SCRIPT] renderBoard start, stages count:', stages.length);
+                const board = document.getElementById('crm-board');
+                if (!board) {
+                    console.error('[renderBoard] elemento #crm-board não encontrado');
+                    return;
+                }
+                board.innerHTML = '';
 
-            stages.forEach(stage => {
-                const column = document.createElement('div');
-                column.className = 'crm-column';
-                const listId = safeListId(stage);
-                column.innerHTML = `
+                stages.forEach(stage => {
+                    const column = document.createElement('div');
+                    column.className = 'crm-column';
+                    const listId = safeListId(stage);
+                    column.innerHTML = `
                 <div class="column-header">
-                    <h3>${stage}</h3>
+                    <div class="header-title-wrapper">
+                        <div class="select-all-column" id="select-all-${listId}" onclick="selectAllInStage('${stage}', event)" title="Selecionar todos desta etapa">
+                            <i class="ph ph-check-square"></i>
+                        </div>
+                        <h3>${stage}</h3>
+                    </div>
                     <span class="opportunity-count">0</span>
                 </div>
                 <div class="opportunity-list" 
@@ -1699,428 +1915,492 @@
                     <!-- Opportunity cards -->
                 </div>
             `;
-                board.appendChild(column);
-            });
-            console.debug('[CRM-SCRIPT] renderBoard finished');
-        }
-
-        // Drag & Drop handlers
-        function handleDragStart(event, leadId) {
-            draggedLeadId = leadId;
-            event.target.classList.add('dragging');
-            event.dataTransfer.setData('text/plain', leadId);
-        }
-
-        let scrollInterval;
-        function startAutoScroll(direction) {
-            if (scrollInterval) return;
-            const board = document.getElementById('crm-board');
-            scrollInterval = setInterval(() => {
-                board.scrollLeft += direction * 15;
-            }, 16);
-        }
-
-        function stopAutoScroll() {
-            clearInterval(scrollInterval);
-            scrollInterval = null;
-        }
-
-        function handleDragEnd(event) {
-            event.target.classList.remove('dragging');
-            stopAutoScroll();
-        }
-
-        function handleDragOver(event) {
-            event.preventDefault();
-            if (event.currentTarget.classList.contains('opportunity-list')) {
-                event.currentTarget.classList.add('drag-over');
+                    board.appendChild(column);
+                });
+                console.debug('[CRM-SCRIPT] renderBoard finished');
             }
 
-            // Auto-scroll board if near edges
-            const board = document.getElementById('crm-board');
-            const rect = board.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const threshold = 150;
+            // Drag & Drop handlers
+            function handleDragStart(event, leadId) {
+                draggedLeadId = leadId;
+                event.target.classList.add('dragging');
+                event.dataTransfer.setData('text/plain', leadId);
 
-            if (x < threshold) {
-                startAutoScroll(-1);
-            } else if (x > rect.width - threshold) {
-                startAutoScroll(1);
-            } else {
+                // If the item being dragged is selected, we are moving all selected items
+                if (selectedLeads.has(leadId)) {
+                    event.dataTransfer.setData('application/json', JSON.stringify(Array.from(selectedLeads)));
+                    // Add a class to all selected cards for visual feedback
+                    document.querySelectorAll('.opportunity-card.selected').forEach(card => {
+                        card.classList.add('dragging-multiple');
+                    });
+                }
+            }
+
+            let scrollInterval;
+            function startAutoScroll(direction) {
+                if (scrollInterval) return;
+                const board = document.getElementById('crm-board');
+                scrollInterval = setInterval(() => {
+                    board.scrollLeft += direction * 15;
+                }, 16);
+            }
+
+            function stopAutoScroll() {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+
+            function handleDragEnd(event) {
+                event.target.classList.remove('dragging');
+                document.querySelectorAll('.opportunity-card.dragging-multiple').forEach(card => {
+                    card.classList.remove('dragging-multiple');
+                });
                 stopAutoScroll();
             }
-        }
 
-        function handleDragLeave(event) {
-            event.currentTarget.classList.remove('drag-over');
-        }
+            function handleDragOver(event) {
+                event.preventDefault();
+                if (event.currentTarget.classList.contains('opportunity-list')) {
+                    event.currentTarget.classList.add('drag-over');
+                }
 
-        async function handleDrop(event, newStage) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('drag-over');
-            stopAutoScroll();
+                // Auto-scroll board if near edges
+                const board = document.getElementById('crm-board');
+                const rect = board.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const threshold = 150;
 
-            const leadId = event.dataTransfer.getData('text/plain');
-            const card = document.querySelector(`[data-id="${leadId}"]`);
-            const newList = event.currentTarget;
+                if (x < threshold) {
+                    startAutoScroll(-1);
+                } else if (x > rect.width - threshold) {
+                    startAutoScroll(1);
+                } else {
+                    stopAutoScroll();
+                }
+            }
 
-            if (card && newList) {
-                const oldList = card.parentElement;
-                if (oldList !== newList) {
-                    newList.appendChild(card);
+            function handleDragLeave(event) {
+                event.currentTarget.classList.remove('drag-over');
+            }
+
+            async function handleDrop(event, newStage) {
+                event.preventDefault();
+                event.currentTarget.classList.remove('drag-over');
+                stopAutoScroll();
+
+                const leadId = event.dataTransfer.getData('text/plain');
+                const bulkIdsJson = event.dataTransfer.getData('application/json');
+                const newList = event.currentTarget;
+
+                if (!newList) return;
+
+                if (bulkIdsJson && selectedLeads.has(leadId)) {
+                    // Moving multiple items
+                    const bulkIds = JSON.parse(bulkIdsJson);
+                    console.log('[CRM] Moving bulk leads to stage:', newStage, bulkIds);
+
+                    // Optimistic UI move
+                    bulkIds.forEach(id => {
+                        const card = document.querySelector(`[data-id="${id}"]`);
+                        if (card) newList.appendChild(card);
+                    });
+
                     updateCounters();
+                    updateColumnSelectButtons();
 
-                    // Update in Supabase via CRM_LOGIC
                     if (window.CRM_LOGIC) {
-                        await CRM_LOGIC.updateLeadStage(leadId, newStage);
+                        await CRM_LOGIC.batchUpdateLeadStages(bulkIds, newStage);
+                        clearSelection();
+                        await loadData();
+                    }
+                } else if (leadId) {
+                    // Moving single item
+                    const card = document.querySelector(`[data-id="${leadId}"]`);
+                    if (card) {
+                        const oldList = card.parentElement;
+                        if (oldList !== newList) {
+                            newList.appendChild(card);
+                            updateCounters();
+                            updateColumnSelectButtons();
+
+                            if (window.CRM_LOGIC) {
+                                await CRM_LOGIC.updateLeadStage(leadId, newStage);
+                                await loadData();
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        function updateCounters() {
-            document.querySelectorAll('.crm-column').forEach(col => {
-                const list = col.querySelector('.opportunity-list');
-                const count = list ? list.children.length : 0;
-                const countSpan = col.querySelector('.opportunity-count');
-                if (countSpan) countSpan.textContent = count;
-            });
-        }
-
-        // Modal Logic
-        const modal = document.getElementById('leadModal');
-        const closeModal = document.getElementById('closeModal');
-
-        function closeModalFunc() {
-            if (modal) {
-                modal.style.display = 'none';
-                document.body.classList.remove('modal-open');
-                document.documentElement.classList.remove('modal-open');
+            function updateCounters() {
+                document.querySelectorAll('.crm-column').forEach(col => {
+                    const list = col.querySelector('.opportunity-list');
+                    const count = list ? list.children.length : 0;
+                    const countSpan = col.querySelector('.opportunity-count');
+                    if (countSpan) countSpan.textContent = count;
+                });
             }
-        }
 
-        if (closeModal) {
-            closeModal.onclick = closeModalFunc;
-        }
-        window.onclick = (event) => {
-            if (event.target == modal) closeModalFunc();
-        }
+            // Modal Logic
+            const modal = document.getElementById('leadModal');
+            const closeModal = document.getElementById('closeModal');
 
-        // Close modal on Escape key
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') closeModalFunc();
-        });
-
-        let currentLeadId = null;
-        let currentContactId = null;
-
-        async function openLeadDetails(lead) {
-            currentLeadId = lead.id;
-            currentContactId = lead.contactId;
-
-            document.getElementById('modal-client-name').textContent = lead.name;
-            const displayUser = lead.company.startsWith('@') ? lead.company : '@' + lead.company;
-            document.getElementById('modal-company-name').textContent = displayUser;
-            document.getElementById('modal-email').value = (lead.email && lead.email !== '---') ? lead.email : '';
-            document.getElementById('modal-phone').value = lead.phone !== '---' ? lead.phone : '';
-
-            // Now 'channels' maps to 'Fonte da Oportunidade'
-            document.getElementById('modal-channels').value = (lead.channels && lead.channels !== '---') ? lead.channels : '';
-
-            document.getElementById('modal-responsible').value = lead.responsible !== 'Não atribuído' ? lead.responsible : '';
-            document.getElementById('modal-tags').value = lead.tags ? lead.tags.join(', ') : '';
-
-            const siteVal = (lead.site && lead.site !== '---') ? lead.site : '';
-            const siteEl = document.getElementById('modal-site');
-            const siteLink = document.getElementById('modal-site-link');
-
-            if (siteEl) siteEl.value = siteVal;
-            if (siteLink) {
-                if (siteVal) {
-                    siteLink.href = siteVal.startsWith('http') ? siteVal : 'https://' + siteVal;
-                    siteLink.textContent = siteVal;
-                    siteLink.style.display = 'inline-block';
-                    siteLink.style.opacity = '1';
-                } else {
-                    siteLink.href = '#';
-                    siteLink.textContent = 'Sem site cadastrado';
-                    siteLink.style.display = 'inline-block';
-                    siteLink.style.opacity = '0.5';
+            function closeModalFunc() {
+                if (modal) {
+                    modal.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                    document.documentElement.classList.remove('modal-open');
                 }
             }
 
-            // Reset Delete Button state
-            const delBtn = document.getElementById('deleteLeadBtn');
-            if (delBtn) {
-                delBtn.disabled = false;
-                delBtn.innerHTML = '<i class="ph-bold ph-trash"></i> Excluir Oportunidade';
+            if (closeModal) {
+                closeModal.onclick = closeModalFunc;
+            }
+            window.onclick = (event) => {
+                if (event.target == modal) closeModalFunc();
             }
 
-            modal.style.display = 'flex';
-            document.body.classList.add('modal-open');
-            document.documentElement.classList.add('modal-open');
+            // Close modal on Escape key
+            window.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') closeModalFunc();
+            });
 
-            await loadAIInfo(lead.company);
-        }
+            let currentLeadId = null;
+            let currentContactId = null;
 
-        async function loadAIInfo(username) {
-            const loading = document.getElementById('ia-info-loading');
-            const content = document.getElementById('ia-info-content');
+            async function openLeadDetails(lead) {
+                currentLeadId = lead.id;
+                currentContactId = lead.contactId;
 
-            if (loading) loading.style.display = 'block';
-            if (content) content.style.display = 'none';
+                document.getElementById('modal-client-name').textContent = lead.name;
+                const displayUser = lead.company.startsWith('@') ? lead.company : '@' + lead.company;
+                document.getElementById('modal-company-name').textContent = displayUser;
+                document.getElementById('modal-email').value = (lead.email && lead.email !== '---') ? lead.email : '';
+                document.getElementById('modal-phone').value = lead.phone !== '---' ? lead.phone : '';
 
-            try {
-                const aiInfo = await CRM_LOGIC.fetchAILeadInfo(username);
+                // Now 'channels' maps to 'Fonte da Oportunidade'
+                document.getElementById('modal-channels').value = (lead.channels && lead.channels !== '---') ? lead.channels : '';
 
-                if (aiInfo) {
-                    if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = aiInfo.observacoes || 'Sem observações';
-                    if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = aiInfo.insight_ia || 'Nenhum insight disponível';
+                document.getElementById('modal-responsible').value = lead.responsible !== 'Não atribuído' ? lead.responsible : '';
+                document.getElementById('modal-tags').value = lead.tags ? lead.tags.join(', ') : '';
 
-                    const formatList = (containerId, data) => {
-                        const container = document.getElementById(containerId);
-                        if (!container) return;
-                        container.innerHTML = '';
-                        let items = [];
-                        try {
-                            items = typeof data === 'string' ? JSON.parse(data) : (data || []);
-                        } catch (e) { items = [data]; }
+                const siteVal = (lead.site && lead.site !== '---') ? lead.site : '';
+                const siteEl = document.getElementById('modal-site');
+                const siteLink = document.getElementById('modal-site-link');
 
-                        if (Array.isArray(items) && items.length > 0) {
-                            items.forEach(item => {
-                                const span = document.createElement('span');
-                                span.textContent = item;
-                                container.appendChild(span);
-                            });
-                        } else {
-                            container.textContent = '---';
+                if (siteEl) siteEl.value = siteVal;
+                if (siteLink) {
+                    if (siteVal) {
+                        siteLink.href = siteVal.startsWith('http') ? siteVal : 'https://' + siteVal;
+                        siteLink.textContent = siteVal;
+                        siteLink.style.display = 'inline-block';
+                        siteLink.style.opacity = '1';
+                    } else {
+                        siteLink.href = '#';
+                        siteLink.textContent = 'Sem site cadastrado';
+                        siteLink.style.display = 'inline-block';
+                        siteLink.style.opacity = '0.5';
+                    }
+                }
+
+                // Reset Delete Button state
+                const delBtn = document.getElementById('deleteLeadBtn');
+                if (delBtn) {
+                    delBtn.disabled = false;
+                    delBtn.innerHTML = '<i class="ph-bold ph-trash"></i> Excluir Oportunidade';
+                }
+
+                modal.style.display = 'flex';
+                document.body.classList.add('modal-open');
+                document.documentElement.classList.add('modal-open');
+
+                await loadAIInfo(lead.company);
+            }
+
+            async function loadAIInfo(username) {
+                const loading = document.getElementById('ia-info-loading');
+                const content = document.getElementById('ia-info-content');
+
+                if (loading) loading.style.display = 'block';
+                if (content) content.style.display = 'none';
+
+                try {
+                    const aiInfo = await CRM_LOGIC.fetchAILeadInfo(username);
+
+                    if (aiInfo) {
+                        if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = aiInfo.observacoes || 'Sem observações';
+                        if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = aiInfo.insight_ia || 'Nenhum insight disponível';
+
+                        const formatList = (containerId, data) => {
+                            const container = document.getElementById(containerId);
+                            if (!container) return;
+                            container.innerHTML = '';
+                            let items = [];
+                            try {
+                                items = typeof data === 'string' ? JSON.parse(data) : (data || []);
+                            } catch (e) { items = [data]; }
+
+                            if (Array.isArray(items) && items.length > 0) {
+                                items.forEach(item => {
+                                    const span = document.createElement('span');
+                                    span.textContent = item;
+                                    container.appendChild(span);
+                                });
+                            } else {
+                                container.textContent = '---';
+                            }
+                        };
+
+                        formatList('modal-ia-signals', aiInfo.sinais_detectados);
+                        formatList('modal-ia-snippets', aiInfo.trechos_relevantes);
+                    } else {
+                        if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = '---';
+                        if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = 'Nenhum dado de IA encontrado para este usuário.';
+                        if (document.getElementById('modal-ia-signals')) document.getElementById('modal-ia-signals').textContent = '---';
+                        if (document.getElementById('modal-ia-snippets')) document.getElementById('modal-ia-snippets').textContent = '---';
+                    }
+                } catch (err) {
+                    console.error("Erro ao carregar IA info:", err);
+                } finally {
+                    if (loading) loading.style.display = 'none';
+                    if (content) content.style.display = 'block';
+                }
+            }
+
+            // Sync column select buttons with selectedLeads
+            function updateColumnSelectButtons() {
+                stages.forEach(stage => {
+                    const listId = safeListId(stage);
+                    const list = document.getElementById(listId);
+                    const btn = document.getElementById(`select-all-${listId}`);
+                    if (!list || !btn) return;
+
+                    const cards = list.querySelectorAll('.opportunity-card');
+                    if (cards.length === 0) {
+                        btn.classList.remove('active');
+                        return;
+                    }
+
+                    let allSelected = true;
+                    cards.forEach(card => {
+                        if (!selectedLeads.has(card.getAttribute('data-id'))) {
+                            allSelected = false;
                         }
-                    };
+                    });
 
-                    formatList('modal-ia-signals', aiInfo.sinais_detectados);
-                    formatList('modal-ia-snippets', aiInfo.trechos_relevantes);
-                } else {
-                    if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = '---';
-                    if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = 'Nenhum dado de IA encontrado para este usuário.';
-                    if (document.getElementById('modal-ia-signals')) document.getElementById('modal-ia-signals').textContent = '---';
-                    if (document.getElementById('modal-ia-snippets')) document.getElementById('modal-ia-snippets').textContent = '---';
-                }
-            } catch (err) {
-                console.error("Erro ao carregar IA info:", err);
-            } finally {
-                if (loading) loading.style.display = 'none';
-                if (content) content.style.display = 'block';
-            }
-        }
-
-        document.getElementById('saveLeadDetails').onclick = async () => {
-            if (!currentLeadId || !window.CRM_LOGIC) {
-                console.error('[CRM-SCRIPT] Cannot save: currentLeadId is missing', { currentLeadId });
-                if (window.showToast) window.showToast("Erro: ID da oportunidade não encontrado", "error");
-                return;
+                    if (allSelected) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
             }
 
-            // Opp Data
-            const responsible = document.getElementById('modal-responsible').value.trim();
-            const tagsRaw = document.getElementById('modal-tags').value;
-            const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
-
-            // New: Get phone, source, email and site from modal
-            const phone = document.getElementById('modal-phone').value.trim();
-            const channels = document.getElementById('modal-channels').value.trim();
-            const email = document.getElementById('modal-email').value.trim();
-            const site = document.getElementById('modal-site').value.trim();
-
-            const saveBtn = document.getElementById('saveLeadDetails');
-            const originalText = saveBtn.innerHTML;
-
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Salvando dados...';
-
-            console.log('[CRM-SCRIPT] Saving details for ID:', currentLeadId, {
-                responsible, phone, channels, site
-            });
-
-            await CRM_LOGIC.updateOpportunityDetails(currentLeadId, currentContactId, {
-                oppData: {
-                    responsible_name: responsible || null,
-                    tags: tags,
-                    telefone: (phone && phone !== '---') ? phone : null,
-                    email: email || null,
-                    fonte_oportunidade: channels || null,
-                    site: site || null
-                },
-                contactData: {
-                    acquisition_channels: channels || null,
-                    email: email || null,
-                    website: site || null
+            document.getElementById('saveLeadDetails').onclick = async () => {
+                if (!currentLeadId || !window.CRM_LOGIC) {
+                    console.error('[CRM-SCRIPT] Cannot save: currentLeadId is missing', { currentLeadId });
+                    if (window.showToast) window.showToast("Erro: ID da oportunidade não encontrado", "error");
+                    return;
                 }
-            });
 
-            // Explicitly reload
-            await loadData();
+                // Opp Data
+                const responsible = document.getElementById('modal-responsible').value.trim();
+                const tagsRaw = document.getElementById('modal-tags').value;
+                const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
 
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
-            closeModalFunc();
-        };
+                // New: Get phone, source, email and site from modal
+                const phone = document.getElementById('modal-phone').value.trim();
+                const channels = document.getElementById('modal-channels').value.trim();
+                const email = document.getElementById('modal-email').value.trim();
+                const site = document.getElementById('modal-site').value.trim();
 
-        document.getElementById('deleteLeadBtn').onclick = async () => {
-            if (!currentLeadId || !window.CRM_LOGIC) return;
+                const saveBtn = document.getElementById('saveLeadDetails');
+                const originalText = saveBtn.innerHTML;
 
-            if (confirm("Tem certeza que deseja excluir esta oportunidade? Esta ação não pode ser desfeita.")) {
-                const btn = document.getElementById('deleteLeadBtn');
-                const originalContent = btn.innerHTML;
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Salvando dados...';
 
-                btn.disabled = true;
-                btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Excluindo...';
+                console.log('[CRM-SCRIPT] Saving details for ID:', currentLeadId, {
+                    responsible, phone, channels, site
+                });
 
-                const success = await CRM_LOGIC.deleteOpportunity(currentLeadId);
+                await CRM_LOGIC.updateOpportunityDetails(currentLeadId, currentContactId, {
+                    oppData: {
+                        responsible_name: responsible || null,
+                        tags: tags,
+                        telefone: (phone && phone !== '---') ? phone : null,
+                        email: email || null,
+                        fonte_oportunidade: channels || null,
+                        site: site || null
+                    },
+                    contactData: {
+                        acquisition_channels: channels || null,
+                        email: email || null,
+                        website: site || null
+                    }
+                });
 
-                if (success) {
-                    closeModalFunc();
-                    await loadData();
-                } else {
-                    btn.disabled = false;
-                    btn.innerHTML = originalContent;
+                // Explicitly reload
+                await loadData();
+
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                closeModalFunc();
+            };
+
+            document.getElementById('deleteLeadBtn').onclick = async () => {
+                if (!currentLeadId || !window.CRM_LOGIC) return;
+
+                if (confirm("Tem certeza que deseja excluir esta oportunidade? Esta ação não pode ser desfeita.")) {
+                    const btn = document.getElementById('deleteLeadBtn');
+                    const originalContent = btn.innerHTML;
+
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Excluindo...';
+
+                    const success = await CRM_LOGIC.deleteOpportunity(currentLeadId);
+
+                    if (success) {
+                        closeModalFunc();
+                        await loadData();
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
+                    }
+                }
+            };
+
+            // Add copy listeners
+            function setupCopy(id, type) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.onclick = () => {
+                        const targetEl = document.getElementById('modal-' + type);
+                        const content = targetEl.value !== undefined ? targetEl.value : targetEl.textContent;
+                        if (content && content !== '---' && content !== "") {
+                            navigator.clipboard.writeText(content).then(() => {
+                                if (window.showToast) window.showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' copiado!', 'success');
+                            });
+                        }
+                    }
                 }
             }
-        };
+            setupCopy('copy-phone', 'phone');
+            setupCopy('copy-email', 'email');
 
-        // Add copy listeners
-        function setupCopy(id, type) {
-            const el = document.getElementById(id);
-            if (el) {
-                el.onclick = () => {
-                    const targetEl = document.getElementById('modal-' + type);
-                    const content = targetEl.value !== undefined ? targetEl.value : targetEl.textContent;
-                    if (content && content !== '---' && content !== "") {
-                        navigator.clipboard.writeText(content).then(() => {
-                            if (window.showToast) window.showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' copiado!', 'success');
+            // Add/update responsible filter helper
+            function updateResponsibleFilter(salesData, meetingData) {
+                try {
+                    console.debug('[CRM-SCRIPT] updateResponsibleFilter chamado', {
+                        salesData,
+                        meetingData
+                    });
+                    const filter = document.getElementById('responsibleFilter');
+                    if (!filter) {
+                        console.warn('[updateResponsibleFilter] #responsibleFilter não encontrado');
+                        return;
+                    }
+                    const currentVal = filter.value || 'all';
+                    const responsibles = new Set();
+
+                    if (salesData && typeof salesData === 'object') {
+                        Object.keys(salesData).forEach(r => {
+                            if (r) responsibles.add(r);
                         });
                     }
-                }
-            }
-        }
-        setupCopy('copy-phone', 'phone');
-        setupCopy('copy-email', 'email');
+                    if (meetingData && typeof meetingData === 'object') {
+                        Object.keys(meetingData).forEach(r => {
+                            if (r) responsibles.add(r);
+                        });
+                    }
 
-        // Add/update responsible filter helper
-        function updateResponsibleFilter(salesData, meetingData) {
-            try {
-                console.debug('[CRM-SCRIPT] updateResponsibleFilter chamado', {
-                    salesData,
-                    meetingData
-                });
-                const filter = document.getElementById('responsibleFilter');
-                if (!filter) {
-                    console.warn('[updateResponsibleFilter] #responsibleFilter não encontrado');
-                    return;
-                }
-                const currentVal = filter.value || 'all';
-                const responsibles = new Set();
-
-                if (salesData && typeof salesData === 'object') {
-                    Object.keys(salesData).forEach(r => {
-                        if (r) responsibles.add(r);
+                    // Limpa e re-popula mantendo ordenação alfabética
+                    filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
+                    Array.from(responsibles).sort((a, b) => a.localeCompare(b)).forEach(resp => {
+                        const option = document.createElement('option');
+                        option.value = resp;
+                        option.textContent = resp;
+                        filter.appendChild(option);
                     });
+
+                    // Restaura valor anterior se ainda existir
+                    if (Array.from(filter.options).some(o => o.value === currentVal)) {
+                        filter.value = currentVal;
+                    } else {
+                        filter.value = 'all';
+                    }
+                } catch (err) {
+                    console.error('[updateResponsibleFilter] erro:', err);
                 }
-                if (meetingData && typeof meetingData === 'object') {
-                    Object.keys(meetingData).forEach(r => {
-                        if (r) responsibles.add(r);
+            }
+
+            // ===== MOVED HELPERS (antes de loadData) =====
+            // Funções JavaScript que estavam erroneamente dentro do <style>.
+            function escapeHtml(input) {
+                try {
+                    if (input === null || input === undefined) return '';
+                    return String(input).replace(/[&<>"'\/]/g, function (s) {
+                        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' }[s]);
                     });
+                } catch (e) {
+                    console.warn('[escapeHtml] falha ao escapar:', e);
+                    return String(input);
                 }
+            }
 
-                // Limpa e re-popula mantendo ordenação alfabética
-                filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
-                Array.from(responsibles).sort((a, b) => a.localeCompare(b)).forEach(resp => {
-                    const option = document.createElement('option');
-                    option.value = resp;
-                    option.textContent = resp;
-                    filter.appendChild(option);
-                });
-
-                // Restaura valor anterior se ainda existir
-                if (Array.from(filter.options).some(o => o.value === currentVal)) {
-                    filter.value = currentVal;
-                } else {
-                    filter.value = 'all';
+            function getStatusDotClass(status) {
+                try {
+                    if (!status) return 'dot-cold';
+                    const s = String(status).toLowerCase();
+                    if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'dot-hot';
+                    if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'dot-warm';
+                    return 'dot-cold';
+                } catch (e) {
+                    console.warn('[getStatusDotClass] erro:', e);
+                    return 'dot-cold';
                 }
-            } catch (err) {
-                console.error('[updateResponsibleFilter] erro:', err);
             }
-        }
 
-        // ===== MOVED HELPERS (antes de loadData) =====
-        // Funções JavaScript que estavam erroneamente dentro do <style>.
-        function escapeHtml(input) {
-            try {
-                if (input === null || input === undefined) return '';
-                return String(input).replace(/[&<>"'\/]/g, function (s) {
-                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' }[s]);
-                });
-            } catch (e) {
-                console.warn('[escapeHtml] falha ao escapar:', e);
-                return String(input);
-            }
-        }
-
-        function getStatusDotClass(status) {
-            try {
-                if (!status) return 'dot-cold';
-                const s = String(status).toLowerCase();
-                if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'dot-hot';
-                if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'dot-warm';
-                return 'dot-cold';
-            } catch (e) {
-                console.warn('[getStatusDotClass] erro:', e);
-                return 'dot-cold';
-            }
-        }
-
-        function getStatusTextClass(status) {
-            try {
-                if (!status) return 'status-cold';
-                const s = String(status).toLowerCase();
-                if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'status-hot';
-                if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'status-warm';
-                return 'status-cold';
-            } catch (e) {
-                console.warn('[getStatusTextClass] erro:', e);
-                return 'status-cold';
-            }
-        }
-
-        function renderChartsOnLoad(summary) {
-            try {
-                console.debug('[CRM-SCRIPT] renderChartsOnLoad', summary);
-                const container = document.getElementById('pipeline-charts-container');
-                if (!container) {
-                    console.warn('[renderChartsOnLoad] container não encontrado');
-                    return;
+            function getStatusTextClass(status) {
+                try {
+                    if (!status) return 'status-cold';
+                    const s = String(status).toLowerCase();
+                    if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'status-hot';
+                    if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'status-warm';
+                    return 'status-cold';
+                } catch (e) {
+                    console.warn('[getStatusTextClass] erro:', e);
+                    return 'status-cold';
                 }
-                container.innerHTML = '';
+            }
 
-                const pipelineConfig = [
-                    { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
-                    { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
-                    { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
-                ];
+            function renderChartsOnLoad(summary) {
+                try {
+                    console.debug('[CRM-SCRIPT] renderChartsOnLoad', summary);
+                    const container = document.getElementById('pipeline-charts-container');
+                    if (!container) {
+                        console.warn('[renderChartsOnLoad] container não encontrado');
+                        return;
+                    }
+                    container.innerHTML = '';
 
-                const stagesOrder = (typeof stages !== 'undefined' && Array.isArray(stages)) ? stages : Object.keys((summary && summary.stages && summary.stages.starter) || {});
+                    const pipelineConfig = [
+                        { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
+                        { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
+                        { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
+                    ];
 
-                pipelineConfig.forEach(pipe => {
-                    const card = document.createElement('div');
-                    card.className = 'chart-card';
+                    const stagesOrder = (typeof stages !== 'undefined' && Array.isArray(stages)) ? stages : Object.keys((summary && summary.stages && summary.stages.starter) || {});
 
-                    const pipeData = (summary && summary.stages && summary.stages[pipe.id]) || {};
-                    const maxCount = Math.max(...stagesOrder.map(s => pipeData[s] || 0), 1);
+                    pipelineConfig.forEach(pipe => {
+                        const card = document.createElement('div');
+                        card.className = 'chart-card';
 
-                    let chartRowsHtml = '';
-                    stagesOrder.forEach(stage => {
-                        const count = pipeData[stage] || 0;
-                        const percentage = Math.round((count / maxCount) * 100);
-                        chartRowsHtml += `
+                        const pipeData = (summary && summary.stages && summary.stages[pipe.id]) || {};
+                        const maxCount = Math.max(...stagesOrder.map(s => pipeData[s] || 0), 1);
+
+                        let chartRowsHtml = '';
+                        stagesOrder.forEach(stage => {
+                            const count = pipeData[stage] || 0;
+                            const percentage = Math.round((count / maxCount) * 100);
+                            chartRowsHtml += `
 						<div class="chart-row">
 							<span class="chart-stage-name">${escapeHtml(stage)}</span>
 							<div class="chart-bar-bg">
@@ -2129,9 +2409,9 @@
 							<span class="chart-count">${count}</span>
 						</div>
 					`;
-                    });
+                        });
 
-                    card.innerHTML = `
+                        card.innerHTML = `
 					<div class="chart-header ${pipe.class}">
 						<i class="ph-fill ${pipe.icon}"></i>
 						<span>${pipe.name}</span>
@@ -2140,30 +2420,30 @@
 						${chartRowsHtml}
 					</div>
 				`;
-                    container.appendChild(card);
-                });
-            } catch (err) {
-                console.error('[renderChartsOnLoad] erro ao renderizar charts:', err);
-                const container = document.getElementById('pipeline-charts-container');
-                if (container) container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar gráficos. Veja console.</div>';
+                        container.appendChild(card);
+                    });
+                } catch (err) {
+                    console.error('[renderChartsOnLoad] erro ao renderizar charts:', err);
+                    const container = document.getElementById('pipeline-charts-container');
+                    if (container) container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar gráficos. Veja console.</div>';
+                }
             }
-        }
 
-        function renderRanking(containerId, data, title, icon, headerClass, barClass, prize) {
-            try {
-                const container = document.getElementById(containerId);
-                if (!container) return;
+            function renderRanking(containerId, data, title, icon, headerClass, barClass, prize) {
+                try {
+                    const container = document.getElementById(containerId);
+                    if (!container) return;
 
-                const sorted = Object.entries(data || {})
-                    .sort(([, a], [, b]) => b - a);
+                    const sorted = Object.entries(data || {})
+                        .sort(([, a], [, b]) => b - a);
 
-                const maxCount = Math.max(...Object.values(data || {}), 1);
+                    const maxCount = Math.max(...Object.values(data || {}), 1);
 
-                let rowsHtml = '';
-                sorted.forEach(([name, count], index) => {
-                    const percentage = Math.round((count / maxCount) * 100);
-                    const rank = index + 1;
-                    rowsHtml += `
+                    let rowsHtml = '';
+                    sorted.forEach(([name, count], index) => {
+                        const percentage = Math.round((count / maxCount) * 100);
+                        const rank = index + 1;
+                        rowsHtml += `
                         <div class="chart-row">
                             <div class="rank-badge ${rank === 1 ? 'rank-1' : ''}">${rank}º</div>
                             <span class="chart-stage-name">${escapeHtml(name)}</span>
@@ -2173,11 +2453,11 @@
                             <span class="chart-count">${count}</span>
                         </div>
                     `;
-                });
+                    });
 
-                let prizeHtml = '';
-                if (prize) {
-                    prizeHtml = `
+                    let prizeHtml = '';
+                    if (prize) {
+                        prizeHtml = `
                         <div class="ranking-prize-preview">
                             <div class="prize-info">
                                 <span class="prize-label">${escapeHtml(prize.label)}</span>
@@ -2186,9 +2466,9 @@
                             <img src="${prize.image}" alt="Prêmio" class="prize-img">
                         </div>
                     `;
-                }
+                    }
 
-                container.innerHTML = `
+                    container.innerHTML = `
                     <div class="chart-card ranking-card">
                         <div class="chart-header ${headerClass}">
                             <i class="ph-fill ${icon}"></i>
@@ -2200,202 +2480,324 @@
                         </div>
                     </div>
                 `;
-            } catch (err) {
-                console.error('[renderRanking] erro:', err);
+                } catch (err) {
+                    console.error('[renderRanking] erro:', err);
+                }
             }
-        }
-        // ===== FIM MOVED HELPERS =====
 
-        async function loadData() {
-            // carrega summary padrão via CRM_LOGIC (mantém comportamento já existente)
-            if (!window.CRM_LOGIC) return;
+            // Selection Logic
+            function toggleLeadSelection(leadId, element, event) {
+                event.stopPropagation();
+                if (selectedLeads.has(leadId)) {
+                    selectedLeads.delete(leadId);
+                    element.closest('.opportunity-card').classList.remove('selected');
+                } else {
+                    selectedLeads.add(leadId);
+                    element.closest('.opportunity-card').classList.add('selected');
+                }
+                updateBulkBar();
+                updateColumnSelectButtons();
+            }
 
-            // 1. Load Global Summary and Stage Distribution
-            const summary = await CRM_LOGIC.fetchPipelineSummary();
-            document.getElementById('total-starter').textContent = summary.total?.starter ?? 0;
-            document.getElementById('total-growth').textContent = summary.total?.growth ?? 0;
-            document.getElementById('total-enterprise').textContent = summary.total?.enterprise ?? 0;
+            function updateBulkBar() {
+                const bar = document.getElementById('bulk-action-bar');
+                const countBadge = document.getElementById('selected-count-badge');
+                const count = selectedLeads.size;
 
-            // Update responsible filter options
-            updateResponsibleFilter(summary.salesByResponsible, summary.meetingsByResponsible);
+                if (count > 0) {
+                    bar?.classList.add('visible');
+                    if (countBadge) countBadge.textContent = count;
+                } else {
+                    bar?.classList.remove('visible');
+                }
+            }
 
-            // 2. Load Board for current pipeline (Ponto único de verdade: tabela opportunities)
-            let leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
-            console.debug('[loadData] leads from CRM_LOGIC:', leads?.length ?? 0);
-
-            // Expor globalmente para filtros/uso posterior
-            window.allLeads = leads || [];
-
-            // 3. Render board com leads da tabela opportunities
-            renderLeads(window.allLeads);
-
-            // 4. Stage Distribution Charts (mantém summary original)
-            renderChartsOnLoad(summary);
-
-            // 5. Leads por Canal: computa baseado no summary.channels (vindo de opportunities)
-            const channelsFromSummary = Object.assign({}, summary.channels || {});
-            console.debug('[loadData] channels from opportunities:', channelsFromSummary);
-            renderChannelsChart(channelsFromSummary);
-
-            // 7. Responsible Rankings (mantém chamada original)
-            renderRanking('sales-ranking-container', summary.salesByResponsible, 'Ranking de Vendas', 'ph-crown', 'label-growth', 'bar-growth', {
-                name: 'iPhone 17 Pro Max',
-                image: 'https://reidocelular.com.br/wp-content/uploads/2025/12/iphone-17-pro-max-3.png',
-                label: 'Prêmio para o 1º Colocado'
-            });
-        }
-
-        function renderLeads(leads) {
-            try {
-                console.debug('[CRM-SCRIPT] renderLeads start, total leads:', (leads || []).length);
-                const searchTerm = document.getElementById('crmSearch')?.value?.toLowerCase() || '';
-                const respFilter = document.getElementById('responsibleFilter')?.value || 'all';
-
-                // Filter leads
-                const filteredLeads = (leads || []).filter(opp => {
-                    const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
-                        (opp.company?.toLowerCase().includes(searchTerm));
-                    const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
-                    return matchesSearch && matchesResp;
+            function clearSelection() {
+                selectedLeads.clear();
+                document.querySelectorAll('.opportunity-card.selected').forEach(card => {
+                    card.classList.remove('selected');
                 });
+                document.querySelectorAll('.select-all-column').forEach(btn => btn.classList.remove('active'));
+                updateBulkBar();
+            }
 
-                // Sort leads: QUALIFICADO tag first, then by created date
-                const sortedLeads = filteredLeads.sort((a, b) => {
-                    const aHasQualificado = (a.tags || []).some(tag =>
-                        typeof tag === 'string' && tag.toUpperCase().includes('QUALIFICADO') && !tag.toUpperCase().includes('DESQUALIFICADO')
-                    );
-                    const bHasQualificado = (b.tags || []).some(tag =>
-                        typeof tag === 'string' && tag.toUpperCase().includes('QUALIFICADO') && !tag.toUpperCase().includes('DESQUALIFICADO')
-                    );
+            function selectAllInStage(stage, event) {
+                event.stopPropagation();
+                const listId = safeListId(stage);
+                const list = document.getElementById(listId);
+                const btn = document.getElementById(`select-all-${listId}`);
+                if (!list || !btn) return;
 
-                    // QUALIFICADO sempre primeiro
-                    if (aHasQualificado && !bHasQualificado) return -1;
-                    if (!aHasQualificado && bHasQualificado) return 1;
+                const cards = list.querySelectorAll('.opportunity-card');
+                const alreadySelectedAll = btn.classList.contains('active');
 
-                    // Se ambos têm ou não têm QUALIFICADO, ordena por data (mais recente primeiro)
-                    return 0;
+                if (alreadySelectedAll) {
+                    // Unselect everything in this column
+                    cards.forEach(card => {
+                        const id = card.getAttribute('data-id');
+                        selectedLeads.delete(id);
+                        card.classList.remove('selected');
+                    });
+                    btn.classList.remove('active');
+                } else {
+                    // Select everything in this column
+                    cards.forEach(card => {
+                        const id = card.getAttribute('data-id');
+                        selectedLeads.add(id);
+                        card.classList.add('selected');
+                    });
+                    btn.classList.add('active');
+                }
+                updateBulkBar();
+            }
+
+            async function applyBulkStageChange() {
+                const newStage = document.getElementById('bulk-stage-select').value;
+                if (!newStage || selectedLeads.size === 0) {
+                    if (window.showToast) window.showToast("Selecione uma etapa de destino", "warning");
+                    return;
+                }
+
+                if (confirm(`Tem certeza que deseja mover ${selectedLeads.size} leads para "${newStage}"?`)) {
+                    const btn = document.getElementById('bulk-apply-btn');
+                    const originalHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Processando...';
+
+                    try {
+                        await CRM_LOGIC.batchUpdateLeadStages(Array.from(selectedLeads), newStage);
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                        clearSelection();
+                        await loadData();
+                    } catch (err) {
+                        console.error('Bulk update error:', err);
+                        if (window.showToast) window.showToast("Erro ao processar atualização em massa", "error");
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }
+                }
+            }
+
+            function initBulkControls() {
+                const select = document.getElementById('bulk-stage-select');
+                const applyBtn = document.getElementById('bulk-apply-btn');
+
+                if (select) {
+                    // Populate stages
+                    select.innerHTML = '<option value="" disabled selected>Mover para etapa...</option>';
+                    stages.forEach(stage => {
+                        const option = document.createElement('option');
+                        option.value = stage;
+                        option.textContent = stage;
+                        select.appendChild(option);
+                    });
+                }
+
+                if (applyBtn) {
+                    applyBtn.onclick = applyBulkStageChange;
+                }
+            }
+            // ===== FIM MOVED HELPERS =====
+
+            async function loadData() {
+                // carrega summary padrão via CRM_LOGIC (mantém comportamento já existente)
+                if (!window.CRM_LOGIC) return;
+
+                // 1. Load Global Summary and Stage Distribution
+                const summary = await CRM_LOGIC.fetchPipelineSummary();
+                document.getElementById('total-starter').textContent = summary.total?.starter ?? 0;
+                document.getElementById('total-growth').textContent = summary.total?.growth ?? 0;
+                document.getElementById('total-enterprise').textContent = summary.total?.enterprise ?? 0;
+
+                // Update responsible filter options
+                updateResponsibleFilter(summary.salesByResponsible, summary.meetingsByResponsible);
+
+                // 2. Load Board for current pipeline (Ponto único de verdade: tabela opportunities)
+                let leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
+                console.debug('[loadData] leads from CRM_LOGIC:', leads?.length ?? 0);
+
+                // Expor globalmente para filtros/uso posterior
+                window.allLeads = leads || [];
+
+                // 3. Render board com leads da tabela opportunities
+                renderLeads(window.allLeads);
+
+                // 4. Stage Distribution Charts (mantém summary original)
+                renderChartsOnLoad(summary);
+
+                // 5. Leads por Canal: computa baseado no summary.channels (vindo de opportunities)
+                const channelsFromSummary = Object.assign({}, summary.channels || {});
+                console.debug('[loadData] channels from opportunities:', channelsFromSummary);
+                renderChannelsChart(channelsFromSummary);
+
+                // 7. Responsible Rankings (mantém chamada original)
+                renderRanking('sales-ranking-container', summary.salesByResponsible, 'Ranking de Vendas', 'ph-crown', 'label-growth', 'bar-growth', {
+                    name: 'iPhone 17 Pro Max',
+                    image: 'https://reidocelular.com.br/wp-content/uploads/2025/12/iphone-17-pro-max-3.png',
+                    label: 'Prêmio para o 1º Colocado'
                 });
+            }
 
-                // Clear lists
-                document.querySelectorAll('.opportunity-list').forEach(list => { list.innerHTML = ''; });
+            function renderLeads(leads) {
+                try {
+                    console.debug('[CRM-SCRIPT] renderLeads start, total leads:', (leads || []).length);
+                    const searchTerm = document.getElementById('crmSearch')?.value?.toLowerCase() || '';
+                    const respFilter = document.getElementById('responsibleFilter')?.value || 'all';
 
-                // Re-inject leads
-                sortedLeads.forEach(opp => {
-                    const listId = safeListId(opp.stage || 'Contato');
-                    const list = document.getElementById(listId);
-                    if (list) {
-                        const card = document.createElement('div');
-                        const pipelineClass = `strip-${currentPipeline || 'starter'}`;
+                    // Filter leads
+                    const filteredLeads = (leads || []).filter(opp => {
+                        const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
+                            (opp.company?.toLowerCase().includes(searchTerm));
+                        const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
+                        return matchesSearch && matchesResp;
+                    });
 
-                        const tags = opp.tags || [];
+                    // Sort leads: QUALIFICADO tag first, then by created date
+                    const sortedLeads = filteredLeads.sort((a, b) => {
+                        const aHasQualificado = (a.tags || []).some(tag =>
+                            typeof tag === 'string' && tag.toUpperCase().includes('QUALIFICADO') && !tag.toUpperCase().includes('DESQUALIFICADO')
+                        );
+                        const bHasQualificado = (b.tags || []).some(tag =>
+                            typeof tag === 'string' && tag.toUpperCase().includes('QUALIFICADO') && !tag.toUpperCase().includes('DESQUALIFICADO')
+                        );
 
-                        // Normalização do Display da Empresa (Evitar @ extras)
-                        const rawCompany = opp.company || '';
-                        const companyDisplay = rawCompany.startsWith('@') ? rawCompany : '@' + rawCompany;
+                        // QUALIFICADO sempre primeiro
+                        if (aHasQualificado && !bHasQualificado) return -1;
+                        if (!aHasQualificado && bHasQualificado) return 1;
 
-                        card.className = `opportunity-card ${pipelineClass}`;
-                        card.draggable = true;
-                        card.setAttribute('data-id', opp.id);
-                        card.ondragstart = (e) => handleDragStart(e, opp.id);
-                        card.ondragend = handleDragEnd;
-                        card.onclick = () => openLeadDetails(opp);
+                        // Se ambos têm ou não têm QUALIFICADO, ordena por data (mais recente primeiro)
+                        return 0;
+                    });
 
-                        // Tags Dinâmicas (Garantir tags de canal e status mesmo se não estiverem no banco)
-                        let displayTags = [...tags];
-                        const channel = (opp.channels || '').toLowerCase();
-                        const status = (opp.lead_status || '').toLowerCase();
+                    // Clear lists
+                    document.querySelectorAll('.opportunity-list').forEach(list => { list.innerHTML = ''; });
 
-                        // Adiciona tag INSTAGRAM se for do canal instagram
-                        if (channel.includes('instagram') && !displayTags.some(t => t.toUpperCase() === 'INSTAGRAM')) {
-                            displayTags.push('INSTAGRAM');
-                        }
+                    // Re-inject leads
+                    sortedLeads.forEach(opp => {
+                        const listId = safeListId(opp.stage || 'Contato');
+                        const list = document.getElementById(listId);
+                        if (list) {
+                            const card = document.createElement('div');
+                            const pipelineClass = `strip-${currentPipeline || 'starter'}`;
 
-                        // Adiciona tag GOOGLE MAPS se for do canal maps ou google
-                        if ((channel.includes('maps') || channel.includes('google')) && !displayTags.some(t => t.toUpperCase() === 'GOOGLE MAPS')) {
-                            displayTags.push('GOOGLE MAPS');
-                        }
+                            const tags = opp.tags || [];
 
-                        card.innerHTML = `
+                            // Normalização do Display da Empresa (Evitar @ extras)
+                            const rawCompany = opp.company || '';
+                            const companyDisplay = rawCompany.startsWith('@') ? rawCompany : '@' + rawCompany;
+
+                            card.className = `opportunity-card ${pipelineClass}`;
+                            if (selectedLeads.has(opp.id)) card.classList.add('selected');
+
+                            card.draggable = true;
+                            card.setAttribute('data-id', opp.id);
+                            card.ondragstart = (e) => handleDragStart(e, opp.id);
+                            card.ondragend = handleDragEnd;
+                            card.onclick = () => openLeadDetails(opp);
+
+                            // Tags Dinâmicas (Garantir tags de canal e status mesmo se não estiverem no banco)
+                            let displayTags = [...tags];
+                            const channel = (opp.channels || '').toLowerCase();
+                            const status = (opp.lead_status || '').toLowerCase();
+
+                            // Adiciona tag INSTAGRAM se for do canal instagram
+                            if (channel.includes('instagram') && !displayTags.some(t => t.toUpperCase() === 'INSTAGRAM')) {
+                                displayTags.push('INSTAGRAM');
+                            }
+
+                            // Adiciona tag GOOGLE MAPS se for do canal maps ou google
+                            if ((channel.includes('maps') || channel.includes('google')) && !displayTags.some(t => t.toUpperCase() === 'GOOGLE MAPS')) {
+                                displayTags.push('GOOGLE MAPS');
+                            }
+
+                            card.innerHTML = `
+                        <div class="opportunity-checkbox-wrapper" onclick="toggleLeadSelection('${opp.id}', this, event)">
+                            <div class="opportunity-checkbox-custom">
+                                <i class="ph-bold ph-check"></i>
+                            </div>
+                        </div>
                         <span class="client-name">${escapeHtml(opp.name)}</span>
                         <span class="company-name">${escapeHtml(companyDisplay)}</span>
                         <div class="tags-container">
                             ${displayTags.map(tag => {
-                            const tagLower = tag.toLowerCase();
-                            let typeClass = '';
-                            if (tagLower.includes('quente')) typeClass = 'tag-hot';
-                            if (tagLower.includes('maps')) typeClass = 'tag-maps';
-                            if (tagLower.includes('instagram')) typeClass = 'tag-instagram';
-                            if (tagLower.includes('fixo')) typeClass = 'tag-tel-fixo';
-                            if (tagLower.includes('qualificado') && !tagLower.includes('desqualificado')) typeClass = 'tag-qualificado';
-                            if (tagLower.includes('desqualificado')) typeClass = 'tag-desqualificado';
-                            return `<span class="tag ${typeClass}">${escapeHtml(tag)}</span>`;
-                        }).join('')}
+                                const tagLower = tag.toLowerCase();
+                                let typeClass = '';
+                                if (tagLower.includes('quente')) typeClass = 'tag-hot';
+                                if (tagLower.includes('maps')) typeClass = 'tag-maps';
+                                if (tagLower.includes('instagram')) typeClass = 'tag-instagram';
+                                if (tagLower.includes('fixo')) typeClass = 'tag-tel-fixo';
+                                if (tagLower.includes('qualificado') && !tagLower.includes('desqualificado')) typeClass = 'tag-qualificado';
+                                if (tagLower.includes('desqualificado')) typeClass = 'tag-desqualificado';
+                                return `<span class="tag ${typeClass}">${escapeHtml(tag)}</span>`;
+                            }).join('')}
                         </div>
                         <div class="responsible-badge">
                             <i class="ph-fill ph-user-circle"></i>
                             <span>${escapeHtml(opp.responsible)}</span>
                         </div>
                     `;
-                        list.appendChild(card);
-                    } else {
-                        // Log se não encontrou a lista (ajuda a debugar stages inconsistentes)
-                        console.warn(`[renderLeads] lista não encontrada para stage="${opp.stage}" (id=${listId}) lead id=${opp.id}`);
-                    }
-                });
+                            list.appendChild(card);
+                        } else {
+                            // Log se não encontrou a lista (ajuda a debugar stages inconsistentes)
+                            console.warn(`[renderLeads] lista não encontrada para stage="${opp.stage}" (id=${listId}) lead id=${opp.id}`);
+                        }
+                    });
 
-                updateCounters();
-                console.debug('[CRM-SCRIPT] renderLeads finished');
-            } catch (err) {
-                console.error('[renderLeads] erro ao renderizar leads:', err);
-                // fallback visual mínimo
-                const board = document.getElementById('crm-board');
-                if (board) {
-                    board.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar leads. Veja console para detalhes.</div>';
+                    updateCounters();
+                    updateColumnSelectButtons();
+                    console.debug('[CRM-SCRIPT] renderLeads finished');
+                } catch (err) {
+                    console.error('[renderLeads] erro ao renderizar leads:', err);
+                    // fallback visual mínimo
+                    const board = document.getElementById('crm-board');
+                    if (board) {
+                        board.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar leads. Veja console para detalhes.</div>';
+                    }
                 }
             }
-        }
 
-        function renderChannelsChart(channelsData) {
-            console.debug('[CRM-SCRIPT] renderChannelsChart start, channelsData:', channelsData);
-            const container = document.getElementById('channels-chart-container');
-            if (!container) {
-                console.error('[renderChannelsChart] elemento #channels-chart-container não encontrado');
-                return;
-            }
+            function renderChannelsChart(channelsData) {
+                console.debug('[CRM-SCRIPT] renderChannelsChart start, channelsData:', channelsData);
+                const container = document.getElementById('channels-chart-container');
+                if (!container) {
+                    console.error('[renderChannelsChart] elemento #channels-chart-container não encontrado');
+                    return;
+                }
 
-            try {
-                const sorted = Object.entries(channelsData || {})
-                    .sort(([, a], [, b]) => b - a);
+                try {
+                    const sorted = Object.entries(channelsData || {})
+                        .sort(([, a], [, b]) => b - a);
 
-                const maxCount = Math.max(...Object.values(channelsData || {}), 1);
+                    const maxCount = Math.max(...Object.values(channelsData || {}), 1);
 
-                let cardsHtml = '<div class="channel-grid">';
-                sorted.forEach(([channel, count]) => {
-                    const percentage = Math.round((count / maxCount) * 100);
-                    let iconClass = 'ph-share-network';
-                    let brandClass = 'bg-generic';
-                    let iconBoxClass = 'icon-generic';
+                    let cardsHtml = '<div class="channel-grid">';
+                    sorted.forEach(([channel, count]) => {
+                        const percentage = Math.round((count / maxCount) * 100);
+                        let iconClass = 'ph-share-network';
+                        let brandClass = 'bg-generic';
+                        let iconBoxClass = 'icon-generic';
 
-                    const chanLower = channel.toLowerCase();
-                    if (chanLower.includes('instagram')) {
-                        iconClass = 'ph-instagram-logo';
-                        brandClass = 'bg-instagram';
-                        iconBoxClass = 'icon-instagram';
-                    } else if (chanLower.includes('facebook')) {
-                        iconClass = 'ph-facebook-logo';
-                        brandClass = 'bg-facebook';
-                        iconBoxClass = 'icon-facebook';
-                    } else if (chanLower.includes('linkedin')) {
-                        iconClass = 'ph-linkedin-logo';
-                        brandClass = 'bg-linkedin';
-                        iconBoxClass = 'icon-linkedin';
-                    } else if (chanLower.includes('maps') || chanLower.includes('google')) {
-                        iconClass = 'ph-google-logo';
-                        brandClass = 'bg-google';
-                        iconBoxClass = 'icon-google';
-                    }
+                        const chanLower = channel.toLowerCase();
+                        if (chanLower.includes('instagram')) {
+                            iconClass = 'ph-instagram-logo';
+                            brandClass = 'bg-instagram';
+                            iconBoxClass = 'icon-instagram';
+                        } else if (chanLower.includes('facebook')) {
+                            iconClass = 'ph-facebook-logo';
+                            brandClass = 'bg-facebook';
+                            iconBoxClass = 'icon-facebook';
+                        } else if (chanLower.includes('linkedin')) {
+                            iconClass = 'ph-linkedin-logo';
+                            brandClass = 'bg-linkedin';
+                            iconBoxClass = 'icon-linkedin';
+                        } else if (chanLower.includes('maps') || chanLower.includes('google')) {
+                            iconClass = 'ph-google-logo';
+                            brandClass = 'bg-google';
+                            iconBoxClass = 'icon-google';
+                        }
 
-                    cardsHtml += `
+                        cardsHtml += `
                         <div class="channel-card-item">
                             <div class="channel-info">
                                 <div class="channel-label">
@@ -2411,64 +2813,65 @@
                             </div>
                         </div>
                     `;
-                });
-                cardsHtml += '</div>';
-
-                container.innerHTML = cardsHtml;
-            } catch (err) {
-                console.error('[renderChannelsChart] erro:', err);
-                container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar canais. Veja console.</div>';
-            }
-            console.debug('[CRM-SCRIPT] renderChannelsChart end');
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.debug('[CRM-SCRIPT] DOMContentLoaded -> inicializando board e dados');
-
-            // Pipeline selector listeners
-            document.querySelectorAll('.pipeline-btn').forEach(btn => {
-                btn.onclick = async () => {
-                    const newPipeline = btn.getAttribute('data-pipeline');
-                    if (newPipeline === currentPipeline) return;
-
-                    // UI Update
-                    document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-
-                    // Data Update
-                    currentPipeline = newPipeline;
-                    await loadData();
-                };
-            });
-
-            // Search and Filter listeners
-            document.getElementById('crmSearch')?.addEventListener('input', () => {
-                renderLeads(window.allLeads || []);
-            });
-
-            document.getElementById('responsibleFilter')?.addEventListener('change', () => {
-                renderLeads(window.allLeads || []);
-            });
-
-            try {
-                renderBoard();
-                if (window.CRM_LOGIC) {
-                    const initialized = await CRM_LOGIC.initCrmSupabase?.();
-                    console.debug('[CRM-SCRIPT] CRM_LOGIC.initCrmSupabase ->', initialized);
-                    await loadData();
-                    CRM_LOGIC.subscribeToCrmChanges?.(() => {
-                        console.debug('[CRM-SCRIPT] realtime change received -> loadData');
-                        loadData();
                     });
-                } else {
-                    console.warn('[CRM-SCRIPT] window.CRM_LOGIC não disponível no DOMContentLoaded');
+                    cardsHtml += '</div>';
+
+                    container.innerHTML = cardsHtml;
+                } catch (err) {
+                    console.error('[renderChannelsChart] erro:', err);
+                    container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar canais. Veja console.</div>';
                 }
-            } catch (e) {
-                console.error('[CRM-SCRIPT] erro na inicialização:', e);
+                console.debug('[CRM-SCRIPT] renderChannelsChart end');
             }
-        });
-    </script>
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', async () => {
+                console.debug('[CRM-SCRIPT] DOMContentLoaded -> inicializando board e dados');
+
+                // Pipeline selector listeners
+                document.querySelectorAll('.pipeline-btn').forEach(btn => {
+                    btn.onclick = async () => {
+                        const newPipeline = btn.getAttribute('data-pipeline');
+                        if (newPipeline === currentPipeline) return;
+
+                        // UI Update
+                        document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+
+                        // Data Update
+                        currentPipeline = newPipeline;
+                        await loadData();
+                    };
+                });
+
+                // Search and Filter listeners
+                document.getElementById('crmSearch')?.addEventListener('input', () => {
+                    renderLeads(window.allLeads || []);
+                });
+
+                document.getElementById('responsibleFilter')?.addEventListener('change', () => {
+                    renderLeads(window.allLeads || []);
+                });
+
+                try {
+                    renderBoard();
+                    initBulkControls();
+                    if (window.CRM_LOGIC) {
+                        const initialized = await CRM_LOGIC.initCrmSupabase?.();
+                        console.debug('[CRM-SCRIPT] CRM_LOGIC.initCrmSupabase ->', initialized);
+                        await loadData();
+                        CRM_LOGIC.subscribeToCrmChanges?.(() => {
+                            console.debug('[CRM-SCRIPT] realtime change received -> loadData');
+                            loadData();
+                        });
+                    } else {
+                        console.warn('[CRM-SCRIPT] window.CRM_LOGIC não disponível no DOMContentLoaded');
+                    }
+                } catch (e) {
+                    console.error('[CRM-SCRIPT] erro na inicialização:', e);
+                }
+            });
+        </script>
 </body>
 
 </html>
