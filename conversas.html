@@ -29,20 +29,37 @@
        AQUI está o ajuste principal
        ========================= */
 
+        .app-container {
+            padding: 10px !important;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-header {
+            margin-bottom: 10px !important;
+            padding: 5px 0 !important;
+        }
+
+        .page-title {
+            font-size: 18px !important;
+        }
+
         .conversations-container {
-            /* Antes: height: calc(100vh - 160px); */
-            height: calc(100vh - 120px);
-            /* diminua esse número para ficar maior */
+            flex: 1;
+            height: auto !important;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
             overflow: hidden;
             position: relative;
-
             display: flex;
             flex-direction: column;
             min-height: 0;
-            /* importante em alguns layouts flex */
+        }
+
+        .main-footer {
+            display: none !important;
         }
 
         .chat-header {
