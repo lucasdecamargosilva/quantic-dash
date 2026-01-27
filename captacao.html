@@ -1018,6 +1018,7 @@
                             <select id="instaStatusFilter" class="filter-select" onclick="event.stopPropagation();"
                                 onchange="fetchPostsHistory();">
                                 <option value="todos">Todos os Leads</option>
+                                <option value="recentes">Últimos Leads Capturados</option>
                                 <option value="qualificado">Qualificados</option>
                                 <option value="desqualificado">Desqualificados</option>
                             </select>
@@ -1245,17 +1246,25 @@
                     .order('created_at', { ascending: false });
 
                 if (filterValue === 'recentes') {
-                    // Busca o timestamp do último insert para pegar o lote completo
-                    const { data: lastTimestamp } = await supabaseClient
+                    // Busca o job_id do último lead inserido para pegar o lote completo
+                    const { data: lastLead } = await supabaseClient
                         .from('leads_google_maps')
-                        .select('created_at')
+                        .select('job_id')
                         .eq('user_id', leadLimits.currentUser.id)
+                        .not('job_id', 'is', null)
                         .order('created_at', { ascending: false })
                         .limit(1);
 
-                    if (lastTimestamp && lastTimestamp.length > 0) {
-                        query = query.eq('created_at', lastTimestamp[0].created_at);
+                    if (lastLead && lastLead.length > 0) {
+                        // Se encontrou o Job ID, traz TODOS desse job (sem limite)
+                        query = query.eq('job_id', lastLead[0].job_id);
+                    } else {
+                        // Fallback: se não tiver Job ID, traz os últimos 200
+                        query = query.limit(200);
                     }
+                } else {
+                    // Para "Todos os Leads", traz os últimos 500 por performance
+                    query = query.limit(500);
                 }
 
                 const { data } = await query;
@@ -1280,19 +1289,37 @@
             const filterValue = document.getElementById('instaStatusFilter').value;
 
             try {
-                // Busca das duas tabelas em paralelo
-                const [reqQual, reqFrio] = await Promise.all([
-                    supabaseClient
-                        .from('leads_qualificados')
-                        .select('*')
-                        .eq('user_id', leadLimits.currentUser.id)
-                        .order('created_at', { ascending: false }),
-                    supabaseClient
-                        .from('leads_frios')
-                        .select('*')
+                let lastJobId = null;
+                if (filterValue === 'recentes') {
+                    const { data: lastJob } = await supabaseClient
+                        .from('capturas_jobs')
+                        .select('job_id')
                         .eq('user_id', leadLimits.currentUser.id)
                         .order('created_at', { ascending: false })
-                ]);
+                        .limit(1);
+                    if (lastJob && lastJob.length > 0) lastJobId = lastJob[0].job_id;
+                }
+
+                // Busca das duas tabelas em paralelo
+                let qQual = supabaseClient
+                    .from('leads_qualificados')
+                    .select('*')
+                    .eq('user_id', leadLimits.currentUser.id);
+
+                let qFrio = supabaseClient
+                    .from('leads_frios')
+                    .select('*')
+                    .eq('user_id', leadLimits.currentUser.id);
+
+                if (lastJobId) {
+                    qQual = qQual.eq('job_id', lastJobId);
+                    qFrio = qFrio.eq('job_id', lastJobId);
+                } else {
+                    qQual = qQual.order('created_at', { ascending: false }).limit(200);
+                    qFrio = qFrio.order('created_at', { ascending: false }).limit(200);
+                }
+
+                const [reqQual, reqFrio] = await Promise.all([qQual, qFrio]);
 
                 let leads = [
                     ...(reqQual.data || []).map(l => ({ ...l, status: 'Qualificado' })),
@@ -1366,7 +1393,7 @@
             document.getElementById('modalNotes').textContent = fv(lead.observacoes);
 
             // Rola a página principal para uma posição ideal para ver o modal completo
-            window.scrollTo({ top: 300, behavior: 'smooth' });
+            window.scrollTo({ top: 350, behavior: 'smooth' });
 
             // Pequeno delay para garantir que o scroll termine antes de abrir o modal
             setTimeout(() => {
@@ -1380,11 +1407,15 @@
             document.body.style.overflow = 'auto';
         }
 
-        // Fechar modal ao clicar fora
+        // Fechar modal ao clicar fora ou apertar ESC
         window.onclick = (event) => {
             const modal = document.getElementById('leadModal');
             if (event.target == modal) closeLeadDetails();
         };
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeLeadDetails();
+        });
 
         // --- ENVIO PARA CRM ---
         document.getElementById('sendToCRM').onclick = async (event) => {
