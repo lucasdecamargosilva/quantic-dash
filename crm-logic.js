@@ -51,7 +51,8 @@ async function fetchCrmData(pipelineName = 'starter') {
                 telefone,
                 email,
                 site,
-                tags
+                tags,
+                usuario_insta
             `)
             .eq('pipeline', fullPipelineName)
             .eq('user_id', user.id);
@@ -82,7 +83,8 @@ async function fetchCrmData(pipelineName = 'starter') {
                     return String(opp.tags).split(',').map(t => t.trim()).filter(t => t);
                 }
             })(),
-            site: opp.site || '---'
+            site: opp.site || '---',
+            usuario_insta: opp.usuario_insta || null
         }));
     } catch (err) {
         console.error('Fetch CRM data catch error:', err);
