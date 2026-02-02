@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quantic Dashboard</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="theme-handler.js"></script>
+
+    <!-- ✅ NOVO: acabamento preto + ouro 18k (só para os novos cards/gráficos) -->
+    <style>
+        :root {
+            --accent-white: #ffffff;
+            --accent-gray: #a3a3a3;
+            --panel-black: #000000;
+            --panel-black-2: #0a0a0a;
+            --grid-gray: rgba(255, 255, 255, 0.1);
+            --text-white-opaque: rgba(255, 255, 255, 0.9);
+        }
+
+        .card.card-gold {
+            background: linear-gradient(180deg, var(--panel-black-2), var(--panel-black));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .section-header .gold-pill {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--accent-white);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .chart-wrap {
+            height: 320px;
+        }
+
+        .card.card-gold .label,
+        .card.card-gold .subtext {
+            color: var(--accent-gray);
+        }
+
+        .card.card-gold .value {
+            color: var(--accent-white);
+        }
+    </style>
+
+
+</head>
+
+<body class="page-dashboard">
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Logo" class="sidebar-logo" />
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link active">
+                    <i class="ph-fill ph-shopping-cart"></i>
+                    <span class="link-text">Pedidos</span>
+                </a>
+                <a href="ranking-produtos.html" class="nav-link">
+                    <i class="ph-fill ph-trophy"></i>
+                    <span class="link-text">Ranking de Produtos</span>
+                </a>
+                <a href="carrinhos-abandonados.html" class="nav-link">
+                    <i class="ph-fill ph-shopping-cart-simple"></i>
+                    <span class="link-text">Carrinhos Abandonados</span>
+                </a>
+                <a href="calculadora-custos.html" class="nav-link">
+                    <i class="ph-fill ph-calculator"></i>
+                    <span class="link-text">Calculadora Custos</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <!-- Theme toggle removed as per user request -->
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Painel de Pedidos</h1>
+                    </div>
+
+                    <div class="header-center">
+                        <div class="filter-group">
+                            <button class="period-btn active" data-period="7">7 Dias</button>
+                            <button class="period-btn" data-period="30">30 Dias</button>
+                            <button class="period-btn" data-period="all">Tudo</button>
+                            <button class="period-btn" data-period="custom">Personalizado</button>
+                        </div>
+                        <div id="custom-date-picker"
+                            style="display: none; align-items: center; gap: 8px; margin-left: 16px;">
+                            <input type="date" id="date-start" class="date-input">
+                            <span style="color: var(--accent-gray)">até</span>
+                            <input type="date" id="date-end" class="date-input">
+                            <button id="apply-custom-date" class="apply-btn">Aplicar</button>
+                        </div>
+                    </div>
+                </header>
+
+                <main class="dashboard-grid">
+                    <!-- KPI Dashboard Row -->
+                    <!-- Featured Financial KPIs Row -->
+                    <section class="kpi-grid"
+                        style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); margin-bottom: var(--spacing-lg);">
+                        <div class="card kpi-card"
+                            style="border-left: 4px solid var(--accent-green); background: linear-gradient(145deg, rgba(34, 197, 94, 0.05), transparent);">
+                            <div class="card-content">
+                                <span class="label" style="color: var(--accent-green);">Faturamento Total</span>
+                                <h3 id="top-revenue-value" class="value"
+                                    style="font-size: 42px; color: var(--text-white); text-shadow: 0 0 20px rgba(34, 197, 94, 0.2);">
+                                    <i class="ph-fill ph-currency-circle-dollar"
+                                        style="color: var(--accent-green);"></i>
+                                    <span>R$ 0,00</span>
+                                </h3>
+                                <span class="subtext">Faturamento bruto confirmado</span>
+                            </div>
+                        </div>
+
+                        <div class="card kpi-card"
+                            style="border-left: 4px solid var(--accent-yellow); background: linear-gradient(145deg, rgba(234, 179, 8, 0.05), transparent);">
+                            <div class="card-content">
+                                <span class="label" style="color: var(--accent-yellow);">Pagamentos Pendentes</span>
+                                <h3 id="top-pending-value" class="value"
+                                    style="font-size: 42px; color: var(--text-white); text-shadow: 0 0 20px rgba(234, 179, 8, 0.2);">
+                                    <i class="ph-fill ph-hourglass" style="color: var(--accent-yellow);"></i>
+                                    <span>R$ 0,00</span>
+                                </h3>
+                                <div id="top-pending-count" class="subtext"
+                                    style="font-weight: 600; color: var(--text-gray);"><i
+                                        class="ph-bold ph-receipt"></i> 0 pedidos aguardando</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Operational KPI Row (Compact) -->
+                    <section class="kpi-grid"
+                        style="grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: var(--spacing-lg);">
+                        <div class="card kpi-card" style="padding: 15px;">
+                            <div class="card-content">
+                                <span class="label" style="font-size: 12px;">Total Pedidos</span>
+                                <h3 id="kpi-total-orders" class="value text-info" style="font-size: 24px; gap: 8px;">
+                                    <i class="ph-fill ph-receipt" style="font-size: 20px;"></i>
+                                    <span>---</span>
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div class="card kpi-card" style="padding: 15px;">
+                            <div class="card-content">
+                                <span class="label" style="font-size: 12px;">A enviar</span>
+                                <h3 id="kpi-to-send-orders" class="value text-warning"
+                                    style="font-size: 24px; gap: 8px;">
+                                    <i class="ph-fill ph-package" style="font-size: 20px;"></i>
+                                    <span>---</span>
+                                </h3>
+                                <span id="kpi-to-send-percent" class="subtext" style="font-size: 11px;">---%</span>
+                            </div>
+                        </div>
+
+                        <div class="card kpi-card" style="padding: 15px;">
+                            <div class="card-content">
+                                <span class="label" style="font-size: 12px;">Enviados</span>
+                                <h3 id="kpi-shipped-orders" class="value text-primary"
+                                    style="font-size: 24px; gap: 8px;">
+                                    <i class="ph-fill ph-truck" style="font-size: 20px;"></i>
+                                    <span>---</span>
+                                </h3>
+                                <span id="kpi-shipped-percent" class="subtext" style="font-size: 11px;">---%</span>
+                            </div>
+                        </div>
+
+                        <div class="card kpi-card" style="padding: 15px;">
+                            <div class="card-content">
+                                <span class="label" style="font-size: 12px;">Entregues</span>
+                                <h3 id="kpi-delivered-orders" class="value text-success"
+                                    style="font-size: 24px; gap: 8px;">
+                                    <i class="ph-fill ph-house-line" style="font-size: 20px;"></i>
+                                    <span>---</span>
+                                </h3>
+                                <span id="kpi-delivered-percent" class="subtext" style="font-size: 11px;">---%</span>
+                            </div>
+                        </div>
+
+                        <div class="card kpi-card" style="padding: 15px;">
+                            <div class="card-content">
+                                <span class="label" style="font-size: 12px;">Cancelados</span>
+                                <h3 id="kpi-cancelled-orders" class="value text-danger"
+                                    style="font-size: 24px; gap: 8px;">
+                                    <i class="ph-fill ph-x-circle" style="font-size: 20px;"></i>
+                                    <span>---</span>
+                                </h3>
+                                <div id="kpi-cancelled-percent" class="subtext" style="font-size: 11px;">---%</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- New Revenue Evolution Section -->
+                    <section class="dashboard-grid" style="margin-bottom: var(--spacing-lg);">
+                        <div class="card chart-card" style="min-height: 400px;">
+                            <div class="card-header">
+                                <h3><i class="ph-fill ph-chart-line"></i> Evolução de Faturamento</h3>
+
+                            </div>
+                            <div class="chart-container" style="min-height: 300px;">
+                                <canvas id="chart-revenue-evolution"></canvas>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Charts Row 1 -->
+                    <section class="charts-row">
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3><i class="ph-fill ph-chart-pie"></i> Status do Pedido</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-order-status"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3><i class="ph-fill ph-credit-card"></i> Status de Pagamento</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-payment-status"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3><i class="ph-fill ph-package"></i> Status de Entrega</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-shipping-status"></canvas>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Charts Row 2 -->
+                    <section class="charts-row-large">
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3><i class="ph-fill ph-wallet"></i> Fontes de Pagamento</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-gateways"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3><i class="ph-fill ph-map-pin"></i> Vendas por Região (Cidade)</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-regions"></canvas>
+                            </div>
+                        </div>
+                    </section>
+                </main>
+
+                <footer class="main-footer"
+                    style="margin-top: 80px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.9;">
+                        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Powered by</span>
+                        <img src="logo quantic na melhor qualidade.png" alt="Quantic Logo"
+                            style="height: 18px; object-fit: contain;">
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let supabaseClient;
+        let charts = {};
+        let currentPeriod = '7';
+
+        function initSupabase() {
+            if (window.supabase && window.SUPABASE_CONFIG) {
+                supabaseClient = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.URL,
+                    window.SUPABASE_CONFIG.KEY
+                );
+                return true;
+            }
+            return false;
+        }
+
+        async function fetchDashboardData(period = '7', customStart = null, customEnd = null) {
+            if (!supabaseClient) return;
+            currentPeriod = period;
+
+            let startDate, endDate;
+            const now = new Date();
+            endDate = now.toISOString();
+
+            if (period === 'custom' && customStart && customEnd) {
+                startDate = new Date(customStart).toISOString();
+                endDate = new Date(customEnd + 'T23:59:59').toISOString();
+            } else if (period === 'all') {
+                startDate = '2000-01-01T00:00:00Z';
+                endDate = now.toISOString();
+            } else {
+                const days = parseInt(period);
+                const start = new Date();
+                start.setDate(now.getDate() - days);
+                startDate = start.toISOString();
+            }
+
+            try {
+                let allOrders = [];
+                let from = 0;
+                let to = 999;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const { data, error } = await supabaseClient
+                        .from('cacife_orders')
+                        .select('*')
+                        .gte('created_at', startDate)
+                        .lte('created_at', endDate)
+                        .range(from, to);
+
+                    if (error) throw error;
+                    allOrders = [...allOrders, ...data];
+
+                    if (data.length < 1000) {
+                        hasMore = false;
+                    } else {
+                        from += 1000;
+                        to += 1000;
+                    }
+                }
+
+                updateDashboard(allOrders);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            }
+        }
+
+        function updateDashboard(orders) {
+            const total = orders.length;
+
+            // KPIs
+            const paid = orders.filter(o => {
+                const s = o.payment_status?.toLowerCase();
+                return s === 'paid' || s === 'pago' || s === 'approved' || s === 'aprovado';
+            }).length;
+
+            const revenue = orders.reduce((acc, curr) => {
+                const s = curr.payment_status?.toLowerCase();
+                if (s === 'paid' || s === 'pago' || s === 'approved' || s === 'aprovado' || s === 'confirmado') {
+                    return acc + (parseFloat(curr.total) || 0);
+                }
+                return acc;
+            }, 0);
+
+            const toSend = orders.filter(o => {
+                const s = o.shipping_status?.toLowerCase();
+                return s === 'não está embalado';
+            }).length;
+
+            const shipped = orders.filter(o => {
+                const s = o.shipping_status?.toLowerCase();
+                return s === 'shipped' || s === 'enviado';
+            }).length;
+
+            const delivered = orders.filter(o => {
+                const s = o.shipping_status?.toLowerCase();
+                return s === 'delivered' || s === 'entregue';
+            }).length;
+
+            const cancelled = orders.filter(o => {
+                const s = o.status?.toLowerCase();
+                return s === 'cancelled' || s === 'cancelado';
+            }).length;
+
+            const pendingOrders = orders.filter(o => {
+                const s = o.payment_status?.toLowerCase();
+                return s === 'pending' || s === 'pendente';
+            });
+            const pendingCount = pendingOrders.length;
+            const pendingSum = pendingOrders.reduce((acc, curr) => acc + (parseFloat(curr.total) || 0), 0);
+
+            document.querySelector('#kpi-total-orders span').textContent = total;
+            document.querySelector('#top-revenue-value span').textContent = revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.querySelector('#top-pending-value span').textContent = pendingSum.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.querySelector('#top-pending-count').innerHTML = `<i class="ph-bold ph-receipt"></i> ${pendingCount} pedidos aguardando`;
+
+            document.querySelector('#kpi-shipped-orders span').textContent = shipped;
+            document.getElementById('kpi-shipped-percent').textContent = total > 0 ? ((shipped / total) * 100).toFixed(1) + '% do total' : '0% do total';
+
+            document.querySelector('#kpi-to-send-orders span').textContent = toSend;
+            document.getElementById('kpi-to-send-percent').textContent = total > 0 ? ((toSend / total) * 100).toFixed(1) + '% do total' : '0% do total';
+
+            document.querySelector('#kpi-delivered-orders span').textContent = delivered;
+            document.getElementById('kpi-delivered-percent').textContent = total > 0 ? ((delivered / total) * 100).toFixed(1) + '% do total' : '0% do total';
+
+            document.querySelector('#kpi-cancelled-orders span').textContent = cancelled;
+            document.getElementById('kpi-cancelled-percent').textContent = total > 0 ? ((cancelled / total) * 100).toFixed(1) + '% do total' : '0% do total';
+
+
+
+            // Charts (Now dynamic based on user column requests)
+            renderRevenueChart(orders);
+            renderStatusChart(orders);
+            renderPaymentChart(orders);
+            renderShippingChart(orders);
+            renderGatewayChart(orders);
+            renderRegionChart(orders);
+        }
+
+        function renderRevenueChart(orders) {
+            const ctx = document.getElementById('chart-revenue-evolution').getContext('2d');
+            if (charts.revenue) charts.revenue.destroy();
+
+            const dateMap = {};
+
+            orders.forEach(o => {
+                if (!o.created_at) return;
+                const dateObj = new Date(o.created_at);
+                if (isNaN(dateObj.getTime())) return;
+
+                let dateKey;
+                if (currentPeriod === 'all') {
+                    // Group by Month: YYYY-MM
+                    const m = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                    const y = dateObj.getFullYear();
+                    dateKey = `${y}-${m}`;
+                } else {
+                    // Group by Day: YYYY-MM-DD
+                    const d = dateObj.getDate().toString().padStart(2, '0');
+                    const m = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                    const y = dateObj.getFullYear();
+                    dateKey = `${y}-${m}-${d}`;
+                }
+
+                dateMap[dateKey] = (dateMap[dateKey] || 0) + (parseFloat(o.total) || 0);
+            });
+
+            const sortedKeys = Object.keys(dateMap).sort();
+            const labels = sortedKeys.map(key => {
+                const p = key.split('-');
+                if (p.length === 2) return `${p[1]}/${p[0]}`; // MM/YYYY
+                return `${p[2]}/${p[1]}`; // DD/MM
+            });
+            const data = sortedKeys.map(key => dateMap[key]);
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(155, 77, 255, 0.4)');
+            gradient.addColorStop(1, 'rgba(155, 77, 255, 0)');
+
+            charts.revenue = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Faturamento (R$)',
+                        data: data,
+                        borderColor: '#9b4dff',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#9b4dff',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    return 'Faturamento: ' + context.parsed.y.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#fff',
+                                callback: (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        x: {
+                            ticks: { color: '#fff' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function getChartColors() {
+            return {
+                primary: '#ffffff',
+                secondary: '#a3a3a3',
+                success: '#10b981',
+                warning: '#f59e0b',
+                danger: '#ef4444',
+                info: '#3b82f6',
+                grid: 'rgba(255, 255, 255, 0.1)',
+                text: '#ffffff'
+            }
+        }
+
+        function baseOptions() {
+            const colors = getChartColors();
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: colors.text, usePointStyle: true, padding: 20 }
+                    }
+                }
+            }
+        }
+
+        function renderStatusChart(orders) {
+            const ctx = document.getElementById('chart-order-status').getContext('2d');
+            if (charts.status) charts.status.destroy();
+
+            const map = {};
+            orders.forEach(o => {
+                let s = o.status?.toLowerCase();
+                if (!s || s === 'not-provided') s = 'Desconhecido';
+                else if (s === 'cancelled' || s === 'cancelado') s = 'Cancelado';
+                else if (s === 'pending' || s === 'pendente' || s === 'aberto') s = 'Aberto';
+                else if (s === 'processing' || s === 'processando') s = 'Processando';
+                else if (s === 'completed' || s === 'concluido' || s === 'concluído') s = 'Concluído';
+                else s = s.charAt(0).toUpperCase() + s.slice(1);
+
+                map[s] = (map[s] || 0) + 1;
+            });
+
+            const labels = Object.keys(map);
+            const data = Object.values(map);
+
+            // Map colors based on label name
+            const backgroundColor = labels.map(label => {
+                const l = label.toLowerCase();
+                if (l === 'aberto' || l === 'concluído' || l === 'concluido') return '#22c55e'; // Success Green
+                if (l === 'cancelado') return '#ef4444'; // Danger Red
+                if (l === 'pendente') return '#eab308'; // Warning Yellow
+                return '#9b4dff'; // Default Purple
+            });
+
+            charts.status = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderColor: 'transparent',
+                        hoverOffset: 4
+                    }]
+                },
+                options: baseOptions()
+            });
+        }
+
+        function renderPaymentChart(orders) {
+            const ctx = document.getElementById('chart-payment-status').getContext('2d');
+            if (charts.payment) charts.payment.destroy();
+
+            const map = {};
+            orders.forEach(o => {
+                let s = o.payment_status?.toLowerCase();
+                if (!s || s === 'not-provided') s = 'Desconhecido';
+                else if (s.includes('parcialmente estornado')) return; // Ignore this status
+                else if (s === 'paid' || s === 'pago' || s === 'approved' || s === 'aprovado' || s === 'confirmado') s = 'Confirmado';
+                else if (s === 'pending' || s === 'pendente') s = 'Pendente';
+                else if (s === 'refunded' || s === 'reembolsado' || s === 'estornado') s = 'Estornado';
+                else if (s === 'failed' || s === 'falhou' || s === 'recusado' || s === 'rejected') s = 'Recusado';
+                else s = s.charAt(0).toUpperCase() + s.slice(1);
+
+                map[s] = (map[s] || 0) + 1;
+            });
+
+            const labels = Object.keys(map);
+            const data = Object.values(map);
+            const backgroundColor = labels.map(label => {
+                const l = label.toLowerCase();
+                if (l === 'confirmado') return '#22c55e'; // Green
+                if (l === 'pendente') return '#3b82f6'; // Blue
+                if (l === 'recusado') return '#ef4444'; // Red
+                if (l === 'estornado') return '#ffffff'; // White
+                return '#9b4dff'; // Default Purple
+            });
+
+            charts.payment = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderColor: 'transparent',
+                        hoverOffset: 4
+                    }]
+                },
+                options: baseOptions()
+            });
+        }
+
+        function renderShippingChart(orders) {
+            const ctx = document.getElementById('chart-shipping-status').getContext('2d');
+            if (charts.shipping) charts.shipping.destroy();
+
+            const map = {};
+            orders.forEach(o => {
+                let s = o.shipping_status?.toLowerCase();
+                if (!s || s === 'not-provided') s = 'Desconhecido';
+                else if (s === 'não está embalado') s = 'Não embalado';
+                else if (s === 'shipped' || s === 'enviado') s = 'Enviado';
+                else if (s === 'delivered' || s === 'entregue') s = 'Entregue';
+                else s = s.charAt(0).toUpperCase() + s.slice(1);
+
+                map[s] = (map[s] || 0) + 1;
+            });
+
+            const labels = Object.keys(map);
+            const data = Object.values(map);
+            const backgroundColor = labels.map(label => {
+                const l = label.toLowerCase();
+                if (l === 'não embalado') return '#ef4444'; // Red
+                if (l === 'enviado') return '#3b82f6'; // Blue
+                if (l === 'entregue') return '#22c55e'; // Green
+                return '#9b4dff'; // Default Purple
+            });
+
+            charts.shipping = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderColor: 'transparent',
+                        hoverOffset: 4
+                    }]
+                },
+                options: baseOptions()
+            });
+        }
+
+        function renderGatewayChart(orders) {
+            const gateMap = {};
+            orders.forEach(o => {
+                let name = o.payment_method;
+                if (!name || name === 'not-provided') name = 'Desconhecida';
+                gateMap[name] = (gateMap[name] || 0) + 1;
+            });
+
+            const labels = Object.keys(gateMap);
+            const data = Object.values(gateMap);
+
+            const ctx = document.getElementById('chart-gateways').getContext('2d');
+            if (charts.gateways) charts.gateways.destroy();
+
+            const chartColors = [
+                'rgba(155, 77, 255, 0.8)', // Primary Purple
+                'rgba(192, 132, 252, 0.8)', // Light Purple
+                'rgba(124, 58, 237, 0.8)',  // Deep Purple
+                'rgba(167, 139, 250, 0.8)', // Muted Purple
+                'rgba(76, 29, 149, 0.8)'    // Dark Purple
+            ];
+
+            charts.gateways = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pedidos',
+                        data: data,
+                        backgroundColor: chartColors,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    ...baseOptions(),
+                    scales: {
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#fff' } },
+                        x: { grid: { display: false }, ticks: { color: '#fff' } }
+                    }
+                }
+            });
+        }
+
+        function renderRegionChart(orders) {
+            const regionMap = {};
+            orders.forEach(o => {
+                let city = o.shipping_city || 'Desconhecido';
+                regionMap[city] = (regionMap[city] || 0) + 1;
+            });
+
+            const sorted = Object.entries(regionMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const labels = sorted.map(s => s[0]);
+            const data = sorted.map(s => s[1]);
+
+            const ctx = document.getElementById('chart-regions').getContext('2d');
+            if (charts.regions) charts.regions.destroy();
+
+            const chartColors = [
+                'rgba(155, 77, 255, 0.8)',
+                'rgba(167, 139, 250, 0.8)',
+                'rgba(124, 58, 237, 0.8)',
+                'rgba(192, 132, 252, 0.8)',
+                'rgba(76, 29, 149, 0.8)'
+            ];
+
+            charts.regions = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pedidos',
+                        data: data,
+                        backgroundColor: chartColors,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    ...baseOptions(),
+                    indexAxis: 'y',
+                    scales: {
+                        y: { grid: { display: false }, ticks: { color: '#fff' } },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#fff' } }
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (initSupabase()) {
+                fetchDashboardData('7');
+
+                // Real-time updates
+                supabaseClient
+                    .channel('cacife_orders_changes')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'cacife_orders' }, () => {
+                        const activeBtn = document.querySelector('.period-btn.active');
+                        if (activeBtn.dataset.period !== 'custom') {
+                            fetchDashboardData(activeBtn.dataset.period);
+                        }
+                    })
+                    .subscribe();
+            }
+
+            // Period buttons logic
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const period = this.dataset.period;
+                    const customPicker = document.getElementById('custom-date-picker');
+
+                    if (period === 'custom') {
+                        customPicker.style.display = 'flex';
+                    } else {
+                        customPicker.style.display = 'none';
+                        fetchDashboardData(period);
+                    }
+                });
+            });
+
+            // Apply custom date
+            document.getElementById('apply-custom-date').addEventListener('click', () => {
+                const start = document.getElementById('date-start').value;
+                const end = document.getElementById('date-end').value;
+                if (start && end) {
+                    fetchDashboardData('custom', start, end);
+                } else {
+                    alert('Por favor, selecione as duas datas.');
+                }
+            });
+
+            // Toggle sidebar (existing functionality)
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('toggleSidebar');
+            if (toggleBtn) {
+                toggleBtn.onclick = () => sidebar.classList.toggle('collapsed');
+            }
+        });
+    </script>
+</body>
+
+</html>

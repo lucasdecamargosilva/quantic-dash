@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic Captação</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="theme-handler.js"></script>
+    <style>
+        .capture-grid {
+            display: block;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .config-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-gray);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-field {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .channel-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .channel-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-gray);
+        }
+
+        .channel-btn i {
+            font-size: 24px;
+        }
+
+        .channel-btn.active {
+            border-color: var(--primary-purple);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            box-shadow: 0 0 15px var(--primary-purple-glow);
+        }
+
+        .channel-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-capture {
+            width: 100%;
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 16px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn-capture:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--primary-purple-glow);
+        }
+
+        .leads-table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .leads-table-card.collapsed {
+            height: auto;
+        }
+
+        .leads-table-card.expanded {
+            height: 600px;
+        }
+
+        .table-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .table-header:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .table-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .table-header-left i.toggle-icon {
+            font-size: 20px;
+            color: var(--primary-purple);
+            transition: transform 0.3s;
+        }
+
+        .table-header-left i.toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .table-content {
+            flex: 1;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease;
+        }
+
+        .table-content.visible {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .leads-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leads-table th {
+            text-align: left;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: rgba(255, 255, 255, 0.02);
+            font-size: 13px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .leads-table td {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 14px;
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .profile-link {
+            color: var(--primary-purple);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .profile-link:hover {
+            text-decoration: underline;
+        }
+
+        .status-pill {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .status-pill.new {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--secondary-green);
+        }
+
+        .status-pill.qualificado {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary-purple);
+        }
+
+        .status-pill.desqualificado {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* Estilos para linhas expansíveis */
+        .clickable-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .clickable-row:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .detail-row {
+            display: none;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .detail-row.visible {
+            display: table-row;
+        }
+
+        .detail-content {
+            padding: var(--spacing-lg);
+            border-left: 3px solid var(--primary-purple);
+        }
+
+        .detail-section {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .signals-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .signals-list li {
+            padding: 4px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .signals-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--primary-purple);
+            font-weight: bold;
+        }
+
+        .expand-icon {
+            transition: transform 0.3s;
+        }
+
+        .expand-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .insight-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .insight-box .detail-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary-purple);
+        }
+
+        .insight-box .detail-label i {
+            font-size: 18px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+    </style>
+</head>
+
+<body class="page-dashboard">
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="dezoitoklogo.png" alt="Dezoitok Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="ph-fill ph-house"></i>
+                    <span class="link-text">Dashboard</span>
+                </a>
+                <a href="calculadora-custos.html" class="nav-link">
+                    <i class="ph-fill ph-calculator"></i>
+                    <span class="link-text">Calculadora Custos</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="themeToggle" class="nav-link theme-btn">
+                    <i class="ph ph-sun"></i>
+                    <span class="link-text">Modo Claro</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Captação de Leads IA</h1>
+                    </div>
+                </header>
+
+                <div class="capture-grid">
+                    <div class="config-card">
+                        <h3 style="margin-bottom: 20px;">Configurar Aquisição</h3>
+
+                        <div style="display: grid; grid-template-columns: 350px 1fr; gap: 24px;">
+                            <!-- Left: Channels & Button -->
+                            <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                                <div class="form-group" style="margin-bottom: 16px;">
+                                    <label>Canal de Origem</label>
+                                    <div class="channel-selector"
+                                        style="grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0;">
+                                        <div class="channel-btn active"
+                                            style="padding: 12px; height: 100%; justify-content: center;">
+                                            <i class="ph-fill ph-instagram-logo" style="font-size: 32px;"></i>
+                                        </div>
+                                        <div class="channel-btn disabled"
+                                            style="padding: 12px; height: 100%; justify-content: center;">
+                                            <i class="ph-fill ph-linkedin-logo" style="font-size: 32px;"></i>
+                                        </div>
+                                        <div class="channel-btn disabled"
+                                            style="padding: 12px; height: 100%; justify-content: center;">
+                                            <i class="ph-fill ph-google-logo" style="font-size: 32px;"></i>
+                                        </div>
+                                        <div class="channel-btn disabled"
+                                            style="padding: 12px; height: 100%; justify-content: center;">
+                                            <i class="ph-fill ph-facebook-logo" style="font-size: 32px;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button class="btn-capture" id="startCapture" style="width: 100%; padding: 12px;">
+                                    <i class="ph-bold ph-lightning"></i>
+                                    INICIAR EXTRAÇÃO
+                                </button>
+                            </div>
+
+                            <!-- Right: Inputs -->
+                            <div
+                                style="display: flex; flex-direction: column; gap: 16px; justify-content: space-between;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>URL do Perfil Alvo</label>
+                                    <input type="text" id="targetUrl" class="input-field"
+                                        placeholder="https://instagram.com/concorrente/" style="padding: 10px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>Cookie de Sessão</label>
+                                    <input type="text" id="sessionCookie" class="input-field"
+                                        placeholder="Cole seu cookie aqui..." style="padding: 10px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Raw Leads History (Collapsible) -->
+                <div class="leads-table-card collapsed" style="margin-top: var(--spacing-xl);" id="rawLeadsCard">
+                    <div class="table-header" id="rawLeadsToggle">
+                        <div class="table-header-left">
+                            <i class="ph-bold ph-caret-down toggle-icon" id="rawLeadsIcon"></i>
+                            <div>
+                                <h3><i class="ph-fill ph-clock-counter-clockwise"></i> Histórico de Leads Capturados
+                                </h3>
+                                <p style="font-size: 12px; color: var(--text-muted);">Todos os leads extraídos
+                                </p>
+                            </div>
+                        </div>
+                        <div class="header-actions">
+                            <button id="refreshRawHistory" class="pipeline-btn active"
+                                style="padding: 8px 16px; font-size: 12px;" onclick="event.stopPropagation();">
+                                <i class="ph ph-arrows-clockwise"></i> Atualizar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-content" id="rawLeadsContent">
+                        <table class="leads-table">
+                            <thead>
+                                <tr>
+                                    <th>Lead</th>
+                                    <th>Perfil/Username</th>
+                                    <th>Bio / Descrição</th>
+                                    <th>Contato</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-raw-body">
+                                <tr>
+                                    <td colspan="5"
+                                        style="text-align: center; padding: 60px; color: var(--text-muted);">
+                                        <i class="ph ph-database"
+                                            style="font-size: 32px; opacity: 0.2; margin-bottom: 10px; display: block; margin: 0 auto;"></i>
+                                        Carregando histórico...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- AI Qualified Leads -->
+                <div class="leads-table-card expanded" style="margin-top: var(--spacing-xl);">
+                    <div class="table-header">
+                        <div>
+                            <h3><i class="ph-fill ph-robot"></i> Leads Qualificados por IA</h3>
+                            <p style="font-size: 12px; color: var(--text-muted);">Leads processados e qualificados pela
+                                inteligência artificial (clique para ver detalhes)</p>
+                        </div>
+                        <button id="refreshIAHistory" class="pipeline-btn active"
+                            style="padding: 8px 16px; font-size: 12px;">
+                            <i class="ph ph-arrows-clockwise"></i> Atualizar
+                        </button>
+                    </div>
+
+                    <div style="flex: 1; overflow-y: auto;">
+                        <table class="leads-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30px;"></th>
+                                    <th>Lead</th>
+                                    <th>Perfil/Username</th>
+                                    <th>Bio / Descrição</th>
+                                    <th>Status</th>
+                                    <th>Contato</th>
+                                    <th>Data de Captura</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-ia-body">
+                                <tr>
+                                    <td colspan="7"
+                                        style="text-align: center; padding: 60px; color: var(--text-muted);">
+                                        <i class="ph ph-robot"
+                                            style="font-size: 32px; opacity: 0.2; margin-bottom: 10px; display: block; margin: 0 auto;"></i>
+                                        Carregando leads qualificados...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"
+        style="position: fixed; bottom: 20px; right: 20px; background: var(--secondary-green); color: white; padding: 16px 24px; border-radius: var(--radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: translateY(150%); transition: transform 0.3s; z-index: 9999; display: flex; align-items: center; gap: 12px;">
+        <i class="ph-bold ph-check-circle" style="font-size: 24px;"></i>
+        <span id="toast-msg">Sucesso!</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script>
+        const btnCapture = document.getElementById('startCapture');
+
+        // Toggle para expandir/recolher histórico de leads brutos
+        function toggleRawLeadsHistory() {
+            const content = document.getElementById('rawLeadsContent');
+            const icon = document.getElementById('rawLeadsIcon');
+            const card = document.getElementById('rawLeadsCard');
+
+            if (content.classList.contains('visible')) {
+                content.classList.remove('visible');
+                icon.classList.remove('rotated');
+                card.classList.remove('expanded');
+                card.classList.add('collapsed');
+            } else {
+                content.classList.add('visible');
+                icon.classList.add('rotated');
+                card.classList.remove('collapsed');
+                card.classList.add('expanded');
+            }
+        }
+
+        document.getElementById('rawLeadsToggle').onclick = toggleRawLeadsHistory;
+
+        function setRawHistoryLoading(isLoading) {
+            const tbody = document.getElementById('history-raw-body');
+            if (!tbody) return;
+
+            if (!isLoading) return;
+
+            tbody.innerHTML = `
+    ${[1, 2, 3, 4, 5, 6, 7, 8].map(() => `
+      <tr>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+      </tr>
+    `).join('')}
+  `;
+        }
+
+        function setIAHistoryLoading(isLoading) {
+            const tbody = document.getElementById('history-ia-body');
+            if (!tbody) return;
+
+            if (!isLoading) return;
+
+            tbody.innerHTML = `
+    ${[1, 2, 3, 4, 5, 6, 7, 8].map(() => `
+      <tr>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
+      </tr>
+    `).join('')}
+  `;
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.style.transform = 'translateY(0)';
+            setTimeout(() => toast.style.transform = 'translateY(150%)', 3000);
+        }
+
+        // Supabase History Logic
+        let supabaseClient;
+        function initSupabase() {
+            if (window.supabase && window.SUPABASE_CONFIG) {
+                supabaseClient = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.URL,
+                    window.SUPABASE_CONFIG.KEY
+                );
+                return true;
+            }
+            return false;
+        }
+
+        function setCaptureButtonState(state) {
+            if (state === 'idle') {
+                btnCapture.disabled = false;
+                btnCapture.style.opacity = '1';
+                btnCapture.style.cursor = 'pointer';
+                btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
+            } else if (state === 'running') {
+                btnCapture.disabled = true;
+                btnCapture.style.opacity = '0.5';
+                btnCapture.style.cursor = 'not-allowed';
+                btnCapture.innerHTML = '<i class="ph-bold ph-activity animate-spin"></i> Busca de Leads em andamento...';
+            }
+        }
+
+        // Toggle para expandir/recolher detalhes
+        function toggleLeadDetails(leadId) {
+            const detailRow = document.getElementById(`detail-${leadId}`);
+            const icon = document.getElementById(`icon-${leadId}`);
+
+            if (detailRow.classList.contains('visible')) {
+                detailRow.classList.remove('visible');
+                icon.classList.remove('rotated');
+            } else {
+                detailRow.classList.add('visible');
+                icon.classList.add('rotated');
+            }
+        }
+
+        // 1. Fetch Raw History (leads_capturados_posts)
+        async function fetchRawHistory() {
+            if (!supabaseClient) return;
+
+            const tbody = document.getElementById('history-raw-body');
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('leads_capturados_posts')
+                    .select('id, created_at, nome_cliente, usuario, bio, email, telefone')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead encontrado.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                data.forEach(lead => {
+                    const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
+                    const name = lead.nome_cliente || 'Sem nome';
+                    const username = lead.usuario || 'unknown';
+                    const profileUrl = username !== 'unknown' ? `https://instagram.com/${username.replace('@', '')}` : '#';
+                    const bio = lead.bio || '';
+                    const email = lead.email || '---';
+                    const phone = lead.telefone || '---';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <div class="profile-info">
+                                <div class="profile-avatar" style="background: var(--text-gray);">${name[0]}</div>
+                                <strong>${name}</strong>
+                            </div>
+                        </td>
+                        <td><a href="${profileUrl}" target="_blank" class="profile-link">@${username}</a></td>
+                        <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${bio.substring(0, 60)}...</td>
+                        <td><div style="font-size: 13px;">${email}<br>${phone}</div></td>
+                        <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error("Error fetching raw history:", err);
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar dados.</td></tr>';
+            }
+        }
+
+        // 2. Fetch IA Qualified History (leads_qualificados) com detalhes expansíveis
+        async function fetchIAHistory() {
+            if (!supabaseClient) return;
+
+            const tbody = document.getElementById('history-ia-body');
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('leads_qualificados')
+                    .select('id, created_at, nome_cliente, usuario, bio, email, telefone, status, sinais_detectados, trechos_relevantes, observacoes, insight_ia')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead qualificado ainda.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                data.forEach(lead => {
+                    const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
+                    const name = lead.nome_cliente || 'Sem nome';
+                    const username = lead.usuario || 'unknown';
+                    const profileUrl = username !== 'unknown' ? `https://instagram.com/${username.replace('@', '')}` : '#';
+                    const bio = lead.bio || '';
+                    const email = lead.email || '---';
+                    const phone = lead.telefone || '---';
+                    const status = lead.status || 'pendente';
+
+                    // Processar sinais_detectados
+                    let sinaisHtml = '<p style="color: var(--text-muted); font-style: italic;">Nenhum sinal detectado</p>';
+                    if (lead.sinais_detectados) {
+                        try {
+                            const sinais = typeof lead.sinais_detectados === 'string'
+                                ? JSON.parse(lead.sinais_detectados)
+                                : lead.sinais_detectados;
+
+                            if (Array.isArray(sinais) && sinais.length > 0) {
+                                sinaisHtml = '<ul class="signals-list">' +
+                                    sinais.map(s => `<li>${s}</li>`).join('') +
+                                    '</ul>';
+                            }
+                        } catch (e) {
+                            sinaisHtml = `<p>${lead.sinais_detectados}</p>`;
+                        }
+                    }
+
+                    // Processar trechos_relevantes
+                    let trechosHtml = '<p style="color: var(--text-muted); font-style: italic;">Nenhum trecho relevante</p>';
+                    if (lead.trechos_relevantes) {
+                        try {
+                            const trechos = typeof lead.trechos_relevantes === 'string'
+                                ? JSON.parse(lead.trechos_relevantes)
+                                : lead.trechos_relevantes;
+
+                            if (Array.isArray(trechos) && trechos.length > 0) {
+                                trechosHtml = '<ul class="signals-list">' +
+                                    trechos.map(t => `<li>${t}</li>`).join('') +
+                                    '</ul>';
+                            }
+                        } catch (e) {
+                            trechosHtml = `<p>${lead.trechos_relevantes}</p>`;
+                        }
+                    }
+
+                    // Definir classe do status
+                    let statusClass = 'new';
+                    if (status.toLowerCase().includes('qualificado')) statusClass = 'qualificado';
+                    if (status.toLowerCase().includes('desqualificado')) statusClass = 'desqualificado';
+
+                    // Linha principal (clicável)
+                    const mainTr = document.createElement('tr');
+                    mainTr.className = 'clickable-row';
+                    mainTr.onclick = () => toggleLeadDetails(lead.id);
+                    mainTr.innerHTML = `
+                        <td style="text-align: center;">
+                            <i id="icon-${lead.id}" class="ph-bold ph-caret-down expand-icon" style="font-size: 16px; color: var(--primary-purple);"></i>
+                        </td>
+                        <td>
+                            <div class="profile-info">
+                                <div class="profile-avatar">${name[0]}</div>
+                                <strong>${name}</strong>
+                            </div>
+                        </td>
+                        <td><a href="${profileUrl}" target="_blank" class="profile-link" onclick="event.stopPropagation();">@${username}</a></td>
+                        <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${bio.substring(0, 60)}...</td>
+                        <td><span class="status-pill ${statusClass}">${status}</span></td>
+                        <td><div style="font-size: 13px;">${email}<br>${phone}</div></td>
+                        <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
+                    `;
+                    tbody.appendChild(mainTr);
+
+                    // Linha de detalhes (expansível)
+                    const detailTr = document.createElement('tr');
+                    detailTr.id = `detail-${lead.id}`;
+                    detailTr.className = 'detail-row';
+                    detailTr.innerHTML = `
+                        <td colspan="7">
+                            <div class="detail-content">
+                                ${lead.insight_ia ? `
+                                <div class="insight-box">
+                                    <div class="detail-label">
+                                        <i class="ph-fill ph-brain"></i>
+                                        Insight da IA
+                                    </div>
+                                    <div class="detail-value">${lead.insight_ia}</div>
+                                </div>
+                                ` : ''}
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
+                                    <div class="detail-section">
+                                        <div class="detail-label">Sinais Detectados</div>
+                                        <div class="detail-value">${sinaisHtml}</div>
+                                    </div>
+                                    <div class="detail-section">
+                                        <div class="detail-label">Trechos Relevantes</div>
+                                        <div class="detail-value">${trechosHtml}</div>
+                                    </div>
+                                </div>
+                                ${lead.observacoes ? `
+                                <div class="detail-section" style="margin-top: var(--spacing-md);">
+                                    <div class="detail-label">Observações</div>
+                                    <div class="detail-value">${lead.observacoes}</div>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(detailTr);
+                });
+            } catch (err) {
+                console.error("Error fetching IA history:", err);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar qualificados.</td></tr>';
+            }
+        }
+
+        document.getElementById('refreshRawHistory').onclick = fetchRawHistory;
+        document.getElementById('refreshIAHistory').onclick = fetchIAHistory;
+
+        // ==== acompanhar status do ÚLTIMO job via Supabase Realtime ====
+        let jobChannel = null;
+
+        function stopWatchingJob() {
+            if (jobChannel && supabaseClient) {
+                supabaseClient.removeChannel(jobChannel);
+                jobChannel = null;
+            }
+        }
+
+        function watchJob(jobId) {
+            stopWatchingJob();
+
+            jobChannel = supabaseClient
+                .channel(`captura-job-${jobId}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'capturas_jobs',
+                    filter: `job_id=eq.${jobId}`,
+                }, (payload) => {
+                    const status = payload?.new?.status;
+
+                    if (status === 'finished') {
+                        showToast("A extração foi finalizada.");
+                        setCaptureButtonState('idle');
+                        fetchRawHistory();
+                        fetchIAHistory();
+                        stopWatchingJob();
+                    } else if (status === 'failed') {
+                        showToast(payload?.new?.message || "Extração falhou.");
+                        setCaptureButtonState('idle');
+                        stopWatchingJob();
+                    }
+                })
+                .subscribe();
+        }
+
+        async function getLastJob() {
+            const { data, error } = await supabaseClient
+                .from('capturas_jobs')
+                .select('job_id, status, created_at')
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (error) throw error;
+            return data?.[0] || null;
+        }
+
+        async function waitLastJobFinished() {
+            // 1) Espera existir pelo menos 1 job (até 60s)
+            let lastJob = await getLastJob();
+            const start = Date.now();
+
+            while (!lastJob && (Date.now() - start) < 60000) {
+                await new Promise(r => setTimeout(r, 1500));
+                lastJob = await getLastJob();
+            }
+
+            if (!lastJob) throw new Error("Nenhum job apareceu em 60s (verifique se o n8n está inserindo capturas_jobs).");
+
+            // 2) Se já terminou, encerra
+            if (lastJob.status === 'finished') return;
+            if (lastJob.status === 'failed') throw new Error("O último job está com status failed.");
+
+            // 3) Aguarda UPDATE do job até finished/failed via Realtime
+            await new Promise((resolve, reject) => {
+                stopWatchingJob();
+
+                jobChannel = supabaseClient
+                    .channel(`captura-job-${lastJob.job_id}`)
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'capturas_jobs',
+                        filter: `job_id=eq.${lastJob.job_id}`,
+                    }, (payload) => {
+                        const status = payload?.new?.status;
+                        if (status === 'finished') resolve();
+                        if (status === 'failed') reject(new Error(payload?.new?.message || "Extração falhou."));
+                    })
+                    .subscribe();
+            });
+
+            stopWatchingJob();
+        }
+
+        btnCapture.onclick = async () => {
+            const targetUrl = document.getElementById('targetUrl').value;
+            const sessionCookie = document.getElementById('sessionCookie').value;
+
+            if (!targetUrl) {
+                showToast("Por favor, preencha a URL do Perfil Alvo.");
+                return;
+            }
+
+            try {
+                // 1) Trava botão + coloca mensagem "em andamento"
+                setCaptureButtonState('running');
+
+                // 2) Coloca shimmer/loading na tabela de histórico (raw e ia)
+                setRawHistoryLoading(true);
+                setIAHistoryLoading(true);
+
+                // 3) Dispara o processo (gatilho)
+                const response = await fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetUrl, sessionCookie })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro ao iniciar: ${response.status}`);
+                }
+
+                showToast("Busca de Leads em andamento...");
+
+                // 4) Espera o ÚLTIMO job da tabela aparecer e virar finished/failed
+                await waitLastJobFinished();
+
+                // 5) Finalizou: destrava e carrega tabelas
+                showToast("A extração foi finalizada.");
+                setCaptureButtonState('idle');
+                fetchRawHistory();
+                fetchIAHistory();
+            } catch (error) {
+                console.error('Start/wait error:', error);
+
+                showToast(error?.message || "Erro ao iniciar/aguardar.");
+
+                // destrava e recarrega para não ficar travado pra sempre
+                setCaptureButtonState('idle');
+                fetchRawHistory();
+                fetchIAHistory();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (initSupabase()) {
+                fetchRawHistory();
+                fetchIAHistory();
+
+                // Real-time: Captured (Raw)
+                supabaseClient
+                    .channel('raw-leads-realtime')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, payload => {
+                        fetchRawHistory();
+                        showToast("Novo lead bruto capturado!");
+                    })
+                    .subscribe();
+
+                // Real-time: IA Qualified
+                supabaseClient
+                    .channel('qualificados-ia-realtime')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_qualificados' }, payload => {
+                        fetchIAHistory();
+                        showToast("Novo lead qualificado pela IA!");
+                    })
+                    .subscribe();
+            }
+        });
+    </script>
+</body>
+
+</html>

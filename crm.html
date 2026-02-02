@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic CRM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="theme-handler.js"></script>
+    <style>
+        .pipeline-selector {
+            display: flex;
+            gap: var(--spacing-md);
+            background: var(--bg-card);
+            padding: 8px;
+            border-radius: var(--radius-lg);
+            width: fit-content;
+            border: 1px solid var(--border-color);
+        }
+
+        .pipeline-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            padding: 10px 24px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pipeline-btn.active {
+            background: var(--primary-purple);
+            color: white;
+            box-shadow: 0 4px 12px var(--primary-purple-glow);
+        }
+
+        .crm-container {
+            display: flex;
+            gap: var(--spacing-md);
+            overflow-x: auto;
+            padding-bottom: var(--spacing-lg);
+            min-height: calc(100vh - 250px);
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-purple) var(--bg-dark);
+        }
+
+        .crm-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .crm-container::-webkit-scrollbar-thumb {
+            background: var(--primary-purple);
+            border-radius: 4px;
+        }
+
+        .crm-column {
+            min-width: 280px;
+            width: 280px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            padding: var(--spacing-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .column-header {
+            padding: var(--spacing-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary-purple);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .column-header h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-white);
+        }
+
+        .opportunity-count {
+            background: var(--border-color);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .opportunity-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            flex: 1;
+            min-height: 100px;
+            max-height: 65vh;
+            overflow-y: auto;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-purple) transparent;
+        }
+
+        .opportunity-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .opportunity-list::-webkit-scrollbar-thumb {
+            background: var(--primary-purple);
+            border-radius: 4px;
+        }
+
+        .opportunity-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            cursor: grab;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .opportunity-card:hover {
+            border-color: var(--primary-purple);
+            transform: translateY(-2px);
+        }
+
+        .opportunity-card .client-name {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .opportunity-card .company-name {
+            font-size: 13px;
+            color: var(--text-gray);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .opportunity-card .revenue {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--secondary-green);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .opportunity-card .revenue i {
+            font-size: 12px;
+        }
+
+        .opportunity-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .opportunity-list.drag-over {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-md);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 600px;
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-xl);
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: white;
+        }
+
+        .modal-header {
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: var(--spacing-md);
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .modal-header .company {
+            color: var(--primary-purple);
+            font-weight: 600;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        /* Responsible & Tags Styles */
+        .responsible-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .tag {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--primary-purple);
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .modal-edit-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            color: white;
+            font-family: inherit;
+        }
+
+        .modal-input:focus {
+            border-color: var(--primary-purple);
+            outline: none;
+        }
+
+        .save-btn {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: var(--spacing-lg);
+            transition: opacity 0.2s;
+        }
+
+        .save-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Summary Dashboard */
+        .crm-summary {
+            margin-top: 48px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-lg);
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+            transition: transform 0.2s;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary-purple);
+        }
+
+        .summary-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .summary-icon.starter {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary-purple);
+        }
+
+        .summary-icon.growth {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--secondary-green);
+        }
+
+        .summary-icon.enterprise {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--accents-pink);
+        }
+
+        .summary-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .summary-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        /* Horizontal Bar Charts */
+        .pipeline-charts-grid {
+            margin-top: var(--spacing-md);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-lg);
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+        }
+
+        .chart-header {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .chart-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .chart-stage-name {
+            width: 100px;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chart-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chart-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            width: 0;
+            /* Animated */
+        }
+
+        .chart-count {
+            width: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-white);
+            text-align: right;
+        }
+
+        /* Pipeline specific bar colors */
+        .bar-starter {
+            background: var(--primary-purple);
+            box-shadow: 0 0 10px var(--primary-purple-glow);
+        }
+
+        .bar-growth {
+            background: var(--secondary-green);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .bar-enterprise {
+            background: var(--accents-pink);
+            box-shadow: 0 0 10px rgba(217, 70, 239, 0.3);
+        }
+
+        .label-starter {
+            color: var(--primary-purple);
+        }
+
+        .label-growth {
+            color: var(--secondary-green);
+        }
+
+        .label-enterprise {
+            color: var(--accents-pink);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Prize Card Styles */
+        .prize-card {
+            background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highlight-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .highlight-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
+        }
+
+        .ranking-prize-footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .prize-footer-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: #fff;
+            padding: 4px;
+            object-fit: contain;
+        }
+
+        .prize-footer-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prize-footer-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .prize-footer-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .prize-image-wrapper {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex-shrink: 0;
+        }
+
+        .prize-card:hover .prize-image-wrapper {
+            border-color: var(--primary-purple);
+            box-shadow: 0 12px 40px var(--primary-purple-glow);
+            transform: translateY(-8px) scale(1.05);
+        }
+
+        .prize-image {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .prize-card:hover .prize-image {
+            transform: scale(1.1) rotate(8deg);
+        }
+
+        .prize-info {
+            z-index: 1;
+        }
+
+        .prize-title {
+            font-size: 14px;
+            color: var(--text-gray);
+            margin-bottom: 4px;
+        }
+
+        .prize-name {
+            font-size: 24px;
+            font-weight: 800;
+            color: white;
+            background: linear-gradient(to right, #fff, var(--primary-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ranking-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            margin-right: 8px;
+        }
+
+        .ranking-row-1 .ranking-badge {
+            background: #ffffff;
+            color: #000;
+        }
+
+        .ranking-row-2 .ranking-badge {
+            background: #e5e5e5;
+            color: #000;
+        }
+
+        .ranking-row-3 .ranking-badge {
+            background: #a3a3a3;
+            color: #000;
+        }
+
+        @keyframes animate-spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: animate-spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        .crm-filters {
+            display: flex;
+            gap: var(--spacing-md);
+            align-items: center;
+        }
+
+        .board-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            gap: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px 16px 10px 42px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-gray);
+            font-size: 18px;
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+        }
+
+        .filter-select option {
+            background: #1a1a1a;
+            color: white;
+        }
+    </style>
+</head>
+
+<body class="page-dashboard">
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="dezoitoklogo.png" alt="Dezoitok Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="ph-fill ph-house"></i>
+                    <span class="link-text">Dashboard</span>
+                </a>
+                <a href="calculadora-custos.html" class="nav-link">
+                    <i class="ph-fill ph-calculator"></i>
+                    <span class="link-text">Calculadora Custos</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="themeToggle" class="nav-link theme-btn">
+                    <i class="ph ph-sun"></i>
+                    <span class="link-text">Modo Claro</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Relacionamento (CRM)</h1>
+                    </div>
+                </header>
+
+                <div class="board-controls">
+                    <div class="pipeline-selector">
+                        <button class="pipeline-btn active" data-pipeline="starter">Quantic Starter</button>
+                        <button class="pipeline-btn" data-pipeline="growth">Quantic Growth</button>
+                        <button class="pipeline-btn" data-pipeline="enterprise">Quantic Enterprise</button>
+                    </div>
+
+                    <div class="crm-filters">
+                        <div class="search-wrapper">
+                            <i class="ph ph-magnifying-glass search-icon"></i>
+                            <input type="text" id="crmSearch" class="search-input"
+                                placeholder="Pesquisar por nome ou empresa...">
+                        </div>
+                        <select id="responsibleFilter" class="filter-select">
+                            <option value="all">Todos os Responsáveis</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="crm-container" id="crm-board">
+                    <!-- Columns will be injected here -->
+                </div>
+
+                <div class="section-header" style="margin-top: 48px;">
+                    <h3 style="font-size: 16px; color: var(--text-gray);"><i class="ph-fill ph-trophy"></i>
+                        Performance da Equipe e Premiação</h3>
+                </div>
+
+                <div class="team-performance-section"
+                    style="display: grid; grid-template-columns: 1fr; gap: var(--spacing-xl); margin-top: var(--spacing-md);">
+                    <div id="sales-ranking-container">
+                        <!-- Sales Ranking will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Pipeline Summary Dashboard -->
+                <div class="section-header" style="margin-top: 48px;">
+                    <h2><i class="ph-fill ph-presentation-chart"></i> Resumo de Pipelines</h2>
+                </div>
+                <div class="crm-summary">
+                    <div class="summary-card">
+                        <div class="summary-icon starter"><i class="ph-fill ph-rocket"></i></div>
+                        <div class="summary-info">
+                            <span class="summary-label">Quantic Starter</span>
+                            <span class="summary-value" id="total-starter">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon growth"><i class="ph-fill ph-chart-line-up"></i></div>
+                        <div class="summary-info">
+                            <span class="summary-label">Quantic Growth</span>
+                            <span class="summary-value" id="total-growth">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon enterprise"><i class="ph-fill ph-buildings"></i></div>
+                        <div class="summary-info">
+                            <span class="summary-label">Quantic Enterprise</span>
+                            <span class="summary-value" id="total-enterprise">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-header" style="margin-top: 32px;">
+                    <h3 style="font-size: 16px; color: var(--text-gray);"><i class="ph-fill ph-chart-bar"></i>
+                        Distribuição por Etapas (Gráficos)</h3>
+                </div>
+
+                <div class="pipeline-charts-grid" id="pipeline-charts-container">
+                    <!-- Charts will be injected here -->
+                </div>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Lead Details -->
+    <div class="modal-overlay" id="leadModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal"><i class="ph ph-x"></i></button>
+            <div class="modal-header">
+                <h2 id="modal-client-name">Nome do Cliente</h2>
+                <span class="company" id="modal-company-name">Nome da Empresa</span>
+            </div>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Faturamento Mensal</span>
+                    <span class="detail-value" id="modal-revenue">R$ 0,00</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Tipo de Business</span>
+                    <span class="detail-value" id="modal-business">---</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Telefone</span>
+                    <span class="detail-value" id="modal-phone">---</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Email</span>
+                    <span class="detail-value" id="modal-email">---</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Responsável</span>
+                    <input type="text" id="modal-responsible" class="modal-input" placeholder="Nome do responsável">
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Tags (separadas por vírgula)</span>
+                    <input type="text" id="modal-tags" class="modal-input" placeholder="tag1, tag2">
+                </div>
+                <!-- ... rest of fields ... -->
+                <div class="detail-item">
+                    <span class="detail-label">Audiência</span>
+                    <span class="detail-value" id="modal-audience">---</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Canais de Aquisição</span>
+                    <span class="detail-value" id="modal-channels">---</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Volume de Clientes</span>
+                    <span class="detail-value" id="modal-volume">---</span>
+                </div>
+                <div class="detail-item full-width">
+                    <span class="detail-label">Maior Dificuldade</span>
+                    <span class="detail-value" id="modal-difficulty">---</span>
+                </div>
+            </div>
+            <button class="save-btn" id="saveLeadDetails">Salvar Alterações</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="crm-logic.js"></script>
+    <script src="script.js"></script>
+    <script>
+        const stages = [
+            "Contato",
+            "Mensagem Enviada",
+            "Mensagem Enviada 2",
+            "Mensagem Enviada 3",
+            "Conexão",
+            "Reunião Agendada",
+            "Reunião Realizada",
+            "Proposta Enviada",
+            "Venda Realizada",
+            "Perdida"
+        ];
+
+        let draggedLeadId = null;
+        let currentPipeline = 'Quantic Starter';
+
+        function renderBoard() {
+            const board = document.getElementById('crm-board');
+            board.innerHTML = '';
+
+            stages.forEach(stage => {
+                const column = document.createElement('div');
+                column.className = 'crm-column';
+                column.innerHTML = `
+                    <div class="column-header">
+                        <h3>${stage}</h3>
+                        <span class="opportunity-count">0</span>
+                    </div>
+                    <div class="opportunity-list" 
+                         id="list-${stage.replace(/\s+/g, '-')}"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event, '${stage}')">
+                        <!-- Opportunity cards -->
+                    </div>
+                `;
+                board.appendChild(column);
+            });
+        }
+
+        // Drag & Drop handlers
+        function handleDragStart(event, leadId) {
+            draggedLeadId = leadId;
+            event.target.classList.add('dragging');
+            event.dataTransfer.setData('text/plain', leadId);
+        }
+
+        let scrollInterval;
+        function startAutoScroll(direction) {
+            if (scrollInterval) return;
+            const board = document.getElementById('crm-board');
+            scrollInterval = setInterval(() => {
+                board.scrollLeft += direction * 15;
+            }, 16);
+        }
+
+        function stopAutoScroll() {
+            clearInterval(scrollInterval);
+            scrollInterval = null;
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('dragging');
+            stopAutoScroll();
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            if (event.currentTarget.classList.contains('opportunity-list')) {
+                event.currentTarget.classList.add('drag-over');
+            }
+
+            // Auto-scroll board if near edges
+            const board = document.getElementById('crm-board');
+            const rect = board.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const threshold = 150;
+
+            if (x < threshold) {
+                startAutoScroll(-1);
+            } else if (x > rect.width - threshold) {
+                startAutoScroll(1);
+            } else {
+                stopAutoScroll();
+            }
+        }
+
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        async function handleDrop(event, newStage) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            stopAutoScroll();
+
+            const leadId = event.dataTransfer.getData('text/plain');
+            const card = document.querySelector(`[data-id="${leadId}"]`);
+            const newList = event.currentTarget;
+
+            if (card && newList) {
+                const oldList = card.parentElement;
+                if (oldList !== newList) {
+                    newList.appendChild(card);
+                    updateCounters();
+
+                    // Update in Supabase via CRM_LOGIC
+                    if (window.CRM_LOGIC) {
+                        await CRM_LOGIC.updateLeadStage(leadId, newStage);
+                    }
+                }
+            }
+        }
+
+        function updateCounters() {
+            document.querySelectorAll('.crm-column').forEach(col => {
+                const list = col.querySelector('.opportunity-list');
+                const count = list ? list.children.length : 0;
+                const countSpan = col.querySelector('.opportunity-count');
+                if (countSpan) countSpan.textContent = count;
+            });
+        }
+
+        // Modal Logic
+        const modal = document.getElementById('leadModal');
+        const closeModal = document.getElementById('closeModal');
+
+        if (closeModal) {
+            closeModal.onclick = () => modal.style.display = 'none';
+        }
+        window.onclick = (event) => {
+            if (event.target == modal) modal.style.display = 'none';
+        }
+
+        let currentLeadId = null;
+
+        function openLeadDetails(lead) {
+            currentLeadId = lead.id;
+            document.getElementById('modal-client-name').textContent = lead.name;
+            document.getElementById('modal-company-name').textContent = lead.company;
+            document.getElementById('modal-revenue').textContent = lead.revenue;
+            document.getElementById('modal-email').textContent = lead.email || '---';
+            document.getElementById('modal-phone').textContent = lead.phone || '---';
+            document.getElementById('modal-business').textContent = lead.business || '---';
+            document.getElementById('modal-audience').textContent = lead.audience || '---';
+            document.getElementById('modal-channels').textContent = lead.channels || '---';
+            document.getElementById('modal-volume').textContent = lead.volume || '---';
+            document.getElementById('modal-difficulty').textContent = lead.difficulty || '---';
+
+            // Editable fields
+            document.getElementById('modal-responsible').value = lead.responsible !== 'Não atribuído' ? lead.responsible : '';
+            document.getElementById('modal-tags').value = lead.tags ? lead.tags.join(', ') : '';
+
+            modal.style.display = 'flex';
+        }
+
+        document.getElementById('saveLeadDetails').onclick = async () => {
+            if (!currentLeadId || !window.CRM_LOGIC) return;
+
+            const responsible = document.getElementById('modal-responsible').value;
+            const tagsRaw = document.getElementById('modal-tags').value;
+            const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
+
+            const saveBtn = document.getElementById('saveLeadDetails');
+            const originalText = saveBtn.innerHTML;
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Atribuindo usuário...';
+
+            await CRM_LOGIC.updateOpportunityDetails(currentLeadId, {
+                responsible_name: responsible,
+                tags: tags
+            });
+
+            // Explicitly reload to update the board automatically
+            await loadData();
+
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+            modal.style.display = 'none';
+        };
+
+        async function loadData() {
+            if (!window.CRM_LOGIC) return;
+
+            // 1. Load Global Summary and Stage Distribution
+            const summary = await CRM_LOGIC.fetchPipelineSummary();
+            document.getElementById('total-starter').textContent = summary.total.starter;
+            document.getElementById('total-growth').textContent = summary.total.growth;
+            document.getElementById('total-enterprise').textContent = summary.total.enterprise;
+
+            // Update responsible filter options
+            updateResponsibleFilter(summary.salesByResponsible, summary.meetingsByResponsible);
+
+            // 2. Load Board for current pipeline
+            const leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
+            window.allLeads = leads;
+            renderLeads(leads);
+
+            // 3. Stage Distribution Charts
+            renderChartsOnLoad(summary);
+
+            // 4. Responsible Rankings
+            renderRanking('sales-ranking-container', summary.salesByResponsible, 'Ranking de Vendas', 'ph-crown', 'label-growth', 'bar-growth', {
+                name: 'iPhone 17 Pro Max',
+                image: 'https://reidocelular.com.br/wp-content/uploads/2025/12/iphone-17-pro-max-3.png',
+                label: 'Prêmio para o 1º Colocado'
+            });
+        }
+
+        function updateResponsibleFilter(salesData, meetingData) {
+            const filter = document.getElementById('responsibleFilter');
+            const currentVal = filter.value;
+
+            // Get unique responsibles from both datasets
+            const responsibles = new Set();
+            if (salesData) Object.keys(salesData).forEach(r => responsibles.add(r));
+            if (meetingData) Object.keys(meetingData).forEach(r => responsibles.add(r));
+
+            filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
+            Array.from(responsibles).sort().forEach(resp => {
+                const option = document.createElement('option');
+                option.value = resp;
+                option.textContent = resp;
+                filter.appendChild(option);
+            });
+
+            filter.value = currentVal;
+        }
+
+        function renderLeads(leads) {
+            const searchTerm = document.getElementById('crmSearch').value.toLowerCase();
+            const respFilter = document.getElementById('responsibleFilter').value;
+
+            // Filter leads
+            const filteredLeads = leads.filter(opp => {
+                const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
+                    (opp.company?.toLowerCase().includes(searchTerm));
+                const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
+                return matchesSearch && matchesResp;
+            });
+
+            // Clear lists
+            document.querySelectorAll('.opportunity-list').forEach(list => {
+                list.innerHTML = '';
+            });
+
+            // Re-inject leads
+            filteredLeads.forEach(opp => {
+                const listId = `list-${opp.stage.replace(/\s+/g, '-')}`;
+                const list = document.getElementById(listId);
+                if (list) {
+                    const card = document.createElement('div');
+                    card.className = 'opportunity-card';
+                    card.draggable = true;
+                    card.setAttribute('data-id', opp.id);
+                    card.ondragstart = (e) => handleDragStart(e, opp.id);
+                    card.ondragend = handleDragEnd;
+                    card.onclick = () => openLeadDetails(opp);
+
+                    card.innerHTML = `
+                        <span class="client-name">${opp.name}</span>
+                        <span class="company-name">${opp.company}</span>
+                        <div class="revenue">
+                            <i class="ph-fill ph-money"></i>
+                            <span>${opp.revenue}</span>
+                        </div>
+                        <div class="tags-container">
+                            ${(opp.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                        <div class="responsible-badge">
+                            <i class="ph-fill ph-user-circle"></i>
+                            <span>${opp.responsible}</span>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                }
+            });
+
+            updateCounters();
+        }
+
+        function renderChartsOnLoad(summary) {
+            const chartsContainer = document.getElementById('pipeline-charts-container');
+            chartsContainer.innerHTML = '';
+
+            const pipelineConfig = [
+                { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
+                { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
+                { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
+            ];
+
+            pipelineConfig.forEach(pipe => {
+                const card = document.createElement('div');
+                card.className = 'chart-card';
+
+                let chartRowsHtml = '';
+                const pipeData = summary.stages[pipe.id] || {};
+
+                const maxCount = Math.max(...stages.map(s => pipeData[s] || 0), 1);
+
+                stages.forEach(stage => {
+                    const count = pipeData[stage] || 0;
+                    const percentage = (count / maxCount) * 100;
+
+                    chartRowsHtml += `
+                        <div class="chart-row">
+                            <span class="chart-stage-name">${stage}</span>
+                            <div class="chart-bar-bg">
+                                <div class="chart-bar-fill ${pipe.barClass}" style="width: ${percentage}%"></div>
+                            </div>
+                            <span class="chart-count">${count}</span>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="chart-header ${pipe.class}">
+                        <i class="ph-fill ${pipe.icon}"></i>
+                        <span>${pipe.name}</span>
+                    </div>
+                    <div class="chart-body">
+                        ${chartRowsHtml}
+                    </div>
+                `;
+                chartsContainer.appendChild(card);
+            });
+        }
+
+        function renderRanking(containerId, data, title, icon, labelClass, barClass, prize) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            const card = document.createElement('div');
+            card.className = 'chart-card highlight-card';
+
+            let rowsHtml = '';
+            const rankingData = data || {};
+            const resps = Object.keys(rankingData).sort((a, b) => rankingData[b] - rankingData[a]);
+            const maxCount = Math.max(...Object.values(rankingData), 1);
+
+            resps.forEach((resp, index) => {
+                const count = rankingData[resp];
+                const percentage = (count / maxCount) * 100;
+                const rankClass = index < 3 ? `ranking-row-${index + 1}` : '';
+
+                rowsHtml += `
+                    <div class="chart-row ${rankClass}">
+                        <div class="ranking-badge">${index + 1}</div>
+                        <span class="chart-stage-name" title="${resp}">${resp}</span>
+                        <div class="chart-bar-bg">
+                            <div class="chart-bar-fill ${barClass}" style="width: ${percentage}%"></div>
+                        </div>
+                        <span class="chart-count">${count}</span>
+                    </div>
+                `;
+            });
+
+            card.innerHTML = `
+                <div class="chart-header ${labelClass}">
+                    <i class="ph-fill ${icon}"></i>
+                    <span>${title}</span>
+                </div>
+                <div class="chart-body">
+                    ${rowsHtml || `<div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 20px;">Nenhum registro encontrado ainda</div>`}
+                </div>
+                ${prize ? `
+                <div class="ranking-prize-footer">
+                    <img src="${prize.image}" class="prize-footer-image">
+                    <div class="prize-footer-info">
+                        <span class="prize-footer-label">${prize.label}</span>
+                        <span class="prize-footer-name">${prize.name}</span>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+            container.appendChild(card);
+        }
+
+        // Add Event Listeners for filters
+        document.getElementById('crmSearch').addEventListener('input', () => {
+            if (window.allLeads) renderLeads(window.allLeads);
+        });
+        document.getElementById('responsibleFilter').addEventListener('change', () => {
+            if (window.allLeads) renderLeads(window.allLeads);
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderBoard();
+
+            if (window.CRM_LOGIC && CRM_LOGIC.initCrmSupabase()) {
+                await loadData();
+                CRM_LOGIC.subscribeToCrmChanges(() => loadData());
+            }
+
+            document.querySelectorAll('.pipeline-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentPipeline = btn.textContent.trim();
+                    await loadData();
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

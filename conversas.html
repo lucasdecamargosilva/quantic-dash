@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quantic Conversas</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="theme-handler.js"></script>
+
+    <style>
+        /* =========================
+       AQUI está o ajuste principal
+       ========================= */
+
+        .conversations-container {
+            /* Antes: height: calc(100vh - 160px); */
+            height: calc(100vh - 120px);
+            /* diminua esse número para ficar maior */
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            position: relative;
+
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            /* importante em alguns layouts flex */
+        }
+
+        .chat-header {
+            flex: 0 0 auto;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .chat-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-white);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+
+        .chatwoot-iframe {
+            /* AQUI está o que faz ficar gigante */
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            border: none;
+            background: #fff;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-message {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 10px;
+            max-width: 400px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo" />
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="ph-fill ph-house"></i>
+                    <span class="link-text">Dashboard</span>
+                </a>
+                <a href="calculadora-custos.html" class="nav-link">
+                    <i class="ph-fill ph-calculator"></i>
+                    <span class="link-text">Calculadora Custos</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="themeToggle" class="nav-link theme-btn">
+                    <i class="ph ph-sun"></i>
+                    <span class="link-text">Modo Claro</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Caixa de Entrada Omnichannel</h1>
+                    </div>
+                </header>
+
+                <div class="conversations-container">
+                    <div class="chat-header">
+                        <h2><i class="ph-fill ph-chat-centered-text"></i> Quantic Inbox</h2>
+                        <div class="status-badge">
+                            <span class="status-dot"></span>
+                            <span id="status-text">Conectando...</span>
+                        </div>
+                    </div>
+
+                    <iframe id="chatwoot-frame" class="chatwoot-iframe"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
+                        allow="camera;microphone;clipboard-read;clipboard-write;">
+                    </iframe>
+
+                    <div id="loading-overlay" class="loading-overlay">
+                        <div class="spinner"></div>
+                        <p id="loading-text">Carregando central de mensagens...</p>
+                    </div>
+                </div>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+    <script>
+        (function () {
+            'use strict';
+
+            const iframe = document.getElementById('chatwoot-frame');
+            const overlay = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
+            const statusText = document.getElementById('status-text');
+
+            async function initChatwoot() {
+                try {
+                    statusText.textContent = 'Autenticando...';
+
+                    const response = await fetch('http://localhost:3000/api/chatwoot/sso', {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+                    const data = await response.json();
+                    if (!data.success || !data.ssoUrl) throw new Error('SSO URL inválida');
+
+                    statusText.textContent = 'Carregando inbox...';
+
+                    // IMPORTANTE: usando o proxy raiz (sem /chatwoot)
+                    const proxyUrl = data.ssoUrl.replace(
+                        'https://chatwoot.segredosdodrop.com',
+                        'http://localhost:3000'
+                    );
+
+                    iframe.src = proxyUrl;
+
+                    iframe.onload = () => {
+                        statusText.textContent = 'Conectado';
+                        setTimeout(() => overlay.classList.add('hidden'), 800);
+                    };
+
+                    setTimeout(() => overlay.classList.add('hidden'), 15000);
+                } catch (err) {
+                    statusText.textContent = 'Erro';
+                    loadingText.innerHTML = `
+            <span style="color:var(--text-muted);">Erro ao carregar</span>
+            <div class="error-message">${err.message}</div>
+          `;
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initChatwoot);
+            } else {
+                initChatwoot();
+            }
+        })();
+    </script>
+</body>
+
+</html>

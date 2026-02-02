@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.0",
+    "axios": "^1.13.2",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5"
+  },
+  "name": "quantic_dashboard",
+  "version": "1.0.0",
+  "main": "chatwoot-sso.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

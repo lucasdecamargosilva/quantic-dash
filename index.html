@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic Financeiro</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="theme-handler.js"></script>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="ph-fill ph-house"></i>
+                    <span class="link-text">Dashboard</span>
+                </a>
+                <a href="calculadora-custos.html" class="nav-link">
+                    <i class="ph-fill ph-calculator"></i>
+                    <span class="link-text">Calculadora Custos</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="themeToggle" class="nav-link theme-btn">
+                    <i class="ph ph-sun"></i>
+                    <span class="link-text">Modo Claro</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <!-- Header -->
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Dashboard de Desempenho</h1>
+                    </div>
+
+                    <div class="period-selector">
+                        <div class="filter-group">
+                            <button class="period-btn active" data-period="7">7 Dias</button>
+                            <button class="period-btn" data-period="30">30 Dias</button>
+                            <button class="period-btn" data-period="custom">Personalizado</button>
+                        </div>
+                        <div id="custom-date-range" class="custom-range" style="display: none;">
+                            <input type="date" id="start-date" class="date-input">
+                            <span class="range-sep">até</span>
+                            <input type="date" id="end-date" class="date-input">
+                            <button id="apply-custom-range" class="apply-btn"><i class="ph-bold ph-check"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="user-area">
+                        <button class="icon-btn"><i class="ph-fill ph-bell"></i></button>
+                        <div class="user-profile">
+                            <div class="user-info">
+                                <span class="name">Admin</span>
+                                <span class="role">Financeiro</span>
+                            </div>
+                            <div class="avatar">
+                                <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Admin">
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Main Grid -->
+                <main class="dashboard-grid">
+
+                    <!-- Visão Geral Financeira -->
+                    <section class="section-overview">
+                        <div class="section-header">
+                            <h2><i class="ph-fill ph-chart-line-up"></i> Visão Geral Financeira</h2>
+                            <a href="#" class="export-link">Exportar Relatório <i class="ph ph-download-simple"></i></a>
+                        </div>
+
+                        <div class="kpi-grid">
+                            <!-- KPI Card 1: MRR -->
+                            <div class="card kpi-card">
+                                <div class="card-top">
+                                    <div class="icon-box"><i class="ph-fill ph-money"></i></div>
+                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> 12%</span>
+                                </div>
+                                <div class="card-content">
+                                    <span class="label">MRR (Recorrente)</span>
+                                    <h3 id="kpi-mrr-value" class="value">R$ 0,00</h3>
+                                    <span class="subtext">Somatório de recorrências</span>
+                                </div>
+                            </div>
+
+                            <!-- KPI Card 2: ARR -->
+                            <div class="card kpi-card">
+                                <div class="card-top">
+                                    <div class="icon-box"><i class="ph-fill ph-calendar"></i></div>
+                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> 8%</span>
+                                </div>
+                                <div class="card-content">
+                                    <span class="label">ARR (Projeção Anual)</span>
+                                    <h3 id="kpi-arr-value" class="value">R$ 0,00</h3>
+                                    <span class="subtext">MRR x 12 + Implementação</span>
+                                </div>
+                            </div>
+
+                            <!-- KPI Card 3: Receita Total -->
+                            <div class="card kpi-card">
+                                <div class="card-top">
+                                    <div class="icon-box"><i class="ph-fill ph-wallet"></i></div>
+                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> 15%</span>
+                                </div>
+                                <div class="card-content">
+                                    <span class="label">Receita Total (Mês)</span>
+                                    <h3 id="kpi-total-revenue-value" class="value">R$ 0,00</h3>
+                                    <span class="subtext">Recorrente + Pontual</span>
+                                </div>
+                            </div>
+
+                            <!-- KPI Card 4: Ticket Médio -->
+                            <div class="card kpi-card">
+                                <div class="card-top">
+                                    <div class="icon-box"><i class="ph-fill ph-tag"></i></div>
+                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> 2%</span>
+                                </div>
+                                <div class="card-content">
+                                    <span class="label">Ticket Médio</span>
+                                    <h3 id="kpi-avg-ticket-value" class="value">R$ 0,00</h3>
+                                    <span class="subtext">Média de Implementação</span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Métricas de IA - Now inside Overview -->
+                        <div class="section-header" style="margin-top: 48px;">
+                            <div class="header-title">
+                                <div class="icon-box-header robot"><i class="ph-fill ph-robot"></i></div>
+                                <h2>Métricas de Inteligência Artificial</h2>
+                            </div>
+                            <div class="toggle-currency">
+                                <span class="active">USD</span>
+                                <span>BRL</span>
+                            </div>
+                        </div>
+
+                        <div class="kpi-grid ai-kpi-grid">
+                            <!-- AI Card 1: Input -->
+                            <div class="card kpi-card">
+                                <div class="card-top">
+                                    <div class="icon-box"><i class="ph-fill ph-arrow-right"></i></div>
+                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> 8%</span>
+                                </div>
+                                <div class="card-spacer"></div>
+                                <div class="card-content">
+                                    <span class="label">Input (Entrada)</span>
+                                    <h3 id="ai-input-value" class="value">---</h3>
+                                    <span id="ai-input-subtext" class="subtext">Carregando...</span>
+                                </div>
+                            </div>
+
+                            <!-- AI Card 2: Output -->
+                            <div class="card kpi-card">
+                                <div class="card-top">
+                                    <div class="icon-box"><i class="ph-fill ph-arrow-left"></i></div>
+                                    <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> 12%</span>
+                                </div>
+                                <div class="card-spacer"></div>
+                                <div class="card-content">
+                                    <span class="label">Output (Saída)</span>
+                                    <h3 id="ai-output-value" class="value">---</h3>
+                                    <span id="ai-output-subtext" class="subtext">Carregando...</span>
+                                </div>
+                            </div>
+
+                            <!-- AI Card 3: Total Cost -->
+                            <div class="card kpi-card">
+                                <div class="card-top">
+                                    <div class="icon-box"><i class="ph-fill ph-chart-bar"></i></div>
+                                    <span class="badge white-pill">74%</span>
+                                </div>
+                                <div class="card-spacer"></div>
+                                <div class="card-content">
+                                    <span class="label">Consumo Total</span>
+                                    <h3 id="ai-total-value" class="value">---</h3>
+                                    <span id="ai-total-subtext" class="subtext">Carregando...</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </section>
+
+                    <!-- Clientes Ativos & Engajamento -->
+                    <section class="section-clients">
+                        <div class="section-header">
+                            <h2><i class="ph-fill ph-users-three"></i> Clientes Ativos & Engajamento</h2>
+                        </div>
+                        <div class="clients-table-container">
+                            <table class="clients-table">
+                                <thead>
+                                    <tr>
+                                        <th>CLIENTE</th>
+                                        <th>STATUS DO PROJETO</th>
+                                        <th>VALOR PROJETADO</th>
+                                        <th>RECORRÊNCIA</th>
+                                        <th>AÇÕES</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clients-table-body">
+                                    <tr>
+                                        <td colspan="5"
+                                            style="text-align:center; padding: 40px; color: var(--text-muted);">
+                                            <i class="ph ph-circle-notch ph-spin"
+                                                style="font-size: 24px; margin-bottom: 8px;"></i>
+                                            <p>Carregando clientes...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <a href="#" class="view-all-link">Ver Todos os Clientes <i
+                                    class="ph-bold ph-arrow-right"></i></a>
+                        </div>
+                    </section>
+
+                    <!-- Bottom Row: Profitability & Cash Flow -->
+                    <div class="bottom-row">
+                        <!-- Análise de Lucratividade -->
+                        <section class="section-profitability">
+                            <div class="section-header">
+                                <h2><i class="ph-fill ph-pie-chart"></i> Análise de Lucratividade</h2>
+                            </div>
+                            <div class="profit-content">
+                                <div class="margin-cards">
+                                    <div class="card margin-card">
+                                        <span class="label">MARGEM DE CONTRIBUIÇÃO</span>
+                                        <div class="margin-value">
+                                            <h3>52%</h3>
+                                            <span class="subtext">Meta Proj: 60%</span>
+                                        </div>
+                                    </div>
+                                    <div class="card margin-card">
+                                        <span class="label">MARGEM BRUTA</span>
+                                        <div class="margin-value">
+                                            <h3>45%</h3>
+                                            <span class="badge healthy">SAUDÁVEL</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="cost-breakdown">
+                                    <!-- SVG Donut Chart -->
+                                    <div class="donut-chart-container">
+                                        <svg viewBox="0 0 100 100" class="donut-chart">
+                                            <!-- Background Circle -->
+                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#262626"
+                                                stroke-width="12" />
+
+                                            <!-- Segments (Using stroke-dasharray) 
+                                         Circumference = 2 * pi * 40 ≈ 251.
+                                         50% = 125.5
+                                         25% = 62.75
+                                         12~13% = ~32
+                                    -->
+                                            <!-- Segment 1: Infra (50%) - White -->
+                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ffffff"
+                                                stroke-width="12" stroke-dasharray="125.5 251" stroke-dashoffset="0"
+                                                transform="rotate(-90 50 50)" />
+
+                                            <!-- Segment 2: API (25%) - Light Gray -->
+                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e5e5e5"
+                                                stroke-width="12" stroke-dasharray="62.75 251"
+                                                stroke-dashoffset="-125.5" transform="rotate(-90 50 50)" />
+
+                                            <!-- Segment 3: Tools (13%) - Medium Gray -->
+                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#a3a3a3"
+                                                stroke-width="12" stroke-dasharray="32 251" stroke-dashoffset="-188.25"
+                                                transform="rotate(-90 50 50)" />
+
+                                            <text x="50" y="55" text-anchor="middle" fill="white" font-size="14"
+                                                font-weight="700">Custos</text>
+                                        </svg>
+                                    </div>
+
+                                    <div class="chart-legend-list">
+                                        <div class="legend-item">
+                                            <span class="dot white" style="background: #ffffff;"></span>
+                                            <span>Infraestrutura & Servers</span>
+                                            <span class="pct">50%</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <span class="dot light-gray" style="background: #e5e5e5;"></span>
+                                            <span>APIs & Token IA</span>
+                                            <span class="pct">25%</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <span class="dot medium-gray" style="background: #a3a3a3;"></span>
+                                            <span>Ferramentas (CRM, Mkt..)</span>
+                                            <span class="pct">13%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Gestão de Fluxo de Caixa -->
+                        <section class="section-cashflow">
+                            <div class="section-header">
+                                <h2><i class="ph-fill ph-bank"></i> Gestão de Fluxo de Caixa</h2>
+                            </div>
+                            <div class="cashflow-content">
+                                <div class="cash-cards">
+                                    <div class="card cash-card balance">
+                                        <span class="label">SALDO EM CAIXA</span>
+                                        <h3>R$ 142.300</h3>
+                                        <div class="tags"><span class="badge positive">Positivo</span></div>
+                                    </div>
+                                    <div class="card cash-card payables">
+                                        <span class="label">CONTAS A PAGAR</span>
+                                        <h3>R$ 12.450</h3>
+                                        <div class="tags"><span class="warning-text">⚠️ Vence em 7 dias</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="receivables-section">
+                                    <div class="section-subheader">
+                                        <h4>Contas a Receber</h4>
+                                        <span class="badge white-pill">Top 3</span>
+                                    </div>
+                                    <div class="receivables-list">
+                                        <div class="receivable-item">
+                                            <div class="rec-icon"><i class="ph-fill ph-check-square"></i></div>
+                                            <div class="rec-info">
+                                                <span class="name">TechCorp Automation</span>
+                                                <span class="date">Venc: 15/10</span>
+                                            </div>
+                                            <span class="amount">R$ 15.000</span>
+                                        </div>
+                                        <div class="receivable-item">
+                                            <div class="rec-icon"><i class="ph-fill ph-check-square"></i></div>
+                                            <div class="rec-info">
+                                                <span class="name">Global Logistics</span>
+                                                <span class="date">Venc: 18/10</span>
+                                            </div>
+                                            <span class="amount">R$ 8.500</span>
+                                        </div>
+                                        <div class="receivable-item">
+                                            <div class="rec-icon"><i class="ph-fill ph-check-square"></i></div>
+                                            <div class="rec-info">
+                                                <span class="name">Retail AI Co.</span>
+                                                <span class="date">Venc: 22/10</span>
+                                            </div>
+                                            <span class="amount">R$ 5.230</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Métricas de Vendas (Full width at bottom or separate?) -> Checking image: It seems to be below Profitability/Cashflow or side-by-side. 
+                 Wait, looking at the image:
+                 Top: Visão Geral + Chart
+                 Middle: Consumo IA
+                 Middle 2: Clientes
+                 Bottom Left: Lucratividade + Métricas de Vendas (stacked?)
+                 Bottom Right: Fluxo de Caixa + Funil de Vendas (stacked?)
+                 
+                 Let's re-analyze the layout based on the image:
+                 Row 1: Visão Geral Financeira (KPIs + Chart)
+                 Row 2: Métricas de Consumo IA
+                 Row 3: Clientes Ativos
+                 Row 4: 
+                    Col 1: Análise de Lucratividade
+                    Col 2: Gestão de Fluxo de Caixa
+                 Row 5:
+                    Col 1: Métricas de Vendas (Conversion + Churn)
+                    Col 2: Funil de Vendas
+            -->
+
+                    <div class="metrics-row">
+                        <!-- Métricas de Vendas -->
+                        <section class="section-sales-metrics">
+                            <div class="section-header">
+                                <h2><i class="ph-fill ph-rocket-launch"></i> Métricas de Vendas</h2>
+                            </div>
+
+                            <div class="sales-cards-container">
+                                <!-- Conversion Rate -->
+                                <div class="card sales-card">
+                                    <span class="label">Taxa de Conversão</span>
+                                    <div class="sales-value-row">
+                                        <h3>28%</h3>
+                                        <span class="badge neutral">Média 30%</span>
+                                    </div>
+                                    <div class="progress-track small">
+                                        <div class="progress-bar white" style="width: 28%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Avg New Contract -->
+                                <div class="card sales-card">
+                                    <span class="label">Contrato Novo Méd.</span>
+                                    <h3>R$ 7.500</h3>
+                                    <span class="subtext green">+5% vs. média anterior</span>
+                                </div>
+
+                                <!-- Churn Rate -->
+                                <div class="card sales-card">
+                                    <span class="label">Taxa de Churn</span>
+                                    <h3>2.1%</h3>
+                                    <span class="badge white-pill small-text">+0.1% esperado</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Funil de Vendas -->
+                        <section class="section-sales-funnel">
+                            <div class="section-header">
+                                <h2>Funil de Vendas (Mês Atual)</h2>
+                            </div>
+
+                            <div class="funnel-container">
+                                <!-- Step 1 -->
+                                <div class="funnel-step step-1">
+                                    <span class="step-label">Leads Qualificados</span>
+                                    <span class="step-count">145</span>
+                                </div>
+                                <div class="funnel-connector"></div>
+
+                                <!-- Step 2 -->
+                                <div class="funnel-step step-2">
+                                    <span class="step-label">Propostas Enviadas</span>
+                                    <span class="step-count">68</span>
+                                </div>
+                                <div class="funnel-connector"></div>
+
+                                <!-- Step 3 -->
+                                <div class="funnel-step step-3">
+                                    <span class="step-label">Contratos Fechados</span>
+                                    <span class="step-count">19</span>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                </main>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div> <!-- end app-container -->
+        </div> <!-- end main-content -->
+    </div> <!-- end layout-wrapper -->
+
+    <!-- Supabase Core Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Supabase Configuration (Sensitive data) -->
+    <script src="supabase-config.js"></script>
+
+    <!-- Supabase Integration Logic (Modular) -->
+    <script src="supabase-logic.js?v=2"></script>
+
+    <!-- Dashboard main script -->
+    <script src="script.js"></script>
+</body>
+
+</html>

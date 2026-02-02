@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculadora de Custos - Quantic</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="theme-handler.js"></script>
+
+    <style>
+        :root {
+            --accent-white: #ffffff;
+            --accent-gray: #a3a3a3;
+            --panel-black: #000000;
+            --panel-black-2: #0a0a0a;
+            --text-gray-light: #d4d4d4;
+        }
+
+        .calc-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--spacing-xl);
+        }
+
+        .calc-card {
+            background: linear-gradient(180deg, var(--panel-black-2), var(--panel-black));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .calc-header {
+            margin-bottom: var(--spacing-xl);
+            text-align: center;
+        }
+
+        .calc-header h2 {
+            color: var(--accent-white);
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .calc-header p {
+            color: var(--text-muted);
+        }
+
+        .input-group {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .input-group label {
+            display: block;
+            color: var(--accent-gray);
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .input-field {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            color: white;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-white);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: var(--spacing-xl);
+        }
+
+        .result-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+
+        .result-item .label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .result-item .value {
+            color: var(--accent-white);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .btn-calculate {
+            width: 100%;
+            background: var(--accent-white);
+            color: black;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: var(--spacing-md);
+        }
+
+        .btn-calculate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-save {
+            width: 100%;
+            background: transparent;
+            color: var(--accent-white);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: var(--spacing-sm);
+        }
+
+        .btn-save:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent-white);
+        }
+
+        .saved-section {
+            margin-top: var(--spacing-xl);
+            background: var(--panel-black-2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+        }
+
+        .saved-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--spacing-md);
+        }
+
+        .saved-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--accent-gray);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .saved-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--accent-white);
+            font-size: 14px;
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: #ff4444;
+            cursor: pointer;
+            font-size: 18px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-delete:hover {
+            opacity: 0.7;
+        }
+    </style>
+
+
+</head>
+
+<body class="page-dashboard">
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header" style="justify-content: flex-start; padding-left: 24px;">
+                <img src="logo.png" alt="Logo" class="sidebar-logo" />
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="ph-fill ph-shopping-cart"></i>
+                    <span class="link-text">Pedidos</span>
+                </a>
+                <a href="ranking-produtos.html" class="nav-link">
+                    <i class="ph-fill ph-trophy"></i>
+                    <span class="link-text">Ranking de Produtos</span>
+                </a>
+                <a href="carrinhos-abandonados.html" class="nav-link">
+                    <i class="ph-fill ph-shopping-cart-simple"></i>
+                    <span class="link-text">Carrinhos Abandonados</span>
+                </a>
+                <a href="calculadora-custos.html" class="nav-link active">
+                    <i class="ph-fill ph-calculator"></i>
+                    <span class="link-text">Calculadora Custos</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <!-- Theme toggle removed as per user request -->
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Calculadora de Custos</h1>
+                    </div>
+                </header>
+
+                <main class="calc-container">
+                    <div class="calc-card">
+                        <div class="calc-header">
+                            <h2>Simule seus Custos Shopee</h2>
+                            <p>Calcule seu lucro real e margem após todas as taxas e custos.</p>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Nome do Produto</label>
+                            <input type="text" id="nome-produto" class="input-field"
+                                placeholder="Ex: Corrente Grumet 60cm">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="input-group">
+                                <label>Taxa Shopee (%)</label>
+                                <input type="number" id="taxa-shopee" class="input-field" value="20" step="0.5">
+                            </div>
+
+                            <div class="input-group">
+                                <label>Imposto (%)</label>
+                                <input type="number" id="imposto" class="input-field" value="0" step="0.5">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Taxa Fixa (R$)</label>
+                            <input type="number" id="taxa-fixa" class="input-field" value="4.00" step="0.5">
+                        </div>
+
+                        <hr style="border: none; border-top: 1px solid rgba(212, 175, 55, 0.1); margin: 20px 0;">
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="input-group">
+                                <label>Custo do Produto (R$)</label>
+                                <input type="number" id="custo-produto" class="input-field" value="12.50" step="0.01">
+                            </div>
+
+                            <div class="input-group">
+                                <label>Insumos (R$)</label>
+                                <input type="number" id="insumos" class="input-field" value="0.30" step="0.01">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="input-group">
+                                <label>Custo Ads (R$)</label>
+                                <input type="number" id="custo-ads" class="input-field" value="0" step="0.01">
+                            </div>
+
+                            <div class="input-group">
+                                <label>Preço de Venda (R$)</label>
+                                <input type="number" id="preco-venda" class="input-field" value="24.90" step="0.01">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <button class="btn-calculate" onclick="calculate()">Calcular Lucro</button>
+                            <button class="btn-save" onclick="saveCalculation()">Salvar Registro</button>
+                        </div>
+
+                        <div class="results-grid">
+                            <div class="result-item">
+                                <span class="label">Lucro Líquido</span>
+                                <div class="value" id="result-lucro"
+                                    style="color: var(--accent-green); text-shadow: 0 0 15px var(--accent-green-glow);">
+                                    <i class="ph-fill ph-money"></i>
+                                    <span>R$ 0,00</span>
+                                </div>
+                            </div>
+                            <div class="result-item">
+                                <span class="label">Margem Real</span>
+                                <div class="value" id="result-margem"
+                                    style="color: var(--accent-blue); text-shadow: 0 0 15px var(--accent-blue-glow);">
+                                    <i class="ph-fill ph-chart-line-up"></i>
+                                    <span>0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="saved-section">
+                        <div class="calc-header" style="text-align: left; margin-bottom: var(--spacing-md);">
+                            <h2>Registros Salvos</h2>
+                            <p>Histórico de simulações realizadas.</p>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="saved-table">
+                                <thead>
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th>Preço Venda</th>
+                                        <th>Lucro</th>
+                                        <th>Margem</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="saved-list">
+                                    <!-- Saved items will go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </main>
+                <footer class="main-footer"
+                    style="margin-top: 80px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.9;">
+                        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Powered by</span>
+                        <img src="logo quantic na melhor qualidade.png" alt="Quantic Logo"
+                            style="height: 18px; object-fit: contain;">
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase Core Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
+    <script>
+        let currentCalculatedProfit = 0;
+        let currentCalculatedMargin = 0;
+        let sbClient;
+
+        function initSupabase() {
+            if (window.supabase && window.SUPABASE_CONFIG) {
+                sbClient = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.URL,
+                    window.SUPABASE_CONFIG.KEY
+                );
+                return true;
+            }
+            return false;
+        }
+
+        function calculate() {
+            const taxaShopeeVal = parseFloat(document.getElementById('taxa-shopee').value) || 0;
+            const impostoVal = parseFloat(document.getElementById('imposto').value) || 0;
+            const taxaFixa = parseFloat(document.getElementById('taxa-fixa').value) || 0;
+
+            const custoProduto = parseFloat(document.getElementById('custo-produto').value) || 0;
+            const insumos = parseFloat(document.getElementById('insumos').value) || 0;
+            const custoAds = parseFloat(document.getElementById('custo-ads').value) || 0;
+            const precoVenda = parseFloat(document.getElementById('preco-venda').value) || 0;
+
+            // Marketplace Fees
+            const shopeeFee = precoVenda * (taxaShopeeVal / 100);
+            const taxAmount = precoVenda * (impostoVal / 100);
+
+            // Profit Calculation
+            currentCalculatedProfit = precoVenda - shopeeFee - taxAmount - taxaFixa - custoProduto - insumos - custoAds;
+
+            // Margin Calculation
+            currentCalculatedMargin = precoVenda > 0 ? (currentCalculatedProfit / precoVenda) * 100 : 0;
+
+            const profitLabel = document.querySelector('#result-lucro span');
+            const marginLabel = document.querySelector('#result-margem span');
+            const profitDiv = document.getElementById('result-lucro');
+            const marginDiv = document.getElementById('result-margem');
+
+            profitLabel.textContent = 'R$ ' + currentCalculatedProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            marginLabel.textContent = currentCalculatedMargin.toFixed(0) + '%';
+
+            // Dynamic colors
+            if (currentCalculatedProfit < 0) {
+                profitDiv.style.color = 'var(--accent-red)';
+                profitDiv.style.textShadow = '0 0 15px var(--accent-red-glow)';
+            } else {
+                profitDiv.style.color = 'var(--accent-green)';
+                profitDiv.style.textShadow = '0 0 15px var(--accent-green-glow)';
+            }
+
+            if (currentCalculatedMargin < 0) {
+                marginDiv.style.color = 'var(--accent-red)';
+                marginDiv.style.textShadow = '0 0 15px var(--accent-red-glow)';
+            } else {
+                marginDiv.style.color = 'var(--accent-blue)';
+                marginDiv.style.textShadow = '0 0 15px var(--accent-blue-glow)';
+            }
+        }
+
+        async function saveCalculation() {
+            if (!sbClient) return;
+
+            const nome = document.getElementById('nome-produto').value || 'Produto Sem Nome';
+            const precoVenda = parseFloat(document.getElementById('preco-venda').value) || 0;
+            const saveBtn = document.querySelector('.btn-save');
+
+            const originalHtml = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Salvando...';
+            saveBtn.disabled = true;
+
+            const { error } = await sbClient
+                .from('calculos_shopee')
+                .insert([{
+                    nome_produto: nome,
+                    preco_venda: precoVenda,
+                    lucro: currentCalculatedProfit,
+                    margem: currentCalculatedMargin
+                }]);
+
+            saveBtn.innerHTML = originalHtml;
+            saveBtn.disabled = false;
+
+            if (error) {
+                console.error('Error saving:', error);
+                alert('Erro ao salvar no banco. Verifique a tabela "calculos_shopee".');
+                return;
+            }
+
+            document.getElementById('nome-produto').value = '';
+            await renderSaved();
+        }
+
+        async function deleteCalculation(id) {
+            if (!sbClient) return;
+            if (!confirm('Deseja excluir este registro?')) return;
+
+            const { error } = await sbClient
+                .from('calculos_shopee')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error deleting:', error);
+                return;
+            }
+            await renderSaved();
+        }
+
+        async function renderSaved() {
+            const list = document.getElementById('saved-list');
+            if (!sbClient) return;
+
+            list.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;"><i class="ph ph-circle-notch animate-spin"></i> Carregando...</td></tr>';
+
+            const { data, error } = await sbClient
+                .from('calculos_shopee')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                list.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ff4444;">Erro ao carregar dados.</td></tr>';
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                list.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum registro no banco.</td></tr>';
+                return;
+            }
+
+            list.innerHTML = data.map(item => `
+                <tr>
+                    <td><strong>${item.nome_produto}</strong></td>
+                    <td>R$ ${parseFloat(item.preco_venda).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td style="color: ${item.lucro > 0 ? '#10b981' : '#ff4444'}">R$ ${parseFloat(item.lucro).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td>${parseFloat(item.margem).toFixed(0)}%</td>
+                    <td>
+                        <button class="btn-delete" onclick="deleteCalculation(${item.id})">
+                            <i class="ph ph-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (initSupabase()) {
+                calculate();
+                await renderSaved();
+            }
+        });
+    </script>
+</body>
+
+</html>
+
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic Contatos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .contacts-table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .contacts-table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow-x: auto;
+        }
+
+        .contacts-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .contacts-table th {
+            text-align: left;
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .contacts-table td {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 14px;
+            color: var(--text-white);
+        }
+
+        .contacts-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .contact-name-cell {
+            font-weight: 600;
+        }
+
+        .badge-audience {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            background: var(--primary-purple);
+            color: white;
+        }
+
+        .revenue-cell {
+            color: var(--secondary-green);
+            font-weight: 600;
+        }
+
+        .difficulty-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 350px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px 16px 10px 42px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-gray);
+            font-size: 20px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="page-dashboard">
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="dezoitoklogo.png" alt="Dezoitok Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="ph-fill ph-house"></i>
+                    <span class="link-text">Dashboard</span>
+                </a>
+                <a href="calculadora-custos.html" class="nav-link">
+                    <i class="ph-fill ph-calculator"></i>
+                    <span class="link-text">Calculadora Custos</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="themeToggle" class="nav-link theme-btn">
+                    <i class="ph ph-sun"></i>
+                    <span class="link-text">Modo Claro</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Gestão de Contatos</h1>
+                    </div>
+                </header>
+
+                <div class="contacts-table-header">
+                    <h2>Lista de Leads</h2>
+                    <div class="filter-group">
+                        <div class="search-wrapper">
+                            <i class="ph ph-magnifying-glass search-icon"></i>
+                            <input type="text" id="contactSearch" class="search-input"
+                                placeholder="Pesquisar por nome, empresa, e-mail...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="contacts-table-container">
+                    <table class="contacts-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Cliente</th>
+                                <th>Empresa</th>
+                                <th>Telefone</th>
+                                <th>Email</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-body">
+                            <!-- Data from Supabase will go here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="script.js"></script>
+    <script>
+        let sbClient;
+        let allContacts = [];
+
+        function initSupabase() {
+            if (window.supabase && window.SUPABASE_CONFIG) {
+                sbClient = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.URL,
+                    window.SUPABASE_CONFIG.KEY
+                );
+                return true;
+            }
+            return false;
+        }
+
+        async function fetchContacts() {
+            if (!sbClient) return [];
+
+            try {
+                const { data, error } = await sbClient
+                    .from('contacts')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching contacts:', error);
+                    return [];
+                }
+                allContacts = data;
+                return data;
+            } catch (err) {
+                console.error('Fetch error:', err);
+                return [];
+            }
+        }
+
+        function renderTable(contacts) {
+            const body = document.getElementById('contacts-body');
+
+            if (contacts.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum contato encontrado.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = '';
+            contacts.forEach(contact => {
+                const tr = document.createElement('tr');
+                const date = contact.created_at ? new Date(contact.created_at).toLocaleDateString('pt-BR') : '---';
+
+                tr.innerHTML = `
+                    <td class="contact-name-cell">${contact.full_name || '---'}</td>
+                    <td>${contact.company_name || '---'}</td>
+                    <td>${contact.phone || '---'}</td>
+                    <td>${contact.email || '---'}</td>
+                    <td>${date}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        async function initPage() {
+            const body = document.getElementById('contacts-body');
+            body.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="ph ph-circle-notch animate-spin" style="font-size: 24px;"></i><br>Carregando contatos...</td></tr>';
+
+            await fetchContacts();
+            renderTable(allContacts);
+
+            const searchInput = document.getElementById('contactSearch');
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = allContacts.filter(contact =>
+                    (contact.full_name?.toLowerCase().includes(term)) ||
+                    (contact.company_name?.toLowerCase().includes(term)) ||
+                    (contact.email?.toLowerCase().includes(term)) ||
+                    (contact.phone?.toLowerCase().includes(term))
+                );
+                renderTable(filtered);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (initSupabase()) {
+                initPage();
+            } else {
+                console.error('Supabase not configured');
+            }
+        });
+    </script>
+</body>
+
+</html>

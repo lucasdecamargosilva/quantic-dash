@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ranking de Produtos | Cacife Brand</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="theme-handler.js"></script>
+
+    <style>
+        .ranking-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--text-white);
+        }
+
+        .rank-1 .ranking-badge {
+            background: #ffd700;
+            color: black;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .rank-2 .ranking-badge {
+            background: #c0c0c0;
+            color: black;
+        }
+
+        .rank-3 .ranking-badge {
+            background: #cd7f32;
+            color: black;
+        }
+    </style>
+</head>
+
+<body class="page-dashboard">
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Logo" class="sidebar-logo" />
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <i class="ph-fill ph-shopping-cart"></i>
+                    <span class="link-text">Pedidos</span>
+                </a>
+                <a href="ranking-produtos.html" class="nav-link active">
+                    <i class="ph-fill ph-trophy"></i>
+                    <span class="link-text">Ranking de Produtos</span>
+                </a>
+                <a href="carrinhos-abandonados.html" class="nav-link">
+                    <i class="ph-fill ph-shopping-cart-simple"></i>
+                    <span class="link-text">Carrinhos Abandonados</span>
+                </a>
+                <a href="calculadora-custos.html" class="nav-link">
+                    <i class="ph-fill ph-calculator"></i>
+                    <span class="link-text">Calculadora Custos</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <!-- Theme toggle removed as per user request -->
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Ranking de Produtos</h1>
+                    </div>
+
+                    <div class="header-center">
+                        <div class="filter-group">
+                            <button class="period-btn active" data-period="7">7 Dias</button>
+                            <button class="period-btn" data-period="30">30 Dias</button>
+                            <button class="period-btn" data-period="all">Tudo</button>
+                            <button class="period-btn" data-period="custom">Personalizado</button>
+                        </div>
+                        <div id="custom-date-picker"
+                            style="display: none; align-items: center; gap: 8px; margin-left: 16px;">
+                            <input type="date" id="date-start" class="date-input">
+                            <span style="color: var(--accent-gray)">até</span>
+                            <input type="date" id="date-end" class="date-input">
+                            <button id="apply-custom-date" class="apply-btn">Aplicar</button>
+                        </div>
+                    </div>
+                </header>
+
+                <main class="dashboard-grid">
+
+
+
+
+                    <!-- Table Section -->
+                    <section class="dashboard-grid">
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3><i class="ph-fill ph-list-numbers"></i> Ranking Detalhado</h3>
+                            </div>
+                            <div class="table-container">
+                                <table class="custom-table" id="ranking-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 80px;">Posição</th>
+                                            <th>Produto</th>
+                                            <th style="text-align: right;">Qtd. Vendida</th>
+                                            <th style="text-align: right;">Faturamento (Est.)</th>
+                                            <th style="text-align: right;">% do Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ranking-tbody">
+                                        <tr>
+                                            <td colspan="5"
+                                                style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                                Carregando dados...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                </main>
+
+                <footer class="main-footer"
+                    style="margin-top: 80px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.9;">
+                        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Powered by</span>
+                        <img src="logo quantic na melhor qualidade.png" alt="Quantic Logo"
+                            style="height: 18px; object-fit: contain;">
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let supabaseClient;
+        let chartRanking = null;
+        let currentPeriod = '7';
+
+        function initSupabase() {
+            if (window.supabase && window.SUPABASE_CONFIG) {
+                supabaseClient = window.supabase.createClient(
+                    window.SUPABASE_CONFIG.URL,
+                    window.SUPABASE_CONFIG.KEY
+                );
+                return true;
+            }
+            return false;
+        }
+
+        async function fetchRankingData(period = '7', customStart = null, customEnd = null) {
+            if (!supabaseClient) return;
+            currentPeriod = period;
+
+            let startDate, endDate;
+            const now = new Date();
+            endDate = now.toISOString();
+
+            if (period === 'custom' && customStart && customEnd) {
+                startDate = new Date(customStart).toISOString();
+                endDate = new Date(customEnd + 'T23:59:59').toISOString();
+            } else if (period === 'all') {
+                startDate = '2000-01-01T00:00:00Z';
+                endDate = now.toISOString();
+            } else {
+                const days = parseInt(period);
+                const start = new Date();
+                start.setDate(now.getDate() - days);
+                startDate = start.toISOString();
+            }
+
+            try {
+                let allOrders = [];
+                let from = 0;
+                let to = 999;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const { data, error } = await supabaseClient
+                        .from('cacife_orders')
+                        .select('product_name, product_price, quantity_buyed, total, payment_status, status')
+                        .gte('created_at', startDate)
+                        .lte('created_at', endDate)
+                        .range(from, to);
+
+                    if (error) throw error;
+                    allOrders = [...allOrders, ...data];
+
+                    if (data.length < 1000) {
+                        hasMore = false;
+                    } else {
+                        from += 1000;
+                        to += 1000;
+                    }
+                }
+
+                processRanking(allOrders);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('ranking-tbody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-danger);">Erro ao carregar dados.</td></tr>';
+            }
+        }
+
+        function processRanking(orders) {
+            const productStats = {};
+            let totalItemsAll = 0;
+            let totalRevenueAll = 0;
+
+            orders.forEach(order => {
+                // Filter valid sales only? Usually users want to see all or confirmed.
+                // dashboard.html filters revenue by 'confirmado'. Let's do the same for revenue, but maybe count all for popularity?
+                // Let's count 'confirmed' and 'pending' for popularity, exclude cancelled/refunded for revenue.
+
+                const status = order.status?.toLowerCase() || '';
+                const payStatus = order.payment_status?.toLowerCase() || '';
+
+                // Skip cancelled orders for ranking?
+                if (status === 'cancelled' || status === 'cancelado') return;
+
+                let name = order.product_name || 'Produto Desconhecido';
+                let price = parseFloat(order.product_price) || 0;
+                let qty = parseFloat(order.quantity_buyed) || 1; // Default to 1 if not present but row exists
+
+                // Normalize name
+                name = name.trim();
+
+                if (!productStats[name]) {
+                    productStats[name] = { qty: 0, revenue: 0 };
+                }
+
+                productStats[name].qty += qty;
+                totalItemsAll += qty;
+
+                // For revenue, be strict
+                if (payStatus === 'paid' || payStatus === 'pago' || payStatus === 'approved' || payStatus === 'aprovado' || payStatus === 'confirmado') {
+                    // If individual product price is known, use it * qty. Otherwise might be tricky if order total is mixed.
+                    // Here we have product_price per row, so it's safe.
+                    const rev = price * qty;
+                    productStats[name].revenue += rev;
+                    totalRevenueAll += rev;
+                }
+            });
+
+            // Convert to array and sort
+            const rankedList = Object.entries(productStats).map(([name, stats]) => ({
+                name,
+                qty: stats.qty,
+                revenue: stats.revenue
+            })).sort((a, b) => b.qty - a.qty);
+
+            updateUI(rankedList, totalItemsAll, totalRevenueAll);
+        }
+
+        function updateUI(rankedList, totalItems, totalRevenue) {
+            renderTable(rankedList, totalItems);
+        }
+
+
+
+        function renderTable(rankedList, totalItems) {
+            const tbody = document.getElementById('ranking-tbody');
+            tbody.innerHTML = '';
+
+            if (rankedList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum dado encontrado no período.</td></tr>';
+                return;
+            }
+
+            rankedList.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                const rank = index + 1;
+                let rankClass = '';
+                if (rank === 1) rankClass = 'rank-1';
+                else if (rank === 2) rankClass = 'rank-2';
+                else if (rank === 3) rankClass = 'rank-3';
+
+                const pct = totalItems > 0 ? ((item.qty / totalItems) * 100).toFixed(1) : 0;
+
+                tr.className = rankClass;
+                tr.innerHTML = `
+                    <td>
+                        <div class="ranking-badge">${rank}</div>
+                    </td>
+                    <td style="font-weight: 500; color: ${rank <= 3 ? 'white' : 'var(--text-gray-light)'};">
+                        ${item.name}
+                    </td>
+                    <td style="text-align: right; font-weight: 700;">${item.qty}</td>
+                    <td style="text-align: right;">${item.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td style="text-align: right; font-size: 13px; color: var(--text-muted);">${pct}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (initSupabase()) {
+                fetchRankingData('7');
+            }
+
+            // Period filter logic
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const period = this.dataset.period;
+                    const customPicker = document.getElementById('custom-date-picker');
+
+                    if (period === 'custom') {
+                        customPicker.style.display = 'flex';
+                    } else {
+                        customPicker.style.display = 'none';
+                        fetchRankingData(period);
+                    }
+                });
+            });
+
+            document.getElementById('apply-custom-date').addEventListener('click', () => {
+                const start = document.getElementById('date-start').value;
+                const end = document.getElementById('date-end').value;
+                if (start && end) {
+                    fetchRankingData('custom', start, end);
+                } else {
+                    alert('Selecione ambas as datas.');
+                }
+            });
+
+            // Sidebar toggle
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('toggleSidebar');
+            if (toggleBtn) {
+                toggleBtn.onclick = () => sidebar.classList.toggle('collapsed');
+            }
+        });
+    </script>
+</body>
+
+</html>
