@@ -6,34 +6,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quantic Conversas</title>
 
+    <!-- Favicons / theme (usa a imagem anexada: favicon.png) -->
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
 
     <link rel="stylesheet" href="style.css" />
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="theme-handler.js"></script>
+    <!-- Supabase Core & Configuration (MUST BE IN HEAD) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
 
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         /* =========================
        AQUI está o ajuste principal
        ========================= */
 
+        .app-container {
+            padding: 10px !important;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-header {
+            margin-bottom: 10px !important;
+            padding: 5px 0 !important;
+        }
+
+        .page-title {
+            font-size: 18px !important;
+        }
+
         .conversations-container {
-            /* Antes: height: calc(100vh - 160px); */
-            height: calc(100vh - 120px);
-            /* diminua esse número para ficar maior */
+            flex: 1;
+            height: auto !important;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
             overflow: hidden;
             position: relative;
-
             display: flex;
             flex-direction: column;
             min-height: 0;
-            /* importante em alguns layouts flex */
+        }
+
+        .main-footer {
+            display: none !important;
         }
 
         .chat-header {
@@ -60,15 +86,15 @@
             gap: 6px;
             font-size: 12px;
             font-weight: 600;
-            color: var(--text-white);
+            color: var(--secondary-green);
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
-            background: #ffffff;
+            background: var(--secondary-green);
             border-radius: 50%;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 8px var(--secondary-green);
         }
 
         .chatwoot-iframe {
@@ -104,8 +130,8 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top-color: #ffffff;
+            border: 4px solid rgba(139, 92, 246, 0.1);
+            border-top-color: var(--primary-purple);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 16px;
@@ -118,7 +144,7 @@
         }
 
         .error-message {
-            color: var(--text-muted);
+            color: #ff4444;
             font-size: 14px;
             margin-top: 10px;
             max-width: 400px;
@@ -138,21 +164,33 @@
             </div>
 
             <nav class="sidebar-nav">
-                <a href="dashboard.html" class="nav-link">
-                    <i class="ph-fill ph-house"></i>
-                    <span class="link-text">Dashboard</span>
+                <a href="index.html" class="nav-link">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span class="link-text">Desempenho</span>
                 </a>
-                <a href="calculadora-custos.html" class="nav-link">
-                    <i class="ph-fill ph-calculator"></i>
-                    <span class="link-text">Calculadora Custos</span>
+                <a href="crm.html" class="nav-link">
+                    <i class="ph-fill ph-table"></i>
+                    <span class="link-text">CRM Quantic</span>
+                </a>
+                <a href="contatos.html" class="nav-link">
+                    <i class="ph-fill ph-user"></i>
+                    <span class="link-text">Contatos</span>
+                </a>
+                <a href="conversas.html" class="nav-link active">
+                    <i class="ph-fill ph-chats-teardrop"></i>
+                    <span class="link-text">Conversas</span>
+                </a>
+                <a href="captacao.html" class="nav-link">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span class="link-text">Captação</span>
+                </a>
+                <a href="materialize.html" class="nav-link">
+                    <i class="ph-fill ph-magic-wand"></i>
+                    <span class="link-text">Materialize</span>
                 </a>
             </nav>
 
             <div class="sidebar-footer">
-                <button id="themeToggle" class="nav-link theme-btn">
-                    <i class="ph ph-sun"></i>
-                    <span class="link-text">Modo Claro</span>
-                </button>
             </div>
         </aside>
 
@@ -174,8 +212,7 @@
                     </div>
 
                     <iframe id="chatwoot-frame" class="chatwoot-iframe"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
-                        allow="camera;microphone;clipboard-read;clipboard-write;">
+                        allow="camera;microphone;clipboard-read;clipboard-write;display-capture;autoplay">
                     </iframe>
 
                     <div id="loading-overlay" class="loading-overlay">
@@ -209,7 +246,7 @@
                 try {
                     statusText.textContent = 'Autenticando...';
 
-                    const response = await fetch('http://localhost:3000/api/chatwoot/sso', {
+                    const response = await fetch('/api/chatwoot/sso', {
                         method: 'GET',
                         credentials: 'include',
                         headers: { 'Accept': 'application/json' }
@@ -222,13 +259,9 @@
 
                     statusText.textContent = 'Carregando inbox...';
 
-                    // IMPORTANTE: usando o proxy raiz (sem /chatwoot)
-                    const proxyUrl = data.ssoUrl.replace(
-                        'https://chatwoot.segredosdodrop.com',
-                        'http://localhost:3000'
-                    );
-
-                    iframe.src = proxyUrl;
+                    // SEM GAMBIARRA: Usamos a URL direta do Chatwoot
+                    // Nota: Para isso funcionar, o Chatwoot deve permitir iframe (veja Passo 1)
+                    iframe.src = data.ssoUrl;
 
                     iframe.onload = () => {
                         statusText.textContent = 'Conectado';
@@ -239,7 +272,7 @@
                 } catch (err) {
                     statusText.textContent = 'Erro';
                     loadingText.innerHTML = `
-            <span style="color:var(--text-muted);">Erro ao carregar</span>
+            <span style="color:#ff4444;">Erro ao carregar</span>
             <div class="error-message">${err.message}</div>
           `;
                 }

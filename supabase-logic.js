@@ -5,18 +5,44 @@ if (!window.logDebug) {
 
 let supabaseClient;
 
-// Initialize Supabase if global config is present
-function initSupabase() {
+// Initialize Supabase using the global client from auth.js
+async function initSupabase() {
+    window.logDebug("initSupabase called...");
     try {
-        if (window.supabase && window.SUPABASE_CONFIG) {
-            supabaseClient = window.supabase.createClient(
-                window.SUPABASE_CONFIG.URL,
-                window.SUPABASE_CONFIG.KEY
-            );
-            window.logDebug("Supabase Client Initialized");
+        // Wait for config to load
+        if (window.CONFIG_LOADED) {
+            window.logDebug("Waiting for CONFIG_LOADED promise...");
+            await window.CONFIG_LOADED;
+            window.logDebug("CONFIG_LOADED resolved.");
+        }
+
+        // Robust waiting for supabaseClient (up to 5 seconds)
+        let attempts = 0;
+        window.logDebug("Searching for window.supabaseClient...");
+        while (!window.supabaseClient && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+
+        if (window.supabaseClient) {
+            supabaseClient = window.supabaseClient;
+            window.logDebug("Global Supabase Client found. Verifying session...");
+
+            // Explicitly wait for session to be recovered from storage
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            if (error) {
+                window.logDebug("Session error: " + error.message);
+            }
+            if (session) {
+                window.logDebug("Session active for: " + session.user.email);
+            } else {
+                window.logDebug("No active session found in client.");
+            }
+
             return true;
         } else {
-            window.logDebug("FAILED: Supabase library or config missing!");
+            window.logDebug("FAILED: Global Supabase Client missing after 5s!");
+            if (window.showToast) window.showToast("Erro de Conexão: Cliente não inicializado", "error");
             return false;
         }
     } catch (e) {
@@ -155,9 +181,12 @@ function formatBRL(value) {
 }
 
 async function fetchAICostsByPeriod(startDate, endDate) {
-    if (!supabaseClient) return;
+    if (!supabaseClient) {
+        window.logDebug("Abort fetchAICosts: No supabaseClient");
+        return;
+    }
 
-    window.logDebug(`Fetching data from ${startDate} to ${endDate}...`);
+    window.logDebug(`fetchAICosts called: ${startDate} to ${endDate}`);
 
     // UI Loading state
     const loadingIds = ['ai-input-value', 'ai-output-value', 'ai-total-value'];
@@ -167,18 +196,24 @@ async function fetchAICostsByPeriod(startDate, endDate) {
     });
 
     try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return;
+
         const { data, error } = await supabaseClient
             .from('custos_modelo')
             .select('*')
             .gte('data_request', startDate)
             .lte('data_request', endDate)
+            .eq('user_id', user.id)
             .order('data_request', { ascending: true });
 
         if (error) {
-            window.logDebug("API ERROR: " + error.message);
-            showToast("Erro API", "error");
+            window.logDebug("API ERROR (custos_modelo): " + error.message);
+            if (window.showToast) window.showToast("Erro ao carregar métricas de IA", "error");
             return;
         }
+
+        window.logDebug(`API Success: Received ${data ? data.length : 0} rows from custos_modelo`);
 
         if (data) {
             const totals = data.reduce((acc, r) => ({
@@ -191,7 +226,7 @@ async function fetchAICostsByPeriod(startDate, endDate) {
 
             updateAIMetricsDisplay(totals);
             if (data.length > 0) {
-                showToast(`Sucesso: ${data.length} registros no período`, 'success');
+                showToast(`Dados carregados com sucesso`, 'success');
             } else {
                 showToast(`Nenhum dado encontrado para este período`, 'info');
             }
@@ -217,9 +252,13 @@ async function fetchClientes() {
     window.logDebug("Fetching clientes data...");
 
     try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return;
+
         const { data, error } = await supabaseClient
             .from('clientes')
             .select('*')
+            .eq('user_id', user.id)
             .order('cliente', { ascending: true }); // Nome exato da coluna conforme schema
 
         if (error) {
@@ -237,41 +276,14 @@ async function fetchClientes() {
     }
 }
 
-// Toast helper
-function showToast(message, type = 'info') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;';
-        document.body.appendChild(container);
-
-        const style = document.createElement('style');
-        style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`;
-        document.head.appendChild(style);
-    }
-
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        background: ${type === 'error' ? '#262626' : type === 'success' ? '#ffffff' : '#404040'};
-        color: ${type === 'success' ? '#000000' : '#ffffff'}; padding: 12px 24px; border-radius: 8px; font-family: 'Outfit', sans-serif;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-size: 14px; animation: slideIn 0.3s ease; min-width: 250px;
-    `;
-    const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
-    toast.innerHTML = `<strong>${icon}</strong> ${message}`;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 5000);
-}
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    window.logDebug("DOM Loaded - Initializing...");
+    window.logDebug("DOM Loaded - Initializing dashboard logic...");
 
-    if (initSupabase()) {
+    const initialized = await initSupabase();
+    if (initialized) {
+        window.logDebug("Supabase Initialized successfully.");
         // Period filter buttons
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.addEventListener('click', function () {
@@ -320,6 +332,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Initial fetch - Default 30 days
         setPeriodDates(30);
+        window.logDebug("Triggering initial data fetch (30 days)...");
         await fetchAICostsByPeriod(currentStartDate, currentEndDate);
         await fetchClientes();
 

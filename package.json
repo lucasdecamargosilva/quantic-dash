@@ -3,12 +3,13 @@
     "@supabase/supabase-js": "^2.90.0",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "http-proxy-middleware": "^3.0.5"
+    "http-proxy-middleware": "^3.0.3"
   },
   "name": "quantic_dashboard",
   "version": "1.0.0",
-  "main": "chatwoot-sso.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"

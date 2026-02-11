@@ -5,13 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantic Captação</title>
+
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <meta name="theme-color" content="#8b5cf6">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="lead-limits.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="theme-handler.js"></script>
+
     <style>
+        /* Estilos Base e Alinhamento */
         .capture-grid {
             display: block;
             margin-bottom: var(--spacing-xl);
@@ -50,16 +60,11 @@
             transition: all 0.3s;
         }
 
-        .input-field:focus {
-            outline: none;
-            border-color: var(--primary-purple);
-            background: rgba(255, 255, 255, 0.1);
-        }
-
+        /* Canais */
         .channel-selector {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
             margin-bottom: var(--spacing-xl);
         }
 
@@ -67,10 +72,11 @@
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 16px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             cursor: pointer;
             transition: all 0.3s;
@@ -78,20 +84,14 @@
         }
 
         .channel-btn i {
-            font-size: 24px;
+            font-size: 32px;
         }
 
         .channel-btn.active {
             border-color: var(--primary-purple);
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(139, 92, 246, 0.1);
             color: white;
             box-shadow: 0 0 15px var(--primary-purple-glow);
-        }
-
-        .channel-btn.disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            filter: grayscale(1);
         }
 
         .btn-capture {
@@ -111,11 +111,7 @@
             transition: all 0.3s;
         }
 
-        .btn-capture:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px var(--primary-purple-glow);
-        }
-
+        /* Tabelas */
         .leads-table-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -141,11 +137,12 @@
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
-            transition: background-color 0.2s;
         }
 
-        .table-header:hover {
-            background-color: rgba(255, 255, 255, 0.03);
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .table-header-left {
@@ -197,6 +194,75 @@
             font-size: 14px;
         }
 
+        /* Botões CRM e Refresh */
+        .btn-crm {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-crm:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-crm:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .btn-refresh {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            color: var(--primary-purple);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: white;
+            padding: 8px 12px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-select:hover {
+            border-color: var(--primary-purple);
+        }
+
+        .filter-select option {
+            background: var(--bg-card);
+            color: white;
+        }
+
+        .lead-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-purple);
+        }
+
         .profile-info {
             display: flex;
             align-items: center;
@@ -214,38 +280,7 @@
             font-size: 14px;
             font-weight: 700;
             color: white;
-        }
-
-        .profile-link {
-            color: var(--primary-purple);
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .profile-link:hover {
-            text-decoration: underline;
-        }
-
-        .status-pill {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        .status-pill.new {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--secondary-green);
-        }
-
-        .status-pill.qualificado {
-            background: rgba(139, 92, 246, 0.1);
-            color: var(--primary-purple);
-        }
-
-        .status-pill.desqualificado {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-muted);
+            flex-shrink: 0;
         }
 
         .loading-shimmer {
@@ -264,762 +299,1587 @@
             }
         }
 
-        /* Estilos para linhas expansíveis */
-        .clickable-row {
-            cursor: pointer;
-            transition: background-color 0.2s;
+        .animate-spin {
+            animation: spin 1s linear infinite;
         }
 
-        .clickable-row:hover {
-            background-color: rgba(255, 255, 255, 0.05);
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
 
-        .detail-row {
-            display: none;
-            background: rgba(255, 255, 255, 0.02);
+        .btn-capture:active {
+            transform: scale(0.98);
         }
 
-        .detail-row.visible {
-            display: table-row;
+        .btn-capture:disabled {
+            background: var(--bg-card-hover);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            border: 1px solid var(--border-color);
         }
 
-        .detail-content {
-            padding: var(--spacing-lg);
-            border-left: 3px solid var(--primary-purple);
-        }
-
-        .detail-section {
-            margin-bottom: var(--spacing-md);
-        }
-
-        .detail-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .detail-label {
-            font-size: 12px;
+        /* Status Badges */
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
             font-weight: 700;
-            color: var(--text-gray);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        .detail-value {
-            font-size: 14px;
-            color: var(--text-primary);
+        .status-pill.qualified {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-pill.disqualified {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .score-badge {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary-purple);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        /* Modal Details */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        /* Modal Details - Split Layout */
+        .modal {
+            display: none;
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .modal.visible {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 1100px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+            overflow: hidden;
+        }
+
+        /* Corta o scroll interno pra usar o do modal */
+
+
+        .modal-body {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            flex: 1;
+            overflow: hidden;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .modal-sidebar {
+            background: rgba(255, 255, 255, 0.02);
+            padding: var(--spacing-lg);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .modal-main {
+            padding: var(--spacing-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: var(--spacing-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-header .profile-info {
+            gap: 16px;
+        }
+
+        .close-modal {
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--text-gray);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .info-block {
+            margin-bottom: 20px;
+        }
+
+        .info-block label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .info-block p,
+        .info-block div {
+            font-size: 15px;
+            color: white;
             line-height: 1.6;
         }
 
-        .signals-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .signals-list li {
-            padding: 4px 0;
-            padding-left: 16px;
-            position: relative;
-        }
-
-        .signals-list li:before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: var(--primary-purple);
-            font-weight: bold;
-        }
-
-        .expand-icon {
-            transition: transform 0.3s;
-        }
-
-        .expand-icon.rotated {
-            transform: rotate(180deg);
-        }
-
         .insight-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius-md);
-            padding: var(--spacing-md);
-            margin-bottom: var(--spacing-lg);
+            padding: 16px;
+            background: rgba(139, 92, 246, 0.1);
+            border-left: 4px solid var(--primary-purple);
+            border-radius: 4px;
+            font-size: 15px;
+            line-height: 1.7;
         }
 
-        .insight-box .detail-label {
+        .score-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .score-section .score-badge {
+            font-size: 24px;
+            padding: 8px 16px;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .btn-view {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary-purple);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: var(--primary-purple);
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
         }
 
-        .insight-box .detail-label i {
-            font-size: 18px;
+        .btn-view:hover {
+            background: var(--primary-purple);
+            color: white;
         }
 
-        .header-actions {
+        /* Lead Limits Indicators */
+        .limits-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .limit-card {
+            flex: 1;
             display: flex;
             align-items: center;
             gap: 12px;
+            padding: 14px 16px;
+            background: rgba(139, 92, 246, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .limit-card i {
+            font-size: 28px;
+            color: var(--primary-purple);
+        }
+
+        .limit-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .limit-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .limit-usage {
+            font-size: 16px;
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        .limit-usage.warning {
+            color: #f59e0b;
+        }
+
+        .limit-usage.danger {
+            color: #ef4444;
+        }
+
+        .limit-remaining {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .limit-card.warning {
+            border-color: rgba(251, 191, 36, 0.3);
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        .limit-card.warning i {
+            color: #f59e0b;
+        }
+
+        .limit-card.danger {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .limit-card.danger i {
+            color: #ef4444;
+        }
+
+        /* --- Modal de Limite Premium --- */
+        .limit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* --- Modal de Limite ULTRA PREMIUM --- */
+        .limit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(8, 8, 16, 0.9);
+            backdrop-filter: blur(12px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: all;
+        }
+
+        .limit-modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .limit-modal {
+            background: linear-gradient(165deg, rgba(26, 26, 46, 0.95) 0%, rgba(15, 15, 30, 0.98) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 24px;
+            width: 95%;
+            max-width: 680px;
+            padding: 40px;
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(139, 92, 246, 0.15),
+                inset 0 0 20px rgba(255, 255, 255, 0.02);
+            transform: scale(0.9) translateY(30px);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .limit-modal::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .limit-modal-overlay.active .limit-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .btn-limit-close-x {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.4);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 20px;
+            z-index: 10;
+        }
+
+        .btn-limit-close-x:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .limit-modal-layout {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+            position: relative;
+        }
+
+        .limit-modal-icon-container {
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .limit-modal-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.2) 100%);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f87171;
+            font-size: 40px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.1);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .limit-modal-main {
+            flex-grow: 1;
+        }
+
+        .limit-modal-title {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.7));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .limit-modal-description {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+            max-width: 480px;
+        }
+
+        .limit-modal-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .stats-mini-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+
+        .stats-mini-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .stats-mini-card .label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .stats-mini-card .value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .stats-mini-card.active .value {
+            color: #a78bfa;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+
+        .limit-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .btn-upgrade-modal-premium {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 36px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-upgrade-modal-premium:hover {
+            transform: scale(1.05) translateY(-3px);
+            box-shadow: 0 15px 30px rgba(139, 92, 246, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .btn-upgrade-modal-premium i {
+            font-size: 20px;
+            animation: rocket-vibrate 0.5s infinite linear;
+        }
+
+        @keyframes rocket-vibrate {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            25% {
+                transform: translate(1px, -1px);
+            }
+
+            50% {
+                transform: translate(-1px, 1px);
+            }
+
+            75% {
+                transform: translate(1px, 1px);
+            }
+
+            100% {
+                transform: translate(0, 0);
+            }
         }
     </style>
 </head>
 
-<body class="page-dashboard">
+<body>
     <div class="layout-wrapper">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <img src="dezoitoklogo.png" alt="Dezoitok Logo" class="sidebar-logo">
-                <button class="toggle-btn" id="toggleSidebar">
-                    <i class="ph ph-list"></i>
-                </button>
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar"><i class="ph ph-list"></i></button>
             </div>
             <nav class="sidebar-nav">
-                <a href="dashboard.html" class="nav-link">
-                    <i class="ph-fill ph-house"></i>
-                    <span class="link-text">Dashboard</span>
-                </a>
-                <a href="calculadora-custos.html" class="nav-link">
-                    <i class="ph-fill ph-calculator"></i>
-                    <span class="link-text">Calculadora Custos</span>
+                <a href="index.html" class="nav-link"><i class="ph-fill ph-chart-line-up"></i><span
+                        class="link-text">Desempenho</span></a>
+                <a href="crm.html" class="nav-link"><i class="ph-fill ph-table"></i><span class="link-text">CRM
+                        Quantic</span></a>
+                <a href="contatos.html" class="nav-link"><i class="ph-fill ph-user"></i><span
+                        class="link-text">Contatos</span></a>
+                <a href="conversas.html" class="nav-link"><i class="ph-fill ph-chats-teardrop"></i><span
+                        class="link-text">Conversas</span></a>
+                <a href="captacao.html" class="nav-link active"><i class="ph-fill ph-funnel"></i><span
+                        class="link-text">Captação</span></a>
+                <a href="materialize.html" class="nav-link">
+                    <i class="ph-fill ph-magic-wand"></i>
+                    <span class="link-text">Materialize</span>
                 </a>
             </nav>
-            <div class="sidebar-footer">
-                <button id="themeToggle" class="nav-link theme-btn">
-                    <i class="ph ph-sun"></i>
-                    <span class="link-text">Modo Claro</span>
-                </button>
-            </div>
+            <div class="sidebar-footer"></div>
         </aside>
 
         <div class="main-content">
             <div class="app-container">
                 <header class="main-header">
-                    <div class="header-left">
-                        <h1 class="page-title">Captação de Leads IA</h1>
-                    </div>
+                    <h1 class="page-title">Captação de Leads IA</h1>
                 </header>
+
+                <!-- Lead Limits Indicators -->
+                <div class="limits-container" id="limitsContainer">
+                    <div class="limit-card" id="instagram-limit-card">
+                        <i class="ph-fill ph-instagram-logo"></i>
+                        <div class="limit-info">
+                            <span class="limit-label">Instagram</span>
+                            <span class="limit-usage" id="instagram-usage">0/100 leads</span>
+                            <small class="limit-remaining" id="instagram-remaining">100 disponíveis</small>
+                        </div>
+                    </div>
+
+                    <div class="limit-card" id="google_maps-limit-card">
+                        <i class="ph-fill ph-map-pin"></i>
+                        <div class="limit-info">
+                            <span class="limit-label">Google Maps</span>
+                            <span class="limit-usage" id="google_maps-usage">0/100 leads</span>
+                            <small class="limit-remaining" id="google_maps-remaining">100 disponíveis</small>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="capture-grid">
                     <div class="config-card">
                         <h3 style="margin-bottom: 20px;">Configurar Aquisição</h3>
-
                         <div style="display: grid; grid-template-columns: 350px 1fr; gap: 24px;">
-                            <!-- Left: Channels & Button -->
-                            <div style="display: flex; flex-direction: column; justify-content: space-between;">
-                                <div class="form-group" style="margin-bottom: 16px;">
+                            <div>
+                                <div class="form-group">
                                     <label>Canal de Origem</label>
-                                    <div class="channel-selector"
-                                        style="grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0;">
-                                        <div class="channel-btn active"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-instagram-logo" style="font-size: 32px;"></i>
+                                    <div class="channel-selector">
+                                        <div class="channel-btn active" id="channel-instagram"><i
+                                                class="ph-fill ph-instagram-logo"></i></div>
+                                        <div class="channel-btn" id="channel-maps"><i class="ph-fill ph-map-pin"></i>
                                         </div>
-                                        <div class="channel-btn disabled"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-linkedin-logo" style="font-size: 32px;"></i>
-                                        </div>
-                                        <div class="channel-btn disabled"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-google-logo" style="font-size: 32px;"></i>
-                                        </div>
-                                        <div class="channel-btn disabled"
-                                            style="padding: 12px; height: 100%; justify-content: center;">
-                                            <i class="ph-fill ph-facebook-logo" style="font-size: 32px;"></i>
-                                        </div>
+                                        <div class="channel-btn disabled"><i class="ph-fill ph-linkedin-logo"></i></div>
+                                        <div class="channel-btn disabled"><i class="ph-fill ph-facebook-logo"></i></div>
                                     </div>
                                 </div>
-
-                                <button class="btn-capture" id="startCapture" style="width: 100%; padding: 12px;">
-                                    <i class="ph-bold ph-lightning"></i>
-                                    INICIAR EXTRAÇÃO
-                                </button>
+                                <button class="btn-capture" id="startCapture" disabled><i
+                                        class="ph ph-circle-notch animate-spin"></i> VALIDANDO...</button>
                             </div>
 
-                            <!-- Right: Inputs -->
-                            <div
-                                style="display: flex; flex-direction: column; gap: 16px; justify-content: space-between;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>URL do Perfil Alvo</label>
-                                    <input type="text" id="targetUrl" class="input-field"
-                                        placeholder="https://instagram.com/concorrente/" style="padding: 10px;">
+                            <div id="instagramInputs" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="form-group"><label>URL do Perfil Alvo</label><input type="text"
+                                        id="targetUrl" class="input-field" placeholder="https://instagram.com/perfil/">
                                 </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>Cookie de Sessão</label>
-                                    <input type="text" id="sessionCookie" class="input-field"
-                                        placeholder="Cole seu cookie aqui..." style="padding: 10px;">
+                                <div class="form-group"><label>Cookie de Sessão</label><input type="text"
+                                        id="sessionCookie" class="input-field" placeholder="Cole seu cookie aqui...">
+                                </div>
+                            </div>
+
+                            <div id="mapsInputs" style="display: none; flex-direction: column; gap: 16px;">
+                                <div class="form-group"><label>Termo de Pesquisa</label><input type="text"
+                                        id="mapsQuery" class="input-field" placeholder="Ex: Restaurantes..."></div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div class="form-group"><label>Local</label><input type="text" id="mapsLocation"
+                                            class="input-field" placeholder="Ex: São Paulo, SP"></div>
+                                    <div class="form-group"><label>Número de Leads</label><input type="number"
+                                            id="mapsCount" class="input-field" value="20"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Raw Leads History (Collapsible) -->
-                <div class="leads-table-card collapsed" style="margin-top: var(--spacing-xl);" id="rawLeadsCard">
+                <div class="leads-table-card collapsed" id="rawLeadsCard" style="margin-top: 24px;">
                     <div class="table-header" id="rawLeadsToggle">
                         <div class="table-header-left">
                             <i class="ph-bold ph-caret-down toggle-icon" id="rawLeadsIcon"></i>
                             <div>
-                                <h3><i class="ph-fill ph-clock-counter-clockwise"></i> Histórico de Leads Capturados
-                                </h3>
-                                <p style="font-size: 12px; color: var(--text-muted);">Todos os leads extraídos
+                                <h3><i class="ph-fill ph-map-pin"></i> Histórico de Leads Google Maps</h3>
+                                <p style="font-size: 12px; color: var(--text-muted);">Dados extraídos diretamente do
+                                    Maps</p>
+                            </div>
+                        </div>
+                        <div class="header-actions">
+                            <select id="mapsHistoryFilter" class="filter-select" onclick="event.stopPropagation();"
+                                onchange="fetchRawHistory();">
+                                <option value="todos">Histórico Completo</option>
+                                <option value="recentes" selected>Últimos Leads Capturados</option>
+                            </select>
+                            <button id="refreshRawHistory" class="btn-refresh"
+                                onclick="event.stopPropagation(); fetchRawHistory();"><i
+                                    class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                            <button id="sendToCRM" class="btn-crm" onclick="event.stopPropagation();"><i
+                                    class="ph-bold ph-paper-plane-tilt"></i> Enviar para CRM</button>
+                        </div>
+                    </div>
+                    <div class="table-content" id="rawLeadsContent">
+                        <table class="leads-table">
+                            <thead>
+                                <tr id="raw-history-headers">
+                                    <th style="width: 40px;"><input type="checkbox" onclick="toggleSelectAll(this)">
+                                    </th>
+                                    <th>Empresa</th>
+                                    <th>Categoria</th>
+                                    <th>Site</th>
+                                    <th>Telefone</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-raw-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="leads-table-card collapsed" id="postsLeadsCard" style="margin-top: 24px;">
+                    <div class="table-header" id="postsLeadsToggle">
+                        <div class="table-header-left">
+                            <i class="ph-bold ph-caret-down toggle-icon" id="postsLeadsIcon"></i>
+                            <div>
+                                <h3><i class="ph-fill ph-instagram-logo"></i> Histórico de Leads Instagram</h3>
+                                <p style="font-size: 12px; color: var(--text-muted);">Processados e Analisados pela IA
                                 </p>
                             </div>
                         </div>
                         <div class="header-actions">
-                            <button id="refreshRawHistory" class="pipeline-btn active"
-                                style="padding: 8px 16px; font-size: 12px;" onclick="event.stopPropagation();">
-                                <i class="ph ph-arrows-clockwise"></i> Atualizar
-                            </button>
+                            <select id="instaStatusFilter" class="filter-select" onclick="event.stopPropagation();"
+                                onchange="fetchPostsHistory();">
+                                <option value="todos">Todos os Leads</option>
+                                <option value="recentes">Últimos Leads Capturados</option>
+                                <option value="qualificado">Qualificados</option>
+                                <option value="desqualificado">Desqualificados</option>
+                            </select>
+                            <button id="refreshPostsHistory" class="btn-refresh"
+                                onclick="event.stopPropagation(); fetchPostsHistory();"><i
+                                    class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                            <button id="sendInstaToCRM" class="btn-crm" onclick="event.stopPropagation();"><i
+                                    class="ph-bold ph-paper-plane-tilt"></i> Enviar para CRM</button>
                         </div>
                     </div>
-
-                    <div class="table-content" id="rawLeadsContent">
+                    <div class="table-content" id="postsLeadsContent">
                         <table class="leads-table">
                             <thead>
                                 <tr>
+                                    <th style="width: 40px;"><input type="checkbox"
+                                            onclick="toggleSelectAllInsta(this)"></th>
                                     <th>Lead</th>
-                                    <th>Perfil/Username</th>
-                                    <th>Bio / Descrição</th>
-                                    <th>Contato</th>
-                                    <th>Data</th>
+                                    <th>Usuário</th>
+                                    <th>Score</th>
+                                    <th>Status</th>
+                                    <th style="width: 50px;">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="history-raw-body">
-                                <tr>
-                                    <td colspan="5"
-                                        style="text-align: center; padding: 60px; color: var(--text-muted);">
-                                        <i class="ph ph-database"
-                                            style="font-size: 32px; opacity: 0.2; margin-bottom: 10px; display: block; margin: 0 auto;"></i>
-                                        Carregando histórico...
-                                    </td>
-                                </tr>
-                            </tbody>
+                            <tbody id="history-posts-body"></tbody>
                         </table>
+                    </div>
+                </div> <!-- /capture-grid -->
+            </div> <!-- /app-container -->
+        </div> <!-- /main-content -->
+    </div> <!-- /dashboard-container -->
+
+    <!-- Modal de Limite de Leads ULTRA PREMIUM -->
+    <div id="limitModalOverlay" class="limit-modal-overlay" onclick="if(event.target === this) closeLimitModal()">
+        <div class="limit-modal" onclick="event.stopPropagation()">
+            <button class="btn-limit-close-x" onclick="closeLimitModal()">
+                <i class="ph ph-x"></i>
+            </button>
+
+            <div class="limit-modal-layout">
+                <div class="limit-modal-icon-container">
+                    <div class="limit-modal-icon">
+                        <i class="ph-fill ph-warning-octagon"></i>
                     </div>
                 </div>
 
-                <!-- AI Qualified Leads -->
-                <div class="leads-table-card expanded" style="margin-top: var(--spacing-xl);">
-                    <div class="table-header">
-                        <div>
-                            <h3><i class="ph-fill ph-robot"></i> Leads Qualificados por IA</h3>
-                            <p style="font-size: 12px; color: var(--text-muted);">Leads processados e qualificados pela
-                                inteligência artificial (clique para ver detalhes)</p>
+                <div class="limit-modal-main">
+                    <h2 class="limit-modal-title">Limite Diário Atingido!</h2>
+                    <p class="limit-modal-description">
+                        Você atingiu o teto de extrações do seu plano. Desbloqueie o potencial total da nossa IA para
+                        escalar suas vendas.
+                    </p>
+
+                    <div class="limit-modal-stats-grid">
+                        <div class="stats-mini-card">
+                            <span class="label">Plano</span>
+                            <span id="modalPlanName" class="value">---</span>
                         </div>
-                        <button id="refreshIAHistory" class="pipeline-btn active"
-                            style="padding: 8px 16px; font-size: 12px;">
-                            <i class="ph ph-arrows-clockwise"></i> Atualizar
+                        <div class="stats-mini-card active">
+                            <span class="label">Restante</span>
+                            <span id="modalRemaining" class="value">0</span>
+                        </div>
+                        <div class="stats-mini-card">
+                            <span class="label">Usado Hoje</span>
+                            <span id="modalUsed" class="value">0/0</span>
+                        </div>
+                        <div class="stats-mini-card">
+                            <span class="label">Pedido</span>
+                            <span id="modalRequested" class="value">0</span>
+                        </div>
+                    </div>
+
+                    <div class="limit-modal-footer">
+                        <button class="btn-upgrade-modal-premium"
+                            onclick="window.open('https://buy.stripe.com/example', '_blank')">
+                            Fazer Upgrade Agora
+                            <i class="ph-fill ph-rocket-launch"></i>
                         </button>
                     </div>
-
-                    <div style="flex: 1; overflow-y: auto;">
-                        <table class="leads-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 30px;"></th>
-                                    <th>Lead</th>
-                                    <th>Perfil/Username</th>
-                                    <th>Bio / Descrição</th>
-                                    <th>Status</th>
-                                    <th>Contato</th>
-                                    <th>Data de Captura</th>
-                                </tr>
-                            </thead>
-                            <tbody id="history-ia-body">
-                                <tr>
-                                    <td colspan="7"
-                                        style="text-align: center; padding: 60px; color: var(--text-muted);">
-                                        <i class="ph ph-robot"
-                                            style="font-size: 32px; opacity: 0.2; margin-bottom: 10px; display: block; margin: 0 auto;"></i>
-                                        Carregando leads qualificados...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
-
-                <footer class="main-footer">
-                    <div class="footer-logo">
-                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
-                    </div>
-                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
-                </footer>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast"
-        style="position: fixed; bottom: 20px; right: 20px; background: var(--secondary-green); color: white; padding: 16px 24px; border-radius: var(--radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: translateY(150%); transition: transform 0.3s; z-index: 9999; display: flex; align-items: center; gap: 12px;">
-        <i class="ph-bold ph-check-circle" style="font-size: 24px;"></i>
-        <span id="toast-msg">Sucesso!</span>
+
+    <!-- Modal de Detalhes do Lead -->
+    <div id="leadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="profile-info">
+                    <div class="profile-avatar" id="modalAvatar" style="width: 48px; height: 48px; font-size: 20px;">S
+                    </div>
+                    <div>
+                        <h2 id="modalName" style="margin: 0; font-size: 18px;">Nome do Lead</h2>
+                        <a id="modalUser" href="#" target="_blank"
+                            style="color: var(--primary-purple); font-size: 16px; font-weight: 600;">@usuario</a>
+                    </div>
+                </div>
+                <button class="close-modal" onclick="closeLeadDetails()"><i class="ph ph-x"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Lateral: Informações Fundamentais -->
+                <aside class="modal-sidebar">
+                    <div class="info-block">
+                        <label>Qualificação</label>
+                        <div class="score-section">
+                            <div>
+                                <small
+                                    style="display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Score</small>
+                                <div id="modalScore" class="score-badge">0</div>
+                            </div>
+                            <div>
+                                <small
+                                    style="display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Status</small>
+                                <div id="modalStatus">---</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-block">
+                        <label>Contatos</label>
+                        <p id="modalEmail" style="word-break: break-all; margin-bottom: 4px;">---</p>
+                        <p id="modalPhone">---</p>
+                    </div>
+
+                    <div class="info-block">
+                        <label>Bio do Perfil</label>
+                        <p id="modalBio" style="font-size: 12px; opacity: 0.8;">---</p>
+                    </div>
+                </aside>
+
+                <!-- Principal: Análise e Insights -->
+                <main class="modal-main">
+                    <div class="info-block">
+                        <label><i class="ph-fill ph-magic-wand"></i> Insight da IA</label>
+                        <div id="modalInsight" class="insight-box">---</div>
+                    </div>
+                    <div class="info-block">
+                        <label><i class="ph-fill ph-broadcast"></i> Sinais Detectados</label>
+                        <p id="modalSignals" style="color: var(--primary-purple); font-weight: 600;">---</p>
+                    </div>
+                    <div class="info-block">
+                        <label><i class="ph-fill ph-quotes"></i> Trechos Relevantes</label>
+                        <p id="modalSnippets" style="font-style: italic; color: var(--text-gray); font-size: 12px;">---
+                        </p>
+                    </div>
+                    <div class="info-block">
+                        <label><i class="ph-fill ph-note-pencils"></i> Observações</label>
+                        <p id="modalNotes">---</p>
+                    </div>
+                </main>
+            </div>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
     <script>
         const btnCapture = document.getElementById('startCapture');
+        let activeChannel = 'instagram', supabaseClient, isExtracting = false, selectedLeads = [], selectedInstaLeads = [], leadLimits;
+        window.__leadsData = {}; // Cache global para dados do modal
 
-        // Toggle para expandir/recolher histórico de leads brutos
-        function toggleRawLeadsHistory() {
-            const content = document.getElementById('rawLeadsContent');
-            const icon = document.getElementById('rawLeadsIcon');
-            const card = document.getElementById('rawLeadsCard');
+        // Canais e Interface
+        document.getElementById('channel-instagram').onclick = () => { activeChannel = 'instagram'; updateChannelUI('instagram'); };
+        document.getElementById('channel-maps').onclick = () => { activeChannel = 'maps'; updateChannelUI('maps'); };
 
-            if (content.classList.contains('visible')) {
-                content.classList.remove('visible');
-                icon.classList.remove('rotated');
-                card.classList.remove('expanded');
-                card.classList.add('collapsed');
-            } else {
-                content.classList.add('visible');
-                icon.classList.add('rotated');
-                card.classList.remove('collapsed');
-                card.classList.add('expanded');
-            }
+        function updateChannelUI(c) {
+            document.getElementById('channel-instagram').classList.toggle('active', c === 'instagram');
+            document.getElementById('channel-maps').classList.toggle('active', c === 'maps');
+            document.getElementById('instagramInputs').style.display = c === 'instagram' ? 'flex' : 'none';
+            document.getElementById('mapsInputs').style.display = c === 'maps' ? 'flex' : 'none';
         }
 
+        function toggleRawLeadsHistory() {
+            document.getElementById('rawLeadsContent').classList.toggle('visible');
+            document.getElementById('rawLeadsIcon').classList.toggle('rotated');
+            document.getElementById('rawLeadsCard').classList.toggle('expanded');
+            document.getElementById('rawLeadsCard').classList.toggle('collapsed');
+        }
         document.getElementById('rawLeadsToggle').onclick = toggleRawLeadsHistory;
 
-        function setRawHistoryLoading(isLoading) {
-            const tbody = document.getElementById('history-raw-body');
-            if (!tbody) return;
+        function togglePostsLeadsHistory() {
+            document.getElementById('postsLeadsContent').classList.toggle('visible');
+            document.getElementById('postsLeadsIcon').classList.toggle('rotated');
+            document.getElementById('postsLeadsCard').classList.toggle('expanded');
+            document.getElementById('postsLeadsCard').classList.toggle('collapsed');
+        }
+        document.getElementById('postsLeadsToggle').onclick = togglePostsLeadsHistory;
 
-            if (!isLoading) return;
-
-            tbody.innerHTML = `
-    ${[1, 2, 3, 4, 5, 6, 7, 8].map(() => `
-      <tr>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-      </tr>
-    `).join('')}
-  `;
+        // Seleção
+        function toggleLeadSelection(id) {
+            const idx = selectedLeads.indexOf(id);
+            if (idx > -1) selectedLeads.splice(idx, 1); else selectedLeads.push(id);
         }
 
-        function setIAHistoryLoading(isLoading) {
-            const tbody = document.getElementById('history-ia-body');
-            if (!tbody) return;
-
-            if (!isLoading) return;
-
-            tbody.innerHTML = `
-    ${[1, 2, 3, 4, 5, 6, 7, 8].map(() => `
-      <tr>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-        <td><div class="loading-shimmer" style="height: 16px; border-radius: 8px;"></div></td>
-      </tr>
-    `).join('')}
-  `;
+        function toggleInstaLeadSelection(id) {
+            const idx = selectedInstaLeads.indexOf(id);
+            if (idx > -1) selectedInstaLeads.splice(idx, 1); else selectedInstaLeads.push(id);
         }
 
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').textContent = msg;
-            toast.style.transform = 'translateY(0)';
-            setTimeout(() => toast.style.transform = 'translateY(150%)', 3000);
+        function toggleSelectAll(source) {
+            const cbs = document.querySelectorAll('.lead-checkbox');
+            selectedLeads = [];
+            cbs.forEach(cb => { cb.checked = source.checked; if (source.checked) selectedLeads.push(cb.value); });
         }
 
-        // Supabase History Logic
-        let supabaseClient;
-        function initSupabase() {
-            if (window.supabase && window.SUPABASE_CONFIG) {
-                supabaseClient = window.supabase.createClient(
-                    window.SUPABASE_CONFIG.URL,
-                    window.SUPABASE_CONFIG.KEY
-                );
-                return true;
-            }
-            return false;
+        function toggleSelectAllInsta(source) {
+            const cbs = document.querySelectorAll('.insta-lead-checkbox');
+            selectedInstaLeads = [];
+            cbs.forEach(cb => { cb.checked = source.checked; if (source.checked) selectedInstaLeads.push(cb.value); });
         }
 
-        function setCaptureButtonState(state) {
-            if (state === 'idle') {
-                btnCapture.disabled = false;
-                btnCapture.style.opacity = '1';
-                btnCapture.style.cursor = 'pointer';
-                btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
-            } else if (state === 'running') {
-                btnCapture.disabled = true;
-                btnCapture.style.opacity = '0.5';
-                btnCapture.style.cursor = 'not-allowed';
-                btnCapture.innerHTML = '<i class="ph-bold ph-activity animate-spin"></i> Busca de Leads em andamento...';
-            }
-        }
-
-        // Toggle para expandir/recolher detalhes
-        function toggleLeadDetails(leadId) {
-            const detailRow = document.getElementById(`detail-${leadId}`);
-            const icon = document.getElementById(`icon-${leadId}`);
-
-            if (detailRow.classList.contains('visible')) {
-                detailRow.classList.remove('visible');
-                icon.classList.remove('rotated');
-            } else {
-                detailRow.classList.add('visible');
-                icon.classList.add('rotated');
-            }
-        }
-
-        // 1. Fetch Raw History (leads_capturados_posts)
+        // Buscas Supabase
         async function fetchRawHistory() {
-            if (!supabaseClient) return;
+            if (!supabaseClient || !leadLimits?.currentUser?.id) return;
+            // Se estamos extraindo maps agora, não sobrescrevemos o shimmer
+            if (isExtracting && activeChannel === 'maps') return;
 
             const tbody = document.getElementById('history-raw-body');
+            const filterValue = document.getElementById('mapsHistoryFilter')?.value || 'todos';
 
             try {
-                const { data, error } = await supabaseClient
-                    .from('leads_capturados_posts')
-                    .select('id, created_at, nome_cliente, usuario, bio, email, telefone')
+                selectedLeads = [];
+                let query = supabaseClient
+                    .from('leads_google_maps')
+                    .select('*')
+                    .eq('user_id', leadLimits.currentUser.id)
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                if (filterValue === 'recentes') {
+                    // Busca o job_id do último lead inserido para pegar o lote completo
+                    const { data: lastLead } = await supabaseClient
+                        .from('leads_google_maps')
+                        .select('job_id')
+                        .eq('user_id', leadLimits.currentUser.id)
+                        .not('job_id', 'is', null)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
 
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead encontrado.</td></tr>';
-                    return;
+                    if (lastLead && lastLead.length > 0) {
+                        // Se encontrou o Job ID, traz TODOS desse job (sem limite)
+                        query = query.eq('job_id', lastLead[0].job_id);
+                    } else {
+                        // Fallback: se não tiver Job ID, traz os últimos 200
+                        query = query.limit(200);
+                    }
+                } else {
+                    // Para "Todos os Leads", traz os últimos 500 por performance
+                    query = query.limit(500);
                 }
 
-                tbody.innerHTML = '';
-                data.forEach(lead => {
-                    const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
-                    const name = lead.nome_cliente || 'Sem nome';
-                    const username = lead.usuario || 'unknown';
-                    const profileUrl = username !== 'unknown' ? `https://instagram.com/${username.replace('@', '')}` : '#';
-                    const bio = lead.bio || '';
-                    const email = lead.email || '---';
-                    const phone = lead.telefone || '---';
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>
-                            <div class="profile-info">
-                                <div class="profile-avatar" style="background: var(--text-gray);">${name[0]}</div>
-                                <strong>${name}</strong>
-                            </div>
-                        </td>
-                        <td><a href="${profileUrl}" target="_blank" class="profile-link">@${username}</a></td>
-                        <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${bio.substring(0, 60)}...</td>
-                        <td><div style="font-size: 13px;">${email}<br>${phone}</div></td>
-                        <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                console.error("Error fetching raw history:", err);
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar dados.</td></tr>';
-            }
+                const { data } = await query;
+                if (!data) return;
+                tbody.innerHTML = data.map(l => `<tr>
+                    <td><input type="checkbox" class="lead-checkbox" value="${l.id}" onchange="toggleLeadSelection('${l.id}')"></td>
+                    <td><div class="profile-info"><div class="profile-avatar">${(l.empresa || 'E')[0]}</div><strong>${truncateName(l.empresa)}</strong></div></td>
+                    <td>${l.categoria_negocio}</td>
+                    <td>${(l.site || '').substring(0, 25)}...</td>
+                    <td>${l.telefone || '---'}</td>
+                    <td>${new Date(l.created_at).toLocaleDateString('pt-BR')}</td>
+                </tr>`).join('');
+            } catch (e) { console.error(e); }
         }
 
-        // 2. Fetch IA Qualified History (leads_qualificados) com detalhes expansíveis
-        async function fetchIAHistory() {
+        async function fetchPostsHistory() {
             if (!supabaseClient) return;
+            // Se estamos extraindo insta agora, não sobrescrevemos o shimmer
+            if (isExtracting && activeChannel === 'instagram') return;
 
-            const tbody = document.getElementById('history-ia-body');
+            const tbody = document.getElementById('history-posts-body');
+            const filterValue = document.getElementById('instaStatusFilter').value;
 
             try {
-                const { data, error } = await supabaseClient
+                let lastJobId = null;
+                if (filterValue === 'recentes') {
+                    const { data: lastJob } = await supabaseClient
+                        .from('capturas_jobs')
+                        .select('job_id')
+                        .eq('user_id', leadLimits.currentUser.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+                    if (lastJob && lastJob.length > 0) lastJobId = lastJob[0].job_id;
+                }
+
+                // Busca das duas tabelas em paralelo
+                let qQual = supabaseClient
                     .from('leads_qualificados')
-                    .select('id, created_at, nome_cliente, usuario, bio, email, telefone, status, sinais_detectados, trechos_relevantes, observacoes, insight_ia')
-                    .order('created_at', { ascending: false });
+                    .select('*')
+                    .eq('user_id', leadLimits.currentUser.id);
 
-                if (error) throw error;
+                let qFrio = supabaseClient
+                    .from('leads_frios')
+                    .select('*')
+                    .eq('user_id', leadLimits.currentUser.id);
 
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum lead qualificado ainda.</td></tr>';
+                if (lastJobId) {
+                    qQual = qQual.eq('job_id', lastJobId);
+                    qFrio = qFrio.eq('job_id', lastJobId);
+                } else {
+                    qQual = qQual.order('created_at', { ascending: false }).limit(200);
+                    qFrio = qFrio.order('created_at', { ascending: false }).limit(200);
+                }
+
+                const [reqQual, reqFrio] = await Promise.all([qQual, qFrio]);
+
+                let leads = [
+                    ...(reqQual.data || []).map(l => ({ ...l, status: 'Qualificado' })),
+                    ...(reqFrio.data || []).map(l => ({ ...l, status: 'Desqualificado' }))
+                ];
+
+                // Filtro
+                if (filterValue === 'qualificado') {
+                    leads = leads.filter(l => l.status === 'Qualificado');
+                } else if (filterValue === 'desqualificado') {
+                    leads = leads.filter(l => l.status === 'Desqualificado');
+                }
+
+                // Ordenação: Qualificados primeiro, depois por score (descendente), depois por data
+                leads.sort((a, b) => {
+                    if (a.status === 'Qualificado' && b.status !== 'Qualificado') return -1;
+                    if (a.status !== 'Qualificado' && b.status === 'Qualificado') return 1;
+
+                    // Se o status for o mesmo, ordena pelo score (maior primeiro)
+                    const scoreA = parseInt(a.score_qualificacao) || 0;
+                    const scoreB = parseInt(b.score_qualificacao) || 0;
+
+                    if (scoreA !== scoreB) {
+                        return scoreB - scoreA;
+                    }
+
+                    // Se score for igual, mantém por data (mais recente primeiro)
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
+
+                if (leads.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Nenhum lead encontrado</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = '';
-                data.forEach(lead => {
-                    const date = lead.created_at ? new Date(lead.created_at).toLocaleString('pt-BR') : '-';
-                    const name = lead.nome_cliente || 'Sem nome';
-                    const username = lead.usuario || 'unknown';
-                    const profileUrl = username !== 'unknown' ? `https://instagram.com/${username.replace('@', '')}` : '#';
-                    const bio = lead.bio || '';
-                    const email = lead.email || '---';
-                    const phone = lead.telefone || '---';
-                    const status = lead.status || 'pendente';
+                tbody.innerHTML = leads.map(l => {
+                    // Armazena no cache global para o modal
+                    window.__leadsData[l.id] = l;
+                    const statusClass = l.status === 'Qualificado' ? 'qualified' : 'disqualified';
 
-                    // Processar sinais_detectados
-                    let sinaisHtml = '<p style="color: var(--text-muted); font-style: italic;">Nenhum sinal detectado</p>';
-                    if (lead.sinais_detectados) {
-                        try {
-                            const sinais = typeof lead.sinais_detectados === 'string'
-                                ? JSON.parse(lead.sinais_detectados)
-                                : lead.sinais_detectados;
-
-                            if (Array.isArray(sinais) && sinais.length > 0) {
-                                sinaisHtml = '<ul class="signals-list">' +
-                                    sinais.map(s => `<li>${s}</li>`).join('') +
-                                    '</ul>';
-                            }
-                        } catch (e) {
-                            sinaisHtml = `<p>${lead.sinais_detectados}</p>`;
-                        }
-                    }
-
-                    // Processar trechos_relevantes
-                    let trechosHtml = '<p style="color: var(--text-muted); font-style: italic;">Nenhum trecho relevante</p>';
-                    if (lead.trechos_relevantes) {
-                        try {
-                            const trechos = typeof lead.trechos_relevantes === 'string'
-                                ? JSON.parse(lead.trechos_relevantes)
-                                : lead.trechos_relevantes;
-
-                            if (Array.isArray(trechos) && trechos.length > 0) {
-                                trechosHtml = '<ul class="signals-list">' +
-                                    trechos.map(t => `<li>${t}</li>`).join('') +
-                                    '</ul>';
-                            }
-                        } catch (e) {
-                            trechosHtml = `<p>${lead.trechos_relevantes}</p>`;
-                        }
-                    }
-
-                    // Definir classe do status
-                    let statusClass = 'new';
-                    if (status.toLowerCase().includes('qualificado')) statusClass = 'qualificado';
-                    if (status.toLowerCase().includes('desqualificado')) statusClass = 'desqualificado';
-
-                    // Linha principal (clicável)
-                    const mainTr = document.createElement('tr');
-                    mainTr.className = 'clickable-row';
-                    mainTr.onclick = () => toggleLeadDetails(lead.id);
-                    mainTr.innerHTML = `
-                        <td style="text-align: center;">
-                            <i id="icon-${lead.id}" class="ph-bold ph-caret-down expand-icon" style="font-size: 16px; color: var(--primary-purple);"></i>
-                        </td>
+                    return `<tr>
+                        <td><input type="checkbox" class="insta-lead-checkbox" value="${l.id}" onchange="toggleInstaLeadSelection('${l.id}')"></td>
+                        <td><div class="profile-info"><div class="profile-avatar">${(l.nome_cliente || l.usuario || 'U')[0]}</div><strong>${l.nome_cliente || '---'}</strong></div></td>
+                        <td><a href="${l.url_perfil || '#'}" target="_blank" style="color: var(--primary-purple); font-weight: 600;">@${l.usuario || '---'}</a></td>
+                        <td><span class="score-badge">${l.score_qualificacao || 0}</span></td>
+                        <td><span class="status-pill ${statusClass}">${l.status}</span></td>
                         <td>
-                            <div class="profile-info">
-                                <div class="profile-avatar">${name[0]}</div>
-                                <strong>${name}</strong>
-                            </div>
+                            <button class="btn-view" onclick="showLeadDetails('${l.id}')">
+                                <i class="ph ph-eye"></i>
+                            </button>
                         </td>
-                        <td><a href="${profileUrl}" target="_blank" class="profile-link" onclick="event.stopPropagation();">@${username}</a></td>
-                        <td style="max-width: 300px; font-size: 13px; color: var(--text-gray);">${bio.substring(0, 60)}...</td>
-                        <td><span class="status-pill ${statusClass}">${status}</span></td>
-                        <td><div style="font-size: 13px;">${email}<br>${phone}</div></td>
-                        <td style="font-size: 13px; color: var(--text-muted);">${date}</td>
-                    `;
-                    tbody.appendChild(mainTr);
-
-                    // Linha de detalhes (expansível)
-                    const detailTr = document.createElement('tr');
-                    detailTr.id = `detail-${lead.id}`;
-                    detailTr.className = 'detail-row';
-                    detailTr.innerHTML = `
-                        <td colspan="7">
-                            <div class="detail-content">
-                                ${lead.insight_ia ? `
-                                <div class="insight-box">
-                                    <div class="detail-label">
-                                        <i class="ph-fill ph-brain"></i>
-                                        Insight da IA
-                                    </div>
-                                    <div class="detail-value">${lead.insight_ia}</div>
-                                </div>
-                                ` : ''}
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
-                                    <div class="detail-section">
-                                        <div class="detail-label">Sinais Detectados</div>
-                                        <div class="detail-value">${sinaisHtml}</div>
-                                    </div>
-                                    <div class="detail-section">
-                                        <div class="detail-label">Trechos Relevantes</div>
-                                        <div class="detail-value">${trechosHtml}</div>
-                                    </div>
-                                </div>
-                                ${lead.observacoes ? `
-                                <div class="detail-section" style="margin-top: var(--spacing-md);">
-                                    <div class="detail-label">Observações</div>
-                                    <div class="detail-value">${lead.observacoes}</div>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(detailTr);
-                });
-            } catch (err) {
-                console.error("Error fetching IA history:", err);
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar qualificados.</td></tr>';
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: var(--text-muted);">Erro ao carregar dados</td></tr>';
             }
         }
 
-        document.getElementById('refreshRawHistory').onclick = fetchRawHistory;
-        document.getElementById('refreshIAHistory').onclick = fetchIAHistory;
+        function showLeadDetails(id) {
+            const lead = window.__leadsData[id];
+            if (!lead) return;
 
-        // ==== acompanhar status do ÚLTIMO job via Supabase Realtime ====
-        let jobChannel = null;
+            const fv = (v) => (!v || v === 'string|null' || v === 'null' || String(v).toLowerCase() === 'undefined') ? '---' : v;
 
-        function stopWatchingJob() {
-            if (jobChannel && supabaseClient) {
-                supabaseClient.removeChannel(jobChannel);
-                jobChannel = null;
-            }
+            document.getElementById('modalAvatar').textContent = (lead.nome_cliente || lead.usuario || 'U')[0];
+            document.getElementById('modalName').textContent = lead.nome_cliente || 'Sem Nome';
+            document.getElementById('modalUser').textContent = '@' + (lead.usuario || '---');
+            document.getElementById('modalUser').href = lead.url_perfil || '#';
+            document.getElementById('modalScore').textContent = lead.score_qualificacao || 0;
+
+            const statusClass = lead.status === 'Qualificado' ? 'qualified' : 'disqualified';
+            document.getElementById('modalStatus').innerHTML = `<span class="status-pill ${statusClass}">${lead.status}</span>`;
+
+            document.getElementById('modalEmail').textContent = fv(lead.email);
+            document.getElementById('modalPhone').textContent = fv(lead.telefone || lead.telephone);
+            document.getElementById('modalBio').textContent = fv(lead.bio);
+            document.getElementById('modalSignals').textContent = fv(lead.sinais_detectados);
+            document.getElementById('modalInsight').textContent = fv(lead.insight_ia);
+            document.getElementById('modalSnippets').textContent = fv(lead.trechos_relevantes);
+            document.getElementById('modalNotes').textContent = fv(lead.observacoes);
+
+            // Rola a página principal para uma posição ideal para ver o modal completo
+            window.scrollTo({ top: 350, behavior: 'smooth' });
+
+            // Pequeno delay para garantir que o scroll termine antes de abrir o modal
+            setTimeout(() => {
+                document.getElementById('leadModal').classList.add('visible');
+                document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
+            }, 300);
         }
 
-        function watchJob(jobId) {
-            stopWatchingJob();
-
-            jobChannel = supabaseClient
-                .channel(`captura-job-${jobId}`)
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'capturas_jobs',
-                    filter: `job_id=eq.${jobId}`,
-                }, (payload) => {
-                    const status = payload?.new?.status;
-
-                    if (status === 'finished') {
-                        showToast("A extração foi finalizada.");
-                        setCaptureButtonState('idle');
-                        fetchRawHistory();
-                        fetchIAHistory();
-                        stopWatchingJob();
-                    } else if (status === 'failed') {
-                        showToast(payload?.new?.message || "Extração falhou.");
-                        setCaptureButtonState('idle');
-                        stopWatchingJob();
-                    }
-                })
-                .subscribe();
+        function closeLeadDetails() {
+            document.getElementById('leadModal').classList.remove('visible');
+            document.body.style.overflow = 'auto';
         }
 
-        async function getLastJob() {
-            const { data, error } = await supabaseClient
-                .from('capturas_jobs')
-                .select('job_id, status, created_at')
-                .order('created_at', { ascending: false })
-                .limit(1);
+        // Fechar modal ao clicar fora ou apertar ESC
+        window.onclick = (event) => {
+            const modal = document.getElementById('leadModal');
+            if (event.target == modal) closeLeadDetails();
+        };
 
-            if (error) throw error;
-            return data?.[0] || null;
-        }
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeLeadDetails();
+        });
 
-        async function waitLastJobFinished() {
-            // 1) Espera existir pelo menos 1 job (até 60s)
-            let lastJob = await getLastJob();
-            const start = Date.now();
-
-            while (!lastJob && (Date.now() - start) < 60000) {
-                await new Promise(r => setTimeout(r, 1500));
-                lastJob = await getLastJob();
-            }
-
-            if (!lastJob) throw new Error("Nenhum job apareceu em 60s (verifique se o n8n está inserindo capturas_jobs).");
-
-            // 2) Se já terminou, encerra
-            if (lastJob.status === 'finished') return;
-            if (lastJob.status === 'failed') throw new Error("O último job está com status failed.");
-
-            // 3) Aguarda UPDATE do job até finished/failed via Realtime
-            await new Promise((resolve, reject) => {
-                stopWatchingJob();
-
-                jobChannel = supabaseClient
-                    .channel(`captura-job-${lastJob.job_id}`)
-                    .on('postgres_changes', {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'capturas_jobs',
-                        filter: `job_id=eq.${lastJob.job_id}`,
-                    }, (payload) => {
-                        const status = payload?.new?.status;
-                        if (status === 'finished') resolve();
-                        if (status === 'failed') reject(new Error(payload?.new?.message || "Extração falhou."));
-                    })
-                    .subscribe();
-            });
-
-            stopWatchingJob();
-        }
-
-        btnCapture.onclick = async () => {
-            const targetUrl = document.getElementById('targetUrl').value;
-            const sessionCookie = document.getElementById('sessionCookie').value;
-
-            if (!targetUrl) {
-                showToast("Por favor, preencha a URL do Perfil Alvo.");
-                return;
-            }
-
+        // --- ENVIO PARA CRM ---
+        document.getElementById('sendToCRM').onclick = async (event) => {
+            event.stopPropagation();
+            if (selectedLeads.length === 0) return alert("Selecione leads primeiro!");
+            const btn = document.getElementById('sendToCRM');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Enviando...';
             try {
-                // 1) Trava botão + coloca mensagem "em andamento"
-                setCaptureButtonState('running');
+                const { data: leads, error: fetchError } = await supabaseClient.from('leads_google_maps').select('*').in('id', selectedLeads);
+                if (fetchError) throw fetchError;
 
-                // 2) Coloca shimmer/loading na tabela de histórico (raw e ia)
-                setRawHistoryLoading(true);
-                setIAHistoryLoading(true);
+                // Função para limpar telefone (remove formatação)
+                const cleanPhone = (phone) => {
+                    if (!phone) return null;
+                    // Remove tudo que não é número
+                    const cleaned = String(phone).replace(/\D/g, '');
+                    return cleaned.length > 0 ? cleaned : null;
+                };
 
-                // 3) Dispara o processo (gatilho)
-                const response = await fetch('https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetUrl, sessionCookie })
+                const opportunitiesData = leads.map(l => {
+                    // Prepara array de tags incluindo QUALIFICADO e removendo QUENTE
+                    let tagsArray = [];
+                    if (l.tags) {
+                        tagsArray = Array.isArray(l.tags) ? l.tags : l.tags.split(',').map(t => t.trim()).filter(t => t);
+                    }
+                    // Remove tag QUENTE se existir
+                    tagsArray = tagsArray.filter(tag => tag.toUpperCase() !== 'QUENTE');
+                    // Adiciona QUALIFICADO se não existir
+                    if (!tagsArray.includes('QUALIFICADO')) {
+                        tagsArray.push('QUALIFICADO');
+                    }
+
+                    return {
+                        nome_oportunidade: l.empresa || 'Empresa sem nome',
+                        telefone: cleanPhone(l.telefone),
+                        site: l.site || '',
+                        categoria: l.categoria_negocio || '',
+                        tags: tagsArray,
+                        fonte_oportunidade: l.fonte_oportunidade || 'Google Maps',
+                        lead_status: 'Novo',
+                        stage: 'Contato',
+                        pipeline: 'Quantic Starter',
+                        user_id: leadLimits?.currentUser?.id || null // Define o dono da oportunidade
+                    };
                 });
-
-                if (!response.ok) {
-                    throw new Error(`Erro ao iniciar: ${response.status}`);
-                }
-
-                showToast("Busca de Leads em andamento...");
-
-                // 4) Espera o ÚLTIMO job da tabela aparecer e virar finished/failed
-                await waitLastJobFinished();
-
-                // 5) Finalizou: destrava e carrega tabelas
-                showToast("A extração foi finalizada.");
-                setCaptureButtonState('idle');
+                const { error: insertError } = await supabaseClient.from('opportunities').insert(opportunitiesData);
+                if (insertError) throw insertError;
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviado!';
+                selectedLeads = [];
                 fetchRawHistory();
-                fetchIAHistory();
-            } catch (error) {
-                console.error('Start/wait error:', error);
-
-                showToast(error?.message || "Erro ao iniciar/aguardar.");
-
-                // destrava e recarrega para não ficar travado pra sempre
-                setCaptureButtonState('idle');
-                fetchRawHistory();
-                fetchIAHistory();
+                setTimeout(() => { btn.disabled = false; btn.innerHTML = originalContent; }, 3000);
+            } catch (e) {
+                console.error(e);
+                alert(`Erro: ${e.message}`);
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
             }
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (initSupabase()) {
+        // --- ENVIO INSTAGRAM PARA CRM ---
+        document.getElementById('sendInstaToCRM').onclick = async (event) => {
+            event.stopPropagation();
+            if (selectedInstaLeads.length === 0) return alert("Selecione leads do Instagram primeiro!");
+            const btn = document.getElementById('sendInstaToCRM');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Enviando...';
+            try {
+                // Busca leads das duas tabelas
+                const [reqQual, reqFrio] = await Promise.all([
+                    supabaseClient.from('leads_qualificados').select('*').in('id', selectedInstaLeads),
+                    supabaseClient.from('leads_frios').select('*').in('id', selectedInstaLeads)
+                ]);
+
+                // Marca cada lead com sua origem
+                const leadsQualificados = (reqQual.data || []).map(l => ({ ...l, _origem: 'qualificado' }));
+                const leadsFrios = (reqFrio.data || []).map(l => ({ ...l, _origem: 'frio' }));
+                const leads = [...leadsQualificados, ...leadsFrios];
+
+                if (leads.length === 0) throw new Error('Nenhum lead encontrado');
+
+                // Função para limpar valores inválidos
+                const cleanValue = (v) => {
+                    if (!v || v === 'string|null' || v === 'null' || String(v).toLowerCase() === 'undefined') return null;
+                    return String(v).trim();
+                };
+
+                // Função para limpar telefone (remove formatação)
+                const cleanPhone = (phone) => {
+                    if (!phone || phone === 'string|null' || phone === 'null' || String(phone).toLowerCase() === 'undefined') return null;
+                    // Remove tudo que não é número
+                    const cleaned = String(phone).replace(/\D/g, '');
+                    return cleaned.length > 0 ? cleaned : null;
+                };
+
+                const opportunitiesData = leads.map(l => {
+                    // Define tags e status baseado na tabela de origem
+                    const isQualificado = l._origem === 'qualificado';
+                    const statusTag = isQualificado ? 'QUALIFICADO' : 'DESQUALIFICADO';
+                    const leadStatus = isQualificado ? 'Qualificado' : 'Desqualificado';
+
+                    return {
+                        nome_oportunidade: l.nome_cliente || l.usuario || 'Lead Instagram',
+                        telefone: cleanPhone(l.telefone || l.telephone),
+                        email: cleanValue(l.email),
+                        site: l.url_perfil || '',
+                        fonte_oportunidade: 'Instagram',
+                        lead_status: leadStatus,
+                        pipeline: 'Quantic Starter',
+                        stage: 'Contato',
+                        tags: [statusTag],
+                        usuario_insta: l.usuario || null,
+                        sinais_detectados: l.sinais_detectados || null,
+                        trechos_relevantes: l.trechos_relevantes || null,
+                        observacoes: l.observacoes || null,
+                        insight_ia: l.insight_ia || null,
+                        user_id: leadLimits?.currentUser?.id || null // Define o dono da oportunidade
+                    };
+                });
+
+                const { error: insertError } = await supabaseClient.from('opportunities').insert(opportunitiesData);
+                if (insertError) throw insertError;
+
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviado!';
+                selectedInstaLeads = [];
+                fetchPostsHistory();
+                setTimeout(() => { btn.disabled = false; btn.innerHTML = originalContent; }, 3000);
+            } catch (e) {
+                console.error(e);
+                alert(`Erro: ${e.message}`);
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        };
+
+        // --- MONITORAMENTO DE JOBS ---
+        async function checkActiveJobs() {
+            if (!supabaseClient || !leadLimits?.currentUser?.id) return;
+
+            // Pega estritamente o último job DESTE usuário
+            const { data: latestJobs, error } = await supabaseClient
+                .from('capturas_jobs')
+                .select('*')
+                .eq('user_id', leadLimits.currentUser.id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (error || !latestJobs || latestJobs.length === 0) return;
+
+            const lastJob = latestJobs[0];
+
+            // Se o último job ainda não estiver finalizado, segura a UI
+            if (lastJob.status !== 'finished') {
+                console.log("[DEBUG] Último job pendente detectado:", lastJob.job_id);
+                setExtractionUI(true, 'instagram');
+                monitorJob(lastJob.job_id);
+            }
+        }
+
+        function setExtractionUI(extracting, channel) {
+            isExtracting = extracting;
+            if (extracting) {
+                btnCapture.disabled = true;
+                btnCapture.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> EXTRAINDO...';
+
+                const historyBody = channel === 'instagram' ? document.getElementById('history-posts-body') : document.getElementById('history-raw-body');
+                const cols = channel === 'instagram' ? 5 : 6;
+                // Forçamos o shimmer nas tabelas relevantes
+                historyBody.innerHTML = Array(5).fill(`<tr>${Array(cols).fill('<td><div class="loading-shimmer" style="height:20px; border-radius:4px;"></div></td>').join('')}</tr>`).join('');
+
+                if (channel === 'instagram' && document.getElementById('postsLeadsCard').classList.contains('collapsed')) togglePostsLeadsHistory();
+                if (channel === 'maps' && document.getElementById('rawLeadsCard').classList.contains('collapsed')) toggleRawLeadsHistory();
+            } else {
+                btnCapture.disabled = false;
+                btnCapture.innerHTML = '<i class="ph-bold ph-lightning"></i> INICIAR EXTRAÇÃO';
+            }
+        }
+
+        function monitorJob(meuJobId) {
+            const channel = supabaseClient
+                .channel(`job_${meuJobId}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'capturas_jobs',
+                    filter: `job_id=eq.${meuJobId}`
+                }, async (payload) => {
+                    console.log("[DEBUG] Mudança de status detectada:", payload.new.status);
+                    if (payload.new.status === 'finished') {
+                        setExtractionUI(false);
+                        if (window.showToast) window.showToast("Extração do Instagram finalizada!", "success");
+                        fetchPostsHistory();
+
+                        // Atualiza limites (triggers já contaram automaticamente)
+                        setTimeout(async () => {
+                            await updateLimitsUI();
+                        }, 2000);
+
+                        supabaseClient.removeChannel(channel);
+                    }
+                })
+                .subscribe();
+
+            setTimeout(() => {
+                if (isExtracting) {
+                    setExtractionUI(false);
+                    supabaseClient.removeChannel(channel);
+                }
+            }, 600000);
+        }
+
+        btnCapture.onclick = async () => {
+            // ============================================
+            // VERIFICAR LIMITES DE LEADS ANTES DE EXTRAIR
+            // ============================================
+
+            if (leadLimits) {
+                const channel = activeChannel === 'instagram' ? 'instagram' : 'google_maps';
+
+                // Para Google Maps, sabemos quantos leads o usuário quer
+                // Para Instagram, verificamos se ainda tem limite disponível
+                let requestedLeads = 1;
+
+                if (activeChannel === 'maps') {
+                    requestedLeads = parseInt(document.getElementById('mapsCount').value) || 20;
+                }
+
+                const check = await leadLimits.canCaptureLeads(channel, requestedLeads);
+
+                // ❌ BLOQUEAR se não pode capturar
+                if (!check.can_capture) {
+                    showLimitModal(check);
+                    return; // NÃO PERMITE EXTRAIR
+                }
+
+                // ⚠️ AVISAR se está perto do limite (Instagram)
+                if (activeChannel === 'instagram' && check.remaining === 0) {
+                    showLimitModal(check);
+                    return;
+                }
+
+                // ⚠️ AVISAR se está perto do limite
+                const warning = leadLimits.formatWarning(check);
+                if (warning && window.showToast) {
+                    window.showToast(warning, 'warning');
+                }
+
+                console.log(`✅ Pode capturar! Restam ${check.remaining} leads no limite de hoje.`);
+            }
+
+            // ============================================
+            // PROSSEGUIR COM EXTRAÇÃO
+            // ============================================
+
+            let url = activeChannel === 'instagram' ?
+                'https://n8n.segredosdodrop.com/webhook/recebe-captura-quantic' :
+                'https://n8n.segredosdodrop.com/webhook/recebe-dados-maps';
+
+            // Pega o ID do usuário atual para enviar ao n8n
+            const userId = leadLimits?.currentUser?.id || null;
+
+            let body = activeChannel === 'instagram' ?
+                {
+                    targetUrl: document.getElementById('targetUrl').value,
+                    sessionCookie: document.getElementById('sessionCookie').value,
+                    userId: userId
+                } :
+                {
+                    "Termo de Pesquisa": document.getElementById('mapsQuery').value,
+                    "Local": document.getElementById('mapsLocation').value,
+                    "Numero de Leads": document.getElementById('mapsCount').value,
+                    userId: userId
+                };
+
+            setExtractionUI(true, activeChannel);
+
+            try {
+                if (activeChannel === 'instagram') {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    const data = await response.json();
+                    if (data.job_id) {
+                        console.log("[DEBUG] Novo Job ID:", data.job_id);
+                        monitorJob(data.job_id);
+                    } else {
+                        setExtractionUI(false);
+                    }
+                } else {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    if (response.ok) {
+                        if (window.showToast) window.showToast("Extração do Maps finalizada!", "success");
+
+                        // Atualiza limites após alguns segundos (triggers contam automaticamente)
+                        setTimeout(async () => {
+                            await updateLimitsUI();
+                        }, 3000);
+                    }
+                    setExtractionUI(false);
+                    await fetchRawHistory();
+                }
+            } catch (e) {
+                console.error("[DEBUG] Erro:", e);
+                setExtractionUI(false);
+            }
+        };
+
+        // ============================================
+        // SISTEMA DE LIMITES DE LEADS
+        // ============================================
+
+        async function initLeadLimits() {
+            if (!window.LeadLimitsManager) {
+                console.warn('[LeadLimits] LeadLimitsManager não carregado ainda');
+                return false;
+            }
+
+            if (!supabaseClient) {
+                console.error('[LeadLimits] Supabase não inicializado');
+                return false;
+            }
+
+            try {
+                leadLimits = new window.LeadLimitsManager(supabaseClient);
+                const success = await leadLimits.init();
+
+                if (success) {
+                    console.log('✅ Sistema de limites de LEADS inicializado');
+                    await updateLimitsUI();
+                    return true;
+                }
+            } catch (error) {
+                console.error('[LeadLimits] Erro ao inicializar:', error);
+            }
+
+            return false;
+        }
+
+        async function updateLimitsUI() {
+            if (!leadLimits) return;
+
+            try {
+                const stats = await leadLimits.getDailyStats();
+
+                if (!stats) return;
+
+                // Atualiza Instagram
+                updateLimitCard('instagram', stats.instagram);
+
+                // Atualiza Google Maps
+                updateLimitCard('google_maps', stats.google_maps);
+
+                console.log(`📊 Leads capturados hoje:
+  Instagram: ${stats.instagram.used}/${stats.instagram.limit} (${stats.instagram.remaining} restantes)
+  Google Maps: ${stats.google_maps.used}/${stats.google_maps.limit} (${stats.google_maps.remaining} restantes)
+  Plano: ${stats.plan.toUpperCase()}`);
+
+            } catch (error) {
+                console.error('[LeadLimits] Erro ao atualizar UI:', error);
+            }
+        }
+
+        function updateLimitCard(channel, data) {
+            const usageEl = document.getElementById(`${channel}-usage`);
+            const remainingEl = document.getElementById(`${channel}-remaining`);
+            const cardEl = document.getElementById(`${channel}-limit-card`);
+
+            if (!usageEl || !remainingEl || !cardEl) return;
+
+            // Atualiza textos
+            usageEl.textContent = `${data.used}/${data.limit} leads`;
+            remainingEl.textContent = `${data.remaining} disponíveis`;
+
+            // Calcula porcentagem
+            const percentage = (data.used / data.limit) * 100;
+
+            // Remove classes antigas
+            usageEl.classList.remove('warning', 'danger');
+            cardEl.classList.remove('warning', 'danger');
+
+            // Adiciona classes baseado na porcentagem
+            if (percentage >= 100) {
+                usageEl.classList.add('danger');
+                cardEl.classList.add('danger');
+            } else if (percentage >= 80) {
+                usageEl.classList.add('warning');
+                cardEl.classList.add('warning');
+            }
+        }
+
+        function showLimitModal(check) {
+            const overlay = document.getElementById('limitModalOverlay');
+            if (!overlay) return;
+
+            document.getElementById('modalPlanName').textContent = check.plan.toUpperCase();
+            document.getElementById('modalRemaining').textContent = `${check.remaining} leads`;
+            document.getElementById('modalUsed').textContent = `${check.current_count}/${check.limit}`;
+            document.getElementById('modalRequested').textContent = `${check.requested} leads`;
+
+            // Levar scroll para o topo para visualizar o contexto da captação
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Travar scroll do fundo
+            document.body.style.overflow = 'hidden';
+
+            overlay.classList.add('active');
+        }
+
+        function closeLimitModal() {
+            const overlay = document.getElementById('limitModalOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+                document.body.style.overflow = ''; // Restaura o scroll
+            }
+        }
+
+        function truncateName(n, l = 20) { return n && n.length > l ? n.substring(0, l) + '...' : n; }
+
+        async function initSupabase() { if (window.CONFIG_LOADED) await window.CONFIG_LOADED; supabaseClient = window.supabaseClient; return !!supabaseClient; }
+        document.getElementById('refreshRawHistory').onclick = fetchRawHistory;
+        document.getElementById('refreshPostsHistory').onclick = fetchPostsHistory;
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await initSupabase()) {
+                console.log("[QUANTIC] Sistema pronto. Verificando estado...");
+
+                // 1. Inicializar sistema de limites de leads
+                await initLeadLimits();
+
+                // 2. Verificar jobs ativos para travar a UI imediatamente
+                await checkActiveJobs();
+
+                // 3. Habilitar botão se não estiver extraindo
+                if (!isExtracting) {
+                    setExtractionUI(false);
+                }
+
+                // 4. Carregar histórico em paralelo
                 fetchRawHistory();
-                fetchIAHistory();
+                fetchPostsHistory();
 
-                // Real-time: Captured (Raw)
-                supabaseClient
-                    .channel('raw-leads-realtime')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, payload => {
-                        fetchRawHistory();
-                        showToast("Novo lead bruto capturado!");
-                    })
-                    .subscribe();
-
-                // Real-time: IA Qualified
-                supabaseClient
-                    .channel('qualificados-ia-realtime')
-                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_qualificados' }, payload => {
-                        fetchIAHistory();
-                        showToast("Novo lead qualificado pela IA!");
-                    })
-                    .subscribe();
+                // 5. Atualizar limites periodicamente (a cada 30 segundos)
+                setInterval(updateLimitsUI, 30000);
             }
         });
     </script>

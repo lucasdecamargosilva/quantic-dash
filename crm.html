@@ -5,12 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantic CRM</title>
+
+    <!-- Favicons / theme -->
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Supabase Core & Configuration (MUST BE IN HEAD) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="theme-handler.js"></script>
     <style>
         .pipeline-selector {
             display: flex;
@@ -44,7 +55,7 @@
             display: flex;
             gap: var(--spacing-md);
             overflow-x: auto;
-            padding-bottom: var(--spacing-lg);
+            padding: var(--spacing-md) 0 var(--spacing-xl) 0;
             min-height: calc(100vh - 250px);
             scrollbar-width: thin;
             scrollbar-color: var(--primary-purple) var(--bg-dark);
@@ -60,8 +71,8 @@
         }
 
         .crm-column {
-            min-width: 280px;
-            width: 280px;
+            min-width: 310px;
+            width: 310px;
             background: rgba(255, 255, 255, 0.02);
             border-radius: var(--radius-lg);
             display: flex;
@@ -85,6 +96,41 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-white);
+            margin: 0;
+        }
+
+        .header-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .select-all-column {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .select-all-column:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: var(--primary-purple);
+            color: var(--primary-purple);
+        }
+
+        .select-all-column.active {
+            background: var(--primary-purple);
+            border-color: var(--primary-purple);
+            color: white;
+            box-shadow: 0 0 10px var(--primary-purple-glow);
         }
 
         .opportunity-count {
@@ -103,7 +149,8 @@
             min-height: 100px;
             max-height: 65vh;
             overflow-y: auto;
-            padding-right: 4px;
+            /* Added padding to prevent hover effect border clipping */
+            padding: 4px;
             scrollbar-width: thin;
             scrollbar-color: var(--primary-purple) transparent;
         }
@@ -117,36 +164,202 @@
             border-radius: 4px;
         }
 
+        /* Channels Chart Refinement */
+        .channel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .channel-card-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .channel-card-item:hover {
+            border-color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.05);
+            transform: translateY(-4px);
+        }
+
+        .channel-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .channel-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-white);
+        }
+
+        .channel-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .channel-count {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        .channel-bar-bg {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .channel-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+        }
+
+        /* Channel Branded Gradients */
+        .bg-instagram {
+            background: linear-gradient(45deg, #f09433, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888);
+        }
+
+        .bg-facebook {
+            background: linear-gradient(45deg, #1877F2, #1059b5);
+        }
+
+        .bg-linkedin {
+            background: linear-gradient(45deg, #0077b5, #005a8a);
+        }
+
+        .bg-google {
+            background: linear-gradient(45deg, #4285F4, #34A853, #FBBC05, #EA4335);
+        }
+
+        .bg-generic {
+            background: linear-gradient(45deg, var(--primary-purple), #9333ea);
+        }
+
+        .icon-instagram {
+            color: #bc1888;
+            background: rgba(188, 24, 136, 0.1);
+        }
+
+        .icon-facebook {
+            color: #1877F2;
+            background: rgba(24, 119, 242, 0.1);
+        }
+
+        .icon-linkedin {
+            color: #0077b5;
+            background: rgba(0, 119, 181, 0.1);
+        }
+
+        .icon-google {
+            color: #FBBC05;
+            background: rgba(251, 188, 5, 0.1);
+        }
+
+        .icon-generic {
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
         .opportunity-card {
-            background: var(--bg-card);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: var(--spacing-md);
+            padding: 14px;
             cursor: grab;
-            transition: transform 0.2s, border-color 0.2s;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-right: 4px solid transparent;
+            /* Side indicator */
+        }
+
+        .opportunity-card.strip-starter {
+            border-right-color: var(--primary-purple);
+        }
+
+        .opportunity-card.strip-growth {
+            border-right-color: var(--secondary-green, #10b981);
+        }
+
+        .opportunity-card.strip-enterprise {
+            border-right-color: #3b82f6;
+        }
+
+        .opportunity-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-purple), transparent);
+            opacity: 0;
+            transition: opacity 0.2s;
         }
 
         .opportunity-card:hover {
-            border-color: var(--primary-purple);
-            transform: translateY(-2px);
+            border-color: rgba(139, 92, 246, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+        }
+
+        .opportunity-card:hover::before {
+            opacity: 1;
         }
 
         .opportunity-card .client-name {
             font-weight: 700;
             font-size: 15px;
-            margin-bottom: 4px;
+            margin-bottom: 0;
             display: block;
+            color: var(--text-white);
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+            /* Truncate long names */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .opportunity-card .company-name {
             font-size: 13px;
             color: var(--text-gray);
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             display: block;
+            opacity: 0.7;
+            /* Truncate long company names/usernames */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .opportunity-card .revenue {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--secondary-green);
             display: flex;
@@ -155,44 +368,55 @@
         }
 
         .opportunity-card .revenue i {
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .opportunity-card.dragging {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: grabbing;
+            transform: scale(0.95);
         }
 
         .opportunity-list.drag-over {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(139, 92, 246, 0.08);
             border-radius: var(--radius-md);
         }
 
         /* Modal Styles */
+        /* Prevent background scroll when modal is open */
+        html.modal-open,
+        body.modal-open {
+            overflow: hidden !important;
+            height: 100% !important;
+        }
+
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
+            inset: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
-            animation: fadeIn 0.3s ease;
+            z-index: 10000;
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .modal-content {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            width: 100%;
-            max-width: 600px;
+            width: 90%;
+            max-width: 1100px;
+            height: 85vh;
             border-radius: var(--radius-xl);
-            padding: var(--spacing-xl);
             position: relative;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(139, 92, 246, 0.2);
         }
 
         .modal-close {
@@ -229,7 +453,7 @@
 
         .details-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: var(--spacing-lg);
         }
 
@@ -285,10 +509,428 @@
             text-transform: uppercase;
         }
 
-        .modal-edit-group {
+        .tag-hot {
+            background: #065f46 !important;
+            /* Verde sólido escuro */
+            color: white !important;
+        }
+
+        .tag-maps {
+            background: #fbbf24 !important;
+            /* Amarelo sólido */
+            color: #0b0b15 !important;
+        }
+
+        .tag-instagram {
+            background: #3b82f6 !important;
+            /* Azul sólido */
+            color: white !important;
+        }
+
+        .tag-qualificado {
+            background: #10b981 !important;
+            /* Verde claro */
+            color: white !important;
+        }
+
+        .tag-desqualificado {
+            background: #ef4444 !important;
+            /* Vermelho */
+            color: white !important;
+        }
+
+        .tag-tel-fixo {
+            background: #a855f7 !important;
+            /* Roxo Quantic Vibrante */
+            color: white !important;
+            font-weight: 800 !important;
+        }
+
+        /* Updated Modal Layout - Split View */
+        .modal-body-split {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            height: calc(100% - 70px);
+            /* Subtract header height */
+            overflow: hidden;
+        }
+
+        .modal-sidebar {
+            background: rgba(255, 255, 255, 0.01);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
             display: flex;
             flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        .modal-main-area {
+            padding: 24px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Sidebar Elements */
+        .sidebar-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .contact-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .contact-val {
+            font-size: 13px;
+            color: var(--text-white);
+            font-weight: 500;
+        }
+
+        .copy-btn-mini {
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .copy-btn-mini:hover {
+            color: var(--primary-purple);
+        }
+
+        .crm-input-compact {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: white;
+            font-size: 13px;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+
+        .crm-input-compact:focus {
+            border-color: var(--primary-purple);
+            outline: none;
+        }
+
+        .save-btn-sidebar {
+            margin-top: auto;
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        .save-btn-sidebar:hover {
+            background: var(--primary-purple-hover, #7c3aed);
+        }
+
+        .delete-btn-modal {
+            background: rgba(239, 68, 68, 0.05);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: sticky;
+            float: right;
+            margin-top: 24px;
+            margin-right: 0;
+        }
+
+        .delete-btn-modal:hover {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        /* Compact AI Grid */
+        .ai-grid-compact {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .ai-full-row {
+            grid-column: span 2;
+        }
+
+        .ai-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .ai-label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--primary-purple);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .ai-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-gray);
+        }
+
+        .ai-insight {
+            background: rgba(139, 92, 246, 0.08);
+            /* Purple tint */
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+
+        .ai-insight .ai-content {
+            color: #E9D5FF;
+        }
+
+        /* Card Status Pill */
+        .card-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            padding: 2px 8px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-hot {
+            color: #4ade80;
+        }
+
+        .dot-hot {
+            background: #4ade80;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+        }
+
+        .status-warm {
+            color: #fbbf24;
+        }
+
+        .dot-warm {
+            background: #fbbf24;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+        }
+
+        .status-cold {
+            color: #9ca3af;
+        }
+
+        .dot-cold {
+            background: #9ca3af;
+        }
+
+        .modal-header-compact {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-profile {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .header-profile h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-white);
+        }
+
+        .header-profile .company {
+            color: var(--primary-purple);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header-contact-info {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .contact-badge {
+            display: flex;
+            align-items: center;
             gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-gray);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .contact-badge i.copy-icon {
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .contact-badge i.copy-icon:hover {
+            color: var(--primary-purple);
+        }
+
+        .header-crm-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 120px;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .crm-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .crm-input-group label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .crm-header-input {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+            color: white;
+            font-family: inherit;
+            font-size: 13px;
+            width: 100%;
+        }
+
+        .crm-header-input:focus {
+            border-color: var(--primary-purple);
+            outline: none;
+        }
+
+        .modal-body-full {
+            flex: 1;
+            overflow-y: auto;
+            /* Scroll only the body */
+            padding: var(--spacing-lg);
+            background: var(--bg-card);
+        }
+
+        /* AI Section Updates for full body usage */
+        .ia-section-full {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .ia-grid-full {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            /* 2 columns layout for AI data */
+            gap: var(--spacing-lg);
+        }
+
+        .ia-full-width-col {
+            grid-column: span 2;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-purple);
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ia-grid {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .ia-insight-box {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: #d8b4fe;
+            line-height: 1.5;
+        }
+
+        .ia-text {
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .ia-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .ia-list span {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--text-white);
         }
 
         .modal-input {
@@ -357,7 +999,7 @@
         }
 
         .summary-icon.starter {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(139, 92, 246, 0.1);
             color: var(--primary-purple);
         }
 
@@ -367,7 +1009,7 @@
         }
 
         .summary-icon.enterprise {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(217, 70, 239, 0.1);
             color: var(--accents-pink);
         }
 
@@ -485,6 +1127,67 @@
             color: var(--accents-pink);
         }
 
+        /* Ranking Components */
+        .rank-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .rank-badge.rank-1 {
+            background: var(--secondary-green);
+            color: white;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .ranking-prize-preview {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .prize-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .prize-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--primary-purple);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .prize-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        .prize-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.3));
+        }
+
+        .ranking-card {
+            height: 100%;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -497,8 +1200,8 @@
 
         /* Prize Card Styles */
         .prize-card {
-            background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, #1e1e2d 0%, #151522 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
             border-radius: var(--radius-lg);
             padding: var(--spacing-lg);
             display: flex;
@@ -509,16 +1212,16 @@
         }
 
         .highlight-card {
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2) !important;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
             transition: all 0.3s ease;
         }
 
         .highlight-card:hover {
             transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.4) !important;
-            box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
+            border-color: rgba(139, 92, 246, 0.4) !important;
+            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
         }
 
         .ranking-prize-footer {
@@ -627,17 +1330,17 @@
         }
 
         .ranking-row-1 .ranking-badge {
-            background: #ffffff;
+            background: #ffd700;
             color: #000;
         }
 
         .ranking-row-2 .ranking-badge {
-            background: #e5e5e5;
+            background: #c0c0c0;
             color: #000;
         }
 
         .ranking-row-3 .ranking-badge {
-            background: #a3a3a3;
+            background: #cd7f32;
             color: #000;
         }
 
@@ -726,33 +1429,202 @@
             background: #1a1a1a;
             color: white;
         }
+
+        /* Checkbox styles */
+        .opportunity-checkbox-wrapper {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 10;
+        }
+
+        .opportunity-checkbox-custom {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: transparent;
+            font-size: 12px;
+        }
+
+        .opportunity-card:hover .opportunity-checkbox-custom {
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .opportunity-card.selected .opportunity-checkbox-custom {
+            background: var(--primary-purple);
+            border-color: var(--primary-purple);
+            color: white;
+        }
+
+        .opportunity-card.selected {
+            border-color: var(--primary-purple) !important;
+            background: rgba(139, 92, 246, 0.08) !important;
+        }
+
+        .opportunity-card.dragging-multiple {
+            opacity: 0.6;
+            transform: scale(0.98);
+            border-style: dashed;
+        }
+
+        /* Bulk action bar */
+        .bulk-action-bar {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            background: #12121e;
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            padding: 12px 24px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            z-index: 10000;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(15px);
+        }
+
+        .bulk-action-bar.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .selected-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-right: 24px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .selected-count-badge {
+            background: var(--primary-purple);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .selected-text {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .bulk-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .bulk-stage-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            min-width: 180px;
+            cursor: pointer;
+        }
+
+        .bulk-stage-select:focus {
+            border-color: var(--primary-purple);
+        }
+
+        .bulk-apply-btn {
+            background: var(--primary-purple);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bulk-apply-btn:hover:not(:disabled) {
+            background: #7c3aed;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .bulk-apply-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .bulk-close-btn {
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .bulk-close-btn:hover {
+            color: white;
+        }
     </style>
 </head>
 
-<body class="page-dashboard">
+<body>
     <div class="layout-wrapper">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <img src="dezoitoklogo.png" alt="Dezoitok Logo" class="sidebar-logo">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
                 <button class="toggle-btn" id="toggleSidebar">
                     <i class="ph ph-list"></i>
                 </button>
             </div>
             <nav class="sidebar-nav">
-                <a href="dashboard.html" class="nav-link">
-                    <i class="ph-fill ph-house"></i>
-                    <span class="link-text">Dashboard</span>
+                <a href="index.html" class="nav-link">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span class="link-text">Desempenho</span>
                 </a>
-                <a href="calculadora-custos.html" class="nav-link">
-                    <i class="ph-fill ph-calculator"></i>
-                    <span class="link-text">Calculadora Custos</span>
+                <a href="crm.html" class="nav-link active">
+                    <i class="ph-fill ph-table"></i>
+                    <span class="link-text">CRM Quantic</span>
+                </a>
+                <a href="contatos.html" class="nav-link">
+                    <i class="ph-fill ph-user"></i>
+                    <span class="link-text">Contatos</span>
+                </a>
+                <a href="conversas.html" class="nav-link">
+                    <i class="ph-fill ph-chats-teardrop"></i>
+                    <span class="link-text">Conversas</span>
+                </a>
+                <a href="captacao.html" class="nav-link">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span class="link-text">Captação</span>
+                </a>
+                <a href="materialize.html" class="nav-link">
+                    <i class="ph-fill ph-magic-wand"></i>
+                    <span class="link-text">Materialize</span>
                 </a>
             </nav>
             <div class="sidebar-footer">
-                <button id="themeToggle" class="nav-link theme-btn">
-                    <i class="ph ph-sun"></i>
-                    <span class="link-text">Modo Claro</span>
-                </button>
             </div>
         </aside>
 
@@ -785,6 +1657,20 @@
 
                 <div class="crm-container" id="crm-board">
                     <!-- Columns will be injected here -->
+                </div>
+
+                <div class="section-header" style="margin-top: 64px; margin-bottom: 24px;">
+                    <h3
+                        style="font-size: 18px; color: var(--text-white); font-weight: 700; display: flex; align-items: center; gap: 12px;">
+                        <i class="ph-fill ph-funnel"
+                            style="color: var(--primary-purple); background: rgba(139, 92, 246, 0.1); padding: 8px; border-radius: 8px;"></i>
+                        Leads por Canal de Aquisição
+                    </h3>
+                </div>
+
+                <div class="pipeline-charts-grid" id="channels-chart-container"
+                    style="margin-top: var(--spacing-md); grid-template-columns: 1fr;">
+                    <!-- Channels chart will be injected here -->
                 </div>
 
                 <div class="section-header" style="margin-top: 48px;">
@@ -846,472 +1732,1150 @@
         </div>
     </div>
 
+
     <!-- Modal for Lead Details -->
     <div class="modal-overlay" id="leadModal">
         <div class="modal-content">
-            <button class="modal-close" id="closeModal"><i class="ph ph-x"></i></button>
-            <div class="modal-header">
-                <h2 id="modal-client-name">Nome do Cliente</h2>
-                <span class="company" id="modal-company-name">Nome da Empresa</span>
+            <!-- Compact Header (Slim) -->
+            <div class="modal-header-compact">
+                <div class="header-profile">
+                    <h2 id="modal-client-name">Nome do Cliente</h2>
+                    <span class="company" id="modal-company-name">@username</span>
+                </div>
+                <button class="modal-close" id="closeModal" style="position: static;"><i class="ph ph-x"></i></button>
             </div>
-            <div class="details-grid">
-                <div class="detail-item">
-                    <span class="detail-label">Faturamento Mensal</span>
-                    <span class="detail-value" id="modal-revenue">R$ 0,00</span>
+
+            <!-- Split Body: Sidebar (CRM) + Main (AI) -->
+            <div class="modal-body-split">
+                <!-- Sidebar: Contact Info & CRM Controls -->
+                <div class="modal-sidebar">
+                    <!-- Contact Info Block -->
+                    <div class="sidebar-group">
+                        <span class="sidebar-label">Contato</span>
+                        <div class="contact-row">
+                            <input type="text" id="modal-phone" class="crm-input-compact"
+                                style="flex: 1; margin-right: 8px;" placeholder="Telefone"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            <i class="ph ph-copy copy-btn-mini" id="copy-phone"></i>
+                        </div>
+                        <div class="contact-row">
+                            <input type="text" id="modal-email" class="crm-input-compact"
+                                style="flex: 1; margin-right: 8px;" placeholder="Email">
+                            <i class="ph ph-copy copy-btn-mini" id="copy-email"></i>
+                        </div>
+                    </div>
+
+                    <!-- CRM Controls Block -->
+                    <div class="sidebar-group">
+                        <span class="sidebar-label">Gestão</span>
+                        <input type="text" id="modal-responsible" class="crm-input-compact" placeholder="Responsável">
+                        <input type="text" id="modal-tags" class="crm-input-compact" placeholder="Tags (separar por ,)">
+                        <input type="text" id="modal-channels" class="crm-input-compact"
+                            placeholder="Fonte da Oportunidade">
+                    </div>
+
+                    <button class="save-btn-sidebar" id="saveLeadDetails">Salvar Alterações</button>
                 </div>
-                <div class="detail-item">
-                    <span class="detail-label">Tipo de Business</span>
-                    <span class="detail-value" id="modal-business">---</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Telefone</span>
-                    <span class="detail-value" id="modal-phone">---</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Email</span>
-                    <span class="detail-value" id="modal-email">---</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Responsável</span>
-                    <input type="text" id="modal-responsible" class="modal-input" placeholder="Nome do responsável">
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Tags (separadas por vírgula)</span>
-                    <input type="text" id="modal-tags" class="modal-input" placeholder="tag1, tag2">
-                </div>
-                <!-- ... rest of fields ... -->
-                <div class="detail-item">
-                    <span class="detail-label">Audiência</span>
-                    <span class="detail-value" id="modal-audience">---</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Canais de Aquisição</span>
-                    <span class="detail-value" id="modal-channels">---</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Volume de Clientes</span>
-                    <span class="detail-value" id="modal-volume">---</span>
-                </div>
-                <div class="detail-item full-width">
-                    <span class="detail-label">Maior Dificuldade</span>
-                    <span class="detail-value" id="modal-difficulty">---</span>
+
+                <!-- Main Area: AI Analysis -->
+                <div class="modal-main-area">
+                    <div id="ia-info-loading"
+                        style="display: none; padding: 40px; text-align: center; color: var(--text-muted);">
+                        <i class="ph ph-circle-notch animate-spin" style="font-size: 24px;"></i>
+                        <p style="margin-top: 8px;">Analisando dados...</p>
+                    </div>
+
+                    <div id="ia-info-content">
+                        <div class="ai-grid-compact">
+                            <!-- Insight (Full Width Top) -->
+                            <div class="ai-box ai-insight ai-full-row">
+                                <span class="ai-label"><i class="ph-fill ph-sparkle"></i> Insight da IA</span>
+                                <div class="ai-content" id="modal-ia-insight">---</div>
+                            </div>
+
+                            <!-- Observações -->
+                            <div class="ai-box">
+                                <span class="ai-label">Observações</span>
+                                <p class="ai-content" id="modal-ia-obs">---</p>
+                            </div>
+
+                            <!-- Site -->
+                            <div class="ai-box">
+                                <span class="ai-label">Site</span>
+                                <div style="margin-top: 8px;">
+                                    <a id="modal-site-link" href="#" target="_blank" class="ai-content"
+                                        style="color: var(--primary-purple); text-decoration: none; border-bottom: 1px solid rgba(139, 92, 246, 0.3); padding-bottom: 2px; transition: all 0.2s; word-break: break-all;">
+                                        Abrir Site
+                                    </a>
+                                    <!-- Hidden input to maintain save functionality without changing too much logic -->
+                                    <input type="hidden" id="modal-site">
+                                </div>
+                            </div>
+
+
+                            <!-- Signals & Snippets -->
+                            <div class="ai-box ai-full-row">
+                                <span class="ai-label">Sinais de Compra</span>
+                                <div class="ia-list" id="modal-ia-signals">---</div>
+                            </div>
+
+                            <div class="ai-box ai-full-row">
+                                <span class="ai-label">Trechos da Conversa</span>
+                                <div class="ia-list" id="modal-ia-snippets">---</div>
+                            </div>
+                        </div>
+
+                        <button class="delete-btn-modal" id="deleteLeadBtn">
+                            <i class="ph-bold ph-trash"></i> Excluir Oportunidade
+                        </button>
+                    </div>
                 </div>
             </div>
-            <button class="save-btn" id="saveLeadDetails">Salvar Alterações</button>
         </div>
-    </div>
+        <!-- Bulk Action Bar -->
+        <div class="bulk-action-bar" id="bulk-action-bar">
+            <div class="selected-info">
+                <div class="selected-count-badge" id="selected-count-badge">0</div>
+                <span class="selected-text">Leads Selecionados</span>
+            </div>
+            <div class="bulk-controls">
+                <select id="bulk-stage-select" class="bulk-stage-select">
+                    <option value="" disabled selected>Mover para etapa...</option>
+                    <!-- Stages will be injected here -->
+                </select>
+                <button class="bulk-apply-btn" id="bulk-apply-btn">
+                    <i class="ph ph-check"></i> Aplicar
+                </button>
+                <button class="bulk-close-btn" onclick="clearSelection()">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+        </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
-    <script src="crm-logic.js"></script>
-    <script src="script.js"></script>
-    <script>
-        const stages = [
-            "Contato",
-            "Mensagem Enviada",
-            "Mensagem Enviada 2",
-            "Mensagem Enviada 3",
-            "Conexão",
-            "Reunião Agendada",
-            "Reunião Realizada",
-            "Proposta Enviada",
-            "Venda Realizada",
-            "Perdida"
-        ];
+        <script src="crm-logic.js"></script>
+        <script src="script.js"></script>
+        <script>
+            // Debug inicial do script
+            console.debug('[CRM-SCRIPT] crm.js carregado');
 
-        let draggedLeadId = null;
-        let currentPipeline = 'Quantic Starter';
+            const stages = [
+                "Contato",
+                "Mensagem Enviada",
+                "Mensagem Enviada 2",
+                "Mensagem Enviada 3",
+                "Conexão",
+                "Reunião Agendada",
+                "Reunião Realizada",
+                "Proposta Enviada",
+                "Venda Realizada",
+                "Perdida"
+            ];
 
-        function renderBoard() {
-            const board = document.getElementById('crm-board');
-            board.innerHTML = '';
+            let draggedLeadId = null;
+            // Use o identificador curto (coerente com data-pipeline nos botões)
+            let currentPipeline = 'starter';
+            let selectedLeads = new Set();
 
-            stages.forEach(stage => {
-                const column = document.createElement('div');
-                column.className = 'crm-column';
-                column.innerHTML = `
-                    <div class="column-header">
-                        <h3>${stage}</h3>
-                        <span class="opportunity-count">0</span>
-                    </div>
-                    <div class="opportunity-list" 
-                         id="list-${stage.replace(/\s+/g, '-')}"
-                         ondragover="handleDragOver(event)"
-                         ondragleave="handleDragLeave(event)"
-                         ondrop="handleDrop(event, '${stage}')">
-                        <!-- Opportunity cards -->
-                    </div>
-                `;
-                board.appendChild(column);
-            });
-        }
-
-        // Drag & Drop handlers
-        function handleDragStart(event, leadId) {
-            draggedLeadId = leadId;
-            event.target.classList.add('dragging');
-            event.dataTransfer.setData('text/plain', leadId);
-        }
-
-        let scrollInterval;
-        function startAutoScroll(direction) {
-            if (scrollInterval) return;
-            const board = document.getElementById('crm-board');
-            scrollInterval = setInterval(() => {
-                board.scrollLeft += direction * 15;
-            }, 16);
-        }
-
-        function stopAutoScroll() {
-            clearInterval(scrollInterval);
-            scrollInterval = null;
-        }
-
-        function handleDragEnd(event) {
-            event.target.classList.remove('dragging');
-            stopAutoScroll();
-        }
-
-        function handleDragOver(event) {
-            event.preventDefault();
-            if (event.currentTarget.classList.contains('opportunity-list')) {
-                event.currentTarget.classList.add('drag-over');
+            // helper: gera ID de lista seguro a partir do nome da etapa
+            function safeListId(stage) {
+                try {
+                    if (!stage) return 'list-Contato';
+                    // usa encodeURIComponent e substitui '%' por '-' para manter ID válido
+                    return 'list-' + encodeURIComponent(String(stage)).replace(/%/g, '-');
+                } catch (e) {
+                    console.warn('[safeListId] stage inválido:', stage, e);
+                    return 'list-Contato';
+                }
             }
 
-            // Auto-scroll board if near edges
-            const board = document.getElementById('crm-board');
-            const rect = board.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const threshold = 150;
+            function renderBoard() {
+                console.debug('[CRM-SCRIPT] renderBoard start, stages count:', stages.length);
+                const board = document.getElementById('crm-board');
+                if (!board) {
+                    console.error('[renderBoard] elemento #crm-board não encontrado');
+                    return;
+                }
+                board.innerHTML = '';
 
-            if (x < threshold) {
-                startAutoScroll(-1);
-            } else if (x > rect.width - threshold) {
-                startAutoScroll(1);
-            } else {
+                stages.forEach(stage => {
+                    const column = document.createElement('div');
+                    column.className = 'crm-column';
+                    const listId = safeListId(stage);
+                    column.innerHTML = `
+                <div class="column-header">
+                    <div class="header-title-wrapper">
+                        <div class="select-all-column" id="select-all-${listId}" onclick="selectAllInStage('${stage}', event)" title="Selecionar todos desta etapa">
+                            <i class="ph ph-check-square"></i>
+                        </div>
+                        <h3>${stage}</h3>
+                    </div>
+                    <span class="opportunity-count">0</span>
+                </div>
+                <div class="opportunity-list" 
+                     id="${listId}"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event, '${stage}')">
+                    <!-- Opportunity cards -->
+                </div>
+            `;
+                    board.appendChild(column);
+                });
+                console.debug('[CRM-SCRIPT] renderBoard finished');
+            }
+
+            // Drag & Drop handlers
+            function handleDragStart(event, leadId) {
+                draggedLeadId = leadId;
+                event.target.classList.add('dragging');
+                event.dataTransfer.setData('text/plain', leadId);
+
+                // If the item being dragged is selected, we are moving all selected items
+                if (selectedLeads.has(leadId)) {
+                    event.dataTransfer.setData('application/json', JSON.stringify(Array.from(selectedLeads)));
+                    // Add a class to all selected cards for visual feedback
+                    document.querySelectorAll('.opportunity-card.selected').forEach(card => {
+                        card.classList.add('dragging-multiple');
+                    });
+                }
+            }
+
+            let scrollInterval;
+            function startAutoScroll(direction) {
+                if (scrollInterval) return;
+                const board = document.getElementById('crm-board');
+                scrollInterval = setInterval(() => {
+                    board.scrollLeft += direction * 15;
+                }, 16);
+            }
+
+            function stopAutoScroll() {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+
+            function handleDragEnd(event) {
+                event.target.classList.remove('dragging');
+                document.querySelectorAll('.opportunity-card.dragging-multiple').forEach(card => {
+                    card.classList.remove('dragging-multiple');
+                });
                 stopAutoScroll();
             }
-        }
 
-        function handleDragLeave(event) {
-            event.currentTarget.classList.remove('drag-over');
-        }
+            function handleDragOver(event) {
+                event.preventDefault();
+                if (event.currentTarget.classList.contains('opportunity-list')) {
+                    event.currentTarget.classList.add('drag-over');
+                }
 
-        async function handleDrop(event, newStage) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('drag-over');
-            stopAutoScroll();
+                // Auto-scroll board if near edges
+                const board = document.getElementById('crm-board');
+                const rect = board.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const threshold = 150;
 
-            const leadId = event.dataTransfer.getData('text/plain');
-            const card = document.querySelector(`[data-id="${leadId}"]`);
-            const newList = event.currentTarget;
+                if (x < threshold) {
+                    startAutoScroll(-1);
+                } else if (x > rect.width - threshold) {
+                    startAutoScroll(1);
+                } else {
+                    stopAutoScroll();
+                }
+            }
 
-            if (card && newList) {
-                const oldList = card.parentElement;
-                if (oldList !== newList) {
-                    newList.appendChild(card);
+            function handleDragLeave(event) {
+                event.currentTarget.classList.remove('drag-over');
+            }
+
+            async function handleDrop(event, newStage) {
+                event.preventDefault();
+                event.currentTarget.classList.remove('drag-over');
+                stopAutoScroll();
+
+                const leadId = event.dataTransfer.getData('text/plain');
+                const bulkIdsJson = event.dataTransfer.getData('application/json');
+                const newList = event.currentTarget;
+
+                if (!newList) return;
+
+                if (bulkIdsJson && selectedLeads.has(leadId)) {
+                    // Moving multiple items
+                    const bulkIds = JSON.parse(bulkIdsJson);
+                    console.log('[CRM] Moving bulk leads to stage:', newStage, bulkIds);
+
+                    // Optimistic UI move
+                    bulkIds.forEach(id => {
+                        const card = document.querySelector(`[data-id="${id}"]`);
+                        if (card) newList.appendChild(card);
+                    });
+
                     updateCounters();
+                    updateColumnSelectButtons();
 
-                    // Update in Supabase via CRM_LOGIC
                     if (window.CRM_LOGIC) {
-                        await CRM_LOGIC.updateLeadStage(leadId, newStage);
+                        await CRM_LOGIC.batchUpdateLeadStages(bulkIds, newStage);
+                        clearSelection();
+                        await loadData();
+                    }
+                } else if (leadId) {
+                    // Moving single item
+                    const card = document.querySelector(`[data-id="${leadId}"]`);
+                    if (card) {
+                        const oldList = card.parentElement;
+                        if (oldList !== newList) {
+                            newList.appendChild(card);
+                            updateCounters();
+                            updateColumnSelectButtons();
+
+                            if (window.CRM_LOGIC) {
+                                await CRM_LOGIC.updateLeadStage(leadId, newStage);
+                                await loadData();
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        function updateCounters() {
-            document.querySelectorAll('.crm-column').forEach(col => {
-                const list = col.querySelector('.opportunity-list');
-                const count = list ? list.children.length : 0;
-                const countSpan = col.querySelector('.opportunity-count');
-                if (countSpan) countSpan.textContent = count;
-            });
-        }
+            function updateCounters() {
+                document.querySelectorAll('.crm-column').forEach(col => {
+                    const list = col.querySelector('.opportunity-list');
+                    const count = list ? list.children.length : 0;
+                    const countSpan = col.querySelector('.opportunity-count');
+                    if (countSpan) countSpan.textContent = count;
+                });
+            }
 
-        // Modal Logic
-        const modal = document.getElementById('leadModal');
-        const closeModal = document.getElementById('closeModal');
+            // Modal Logic
+            const modal = document.getElementById('leadModal');
+            const closeModal = document.getElementById('closeModal');
 
-        if (closeModal) {
-            closeModal.onclick = () => modal.style.display = 'none';
-        }
-        window.onclick = (event) => {
-            if (event.target == modal) modal.style.display = 'none';
-        }
-
-        let currentLeadId = null;
-
-        function openLeadDetails(lead) {
-            currentLeadId = lead.id;
-            document.getElementById('modal-client-name').textContent = lead.name;
-            document.getElementById('modal-company-name').textContent = lead.company;
-            document.getElementById('modal-revenue').textContent = lead.revenue;
-            document.getElementById('modal-email').textContent = lead.email || '---';
-            document.getElementById('modal-phone').textContent = lead.phone || '---';
-            document.getElementById('modal-business').textContent = lead.business || '---';
-            document.getElementById('modal-audience').textContent = lead.audience || '---';
-            document.getElementById('modal-channels').textContent = lead.channels || '---';
-            document.getElementById('modal-volume').textContent = lead.volume || '---';
-            document.getElementById('modal-difficulty').textContent = lead.difficulty || '---';
-
-            // Editable fields
-            document.getElementById('modal-responsible').value = lead.responsible !== 'Não atribuído' ? lead.responsible : '';
-            document.getElementById('modal-tags').value = lead.tags ? lead.tags.join(', ') : '';
-
-            modal.style.display = 'flex';
-        }
-
-        document.getElementById('saveLeadDetails').onclick = async () => {
-            if (!currentLeadId || !window.CRM_LOGIC) return;
-
-            const responsible = document.getElementById('modal-responsible').value;
-            const tagsRaw = document.getElementById('modal-tags').value;
-            const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
-
-            const saveBtn = document.getElementById('saveLeadDetails');
-            const originalText = saveBtn.innerHTML;
-
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Atribuindo usuário...';
-
-            await CRM_LOGIC.updateOpportunityDetails(currentLeadId, {
-                responsible_name: responsible,
-                tags: tags
-            });
-
-            // Explicitly reload to update the board automatically
-            await loadData();
-
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
-            modal.style.display = 'none';
-        };
-
-        async function loadData() {
-            if (!window.CRM_LOGIC) return;
-
-            // 1. Load Global Summary and Stage Distribution
-            const summary = await CRM_LOGIC.fetchPipelineSummary();
-            document.getElementById('total-starter').textContent = summary.total.starter;
-            document.getElementById('total-growth').textContent = summary.total.growth;
-            document.getElementById('total-enterprise').textContent = summary.total.enterprise;
-
-            // Update responsible filter options
-            updateResponsibleFilter(summary.salesByResponsible, summary.meetingsByResponsible);
-
-            // 2. Load Board for current pipeline
-            const leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
-            window.allLeads = leads;
-            renderLeads(leads);
-
-            // 3. Stage Distribution Charts
-            renderChartsOnLoad(summary);
-
-            // 4. Responsible Rankings
-            renderRanking('sales-ranking-container', summary.salesByResponsible, 'Ranking de Vendas', 'ph-crown', 'label-growth', 'bar-growth', {
-                name: 'iPhone 17 Pro Max',
-                image: 'https://reidocelular.com.br/wp-content/uploads/2025/12/iphone-17-pro-max-3.png',
-                label: 'Prêmio para o 1º Colocado'
-            });
-        }
-
-        function updateResponsibleFilter(salesData, meetingData) {
-            const filter = document.getElementById('responsibleFilter');
-            const currentVal = filter.value;
-
-            // Get unique responsibles from both datasets
-            const responsibles = new Set();
-            if (salesData) Object.keys(salesData).forEach(r => responsibles.add(r));
-            if (meetingData) Object.keys(meetingData).forEach(r => responsibles.add(r));
-
-            filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
-            Array.from(responsibles).sort().forEach(resp => {
-                const option = document.createElement('option');
-                option.value = resp;
-                option.textContent = resp;
-                filter.appendChild(option);
-            });
-
-            filter.value = currentVal;
-        }
-
-        function renderLeads(leads) {
-            const searchTerm = document.getElementById('crmSearch').value.toLowerCase();
-            const respFilter = document.getElementById('responsibleFilter').value;
-
-            // Filter leads
-            const filteredLeads = leads.filter(opp => {
-                const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
-                    (opp.company?.toLowerCase().includes(searchTerm));
-                const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
-                return matchesSearch && matchesResp;
-            });
-
-            // Clear lists
-            document.querySelectorAll('.opportunity-list').forEach(list => {
-                list.innerHTML = '';
-            });
-
-            // Re-inject leads
-            filteredLeads.forEach(opp => {
-                const listId = `list-${opp.stage.replace(/\s+/g, '-')}`;
-                const list = document.getElementById(listId);
-                if (list) {
-                    const card = document.createElement('div');
-                    card.className = 'opportunity-card';
-                    card.draggable = true;
-                    card.setAttribute('data-id', opp.id);
-                    card.ondragstart = (e) => handleDragStart(e, opp.id);
-                    card.ondragend = handleDragEnd;
-                    card.onclick = () => openLeadDetails(opp);
-
-                    card.innerHTML = `
-                        <span class="client-name">${opp.name}</span>
-                        <span class="company-name">${opp.company}</span>
-                        <div class="revenue">
-                            <i class="ph-fill ph-money"></i>
-                            <span>${opp.revenue}</span>
-                        </div>
-                        <div class="tags-container">
-                            ${(opp.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
-                        </div>
-                        <div class="responsible-badge">
-                            <i class="ph-fill ph-user-circle"></i>
-                            <span>${opp.responsible}</span>
-                        </div>
-                    `;
-                    list.appendChild(card);
+            function closeModalFunc() {
+                if (modal) {
+                    modal.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                    document.documentElement.classList.remove('modal-open');
                 }
+            }
+
+            if (closeModal) {
+                closeModal.onclick = closeModalFunc;
+            }
+            window.onclick = (event) => {
+                if (event.target == modal) closeModalFunc();
+            }
+
+            // Close modal on Escape key
+            window.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') closeModalFunc();
             });
 
-            updateCounters();
-        }
+            let currentLeadId = null;
+            let currentContactId = null;
 
-        function renderChartsOnLoad(summary) {
-            const chartsContainer = document.getElementById('pipeline-charts-container');
-            chartsContainer.innerHTML = '';
+            async function openLeadDetails(lead) {
+                currentLeadId = lead.id;
+                currentContactId = lead.contactId;
 
-            const pipelineConfig = [
-                { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
-                { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
-                { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
-            ];
+                document.getElementById('modal-client-name').textContent = lead.name;
+                const displayUser = lead.company.startsWith('@') ? lead.company : '@' + lead.company;
+                document.getElementById('modal-company-name').textContent = displayUser;
+                document.getElementById('modal-email').value = (lead.email && lead.email !== '---') ? lead.email : '';
+                document.getElementById('modal-phone').value = lead.phone !== '---' ? lead.phone : '';
 
-            pipelineConfig.forEach(pipe => {
-                const card = document.createElement('div');
-                card.className = 'chart-card';
+                // Now 'channels' maps to 'Fonte da Oportunidade'
+                document.getElementById('modal-channels').value = (lead.channels && lead.channels !== '---') ? lead.channels : '';
 
-                let chartRowsHtml = '';
-                const pipeData = summary.stages[pipe.id] || {};
+                document.getElementById('modal-responsible').value = lead.responsible !== 'Não atribuído' ? lead.responsible : '';
+                document.getElementById('modal-tags').value = lead.tags ? lead.tags.join(', ') : '';
 
-                const maxCount = Math.max(...stages.map(s => pipeData[s] || 0), 1);
+                const siteVal = (lead.site && lead.site !== '---') ? lead.site : '';
+                const siteEl = document.getElementById('modal-site');
+                const siteLink = document.getElementById('modal-site-link');
 
+                if (siteEl) siteEl.value = siteVal;
+                if (siteLink) {
+                    if (siteVal) {
+                        siteLink.href = siteVal.startsWith('http') ? siteVal : 'https://' + siteVal;
+                        siteLink.textContent = siteVal;
+                        siteLink.style.display = 'inline-block';
+                        siteLink.style.opacity = '1';
+                    } else {
+                        siteLink.href = '#';
+                        siteLink.textContent = 'Sem site cadastrado';
+                        siteLink.style.display = 'inline-block';
+                        siteLink.style.opacity = '0.5';
+                    }
+                }
+
+                // Reset Delete Button state
+                const delBtn = document.getElementById('deleteLeadBtn');
+                if (delBtn) {
+                    delBtn.disabled = false;
+                    delBtn.innerHTML = '<i class="ph-bold ph-trash"></i> Excluir Oportunidade';
+                }
+
+                modal.style.display = 'flex';
+                document.body.classList.add('modal-open');
+                document.documentElement.classList.add('modal-open');
+
+                await loadAIInfo(lead.company);
+            }
+
+            async function loadAIInfo(username) {
+                const loading = document.getElementById('ia-info-loading');
+                const content = document.getElementById('ia-info-content');
+
+                if (loading) loading.style.display = 'block';
+                if (content) content.style.display = 'none';
+
+                try {
+                    const aiInfo = await CRM_LOGIC.fetchAILeadInfo(username);
+
+                    if (aiInfo) {
+                        if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = aiInfo.observacoes || 'Sem observações';
+                        if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = aiInfo.insight_ia || 'Nenhum insight disponível';
+
+                        const formatList = (containerId, data) => {
+                            const container = document.getElementById(containerId);
+                            if (!container) return;
+                            container.innerHTML = '';
+                            let items = [];
+                            try {
+                                items = typeof data === 'string' ? JSON.parse(data) : (data || []);
+                            } catch (e) { items = [data]; }
+
+                            if (Array.isArray(items) && items.length > 0) {
+                                items.forEach(item => {
+                                    const span = document.createElement('span');
+                                    span.textContent = item;
+                                    container.appendChild(span);
+                                });
+                            } else {
+                                container.textContent = '---';
+                            }
+                        };
+
+                        formatList('modal-ia-signals', aiInfo.sinais_detectados);
+                        formatList('modal-ia-snippets', aiInfo.trechos_relevantes);
+                    } else {
+                        if (document.getElementById('modal-ia-obs')) document.getElementById('modal-ia-obs').textContent = '---';
+                        if (document.getElementById('modal-ia-insight')) document.getElementById('modal-ia-insight').textContent = 'Nenhum dado de IA encontrado para este usuário.';
+                        if (document.getElementById('modal-ia-signals')) document.getElementById('modal-ia-signals').textContent = '---';
+                        if (document.getElementById('modal-ia-snippets')) document.getElementById('modal-ia-snippets').textContent = '---';
+                    }
+                } catch (err) {
+                    console.error("Erro ao carregar IA info:", err);
+                } finally {
+                    if (loading) loading.style.display = 'none';
+                    if (content) content.style.display = 'block';
+                }
+            }
+
+            // Sync column select buttons with selectedLeads
+            function updateColumnSelectButtons() {
                 stages.forEach(stage => {
-                    const count = pipeData[stage] || 0;
-                    const percentage = (count / maxCount) * 100;
+                    const listId = safeListId(stage);
+                    const list = document.getElementById(listId);
+                    const btn = document.getElementById(`select-all-${listId}`);
+                    if (!list || !btn) return;
 
-                    chartRowsHtml += `
+                    const cards = list.querySelectorAll('.opportunity-card');
+                    if (cards.length === 0) {
+                        btn.classList.remove('active');
+                        return;
+                    }
+
+                    let allSelected = true;
+                    cards.forEach(card => {
+                        if (!selectedLeads.has(card.getAttribute('data-id'))) {
+                            allSelected = false;
+                        }
+                    });
+
+                    if (allSelected) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+            }
+
+            document.getElementById('saveLeadDetails').onclick = async () => {
+                if (!currentLeadId || !window.CRM_LOGIC) {
+                    console.error('[CRM-SCRIPT] Cannot save: currentLeadId is missing', { currentLeadId });
+                    if (window.showToast) window.showToast("Erro: ID da oportunidade não encontrado", "error");
+                    return;
+                }
+
+                // Opp Data
+                const responsible = document.getElementById('modal-responsible').value.trim();
+                const tagsRaw = document.getElementById('modal-tags').value;
+                const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t !== "");
+
+                // New: Get phone, source, email and site from modal
+                const phone = document.getElementById('modal-phone').value.trim();
+                const channels = document.getElementById('modal-channels').value.trim();
+                const email = document.getElementById('modal-email').value.trim();
+                const site = document.getElementById('modal-site').value.trim();
+
+                const saveBtn = document.getElementById('saveLeadDetails');
+                const originalText = saveBtn.innerHTML;
+
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Salvando dados...';
+
+                console.log('[CRM-SCRIPT] Saving details for ID:', currentLeadId, {
+                    responsible, phone, channels, site
+                });
+
+                await CRM_LOGIC.updateOpportunityDetails(currentLeadId, currentContactId, {
+                    oppData: {
+                        responsible_name: responsible || null,
+                        tags: tags,
+                        telefone: (phone && phone !== '---') ? phone : null,
+                        email: email || null,
+                        fonte_oportunidade: channels || null,
+                        site: site || null
+                    },
+                    contactData: {
+                        acquisition_channels: channels || null,
+                        email: email || null,
+                        website: site || null
+                    }
+                });
+
+                // Explicitly reload
+                await loadData();
+
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                closeModalFunc();
+            };
+
+            document.getElementById('deleteLeadBtn').onclick = async () => {
+                if (!currentLeadId || !window.CRM_LOGIC) return;
+
+                if (confirm("Tem certeza que deseja excluir esta oportunidade? Esta ação não pode ser desfeita.")) {
+                    const btn = document.getElementById('deleteLeadBtn');
+                    const originalContent = btn.innerHTML;
+
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Excluindo...';
+
+                    const success = await CRM_LOGIC.deleteOpportunity(currentLeadId);
+
+                    if (success) {
+                        closeModalFunc();
+                        await loadData();
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = originalContent;
+                    }
+                }
+            };
+
+            // Add copy listeners
+            function setupCopy(id, type) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.onclick = () => {
+                        const targetEl = document.getElementById('modal-' + type);
+                        const content = targetEl.value !== undefined ? targetEl.value : targetEl.textContent;
+                        if (content && content !== '---' && content !== "") {
+                            navigator.clipboard.writeText(content).then(() => {
+                                if (window.showToast) window.showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' copiado!', 'success');
+                            });
+                        }
+                    }
+                }
+            }
+            setupCopy('copy-phone', 'phone');
+            setupCopy('copy-email', 'email');
+
+            // Add/update responsible filter helper
+            function updateResponsibleFilter(salesData, meetingData) {
+                try {
+                    console.debug('[CRM-SCRIPT] updateResponsibleFilter chamado', {
+                        salesData,
+                        meetingData
+                    });
+                    const filter = document.getElementById('responsibleFilter');
+                    if (!filter) {
+                        console.warn('[updateResponsibleFilter] #responsibleFilter não encontrado');
+                        return;
+                    }
+                    const currentVal = filter.value || 'all';
+                    const responsibles = new Set();
+
+                    if (salesData && typeof salesData === 'object') {
+                        Object.keys(salesData).forEach(r => {
+                            if (r) responsibles.add(r);
+                        });
+                    }
+                    if (meetingData && typeof meetingData === 'object') {
+                        Object.keys(meetingData).forEach(r => {
+                            if (r) responsibles.add(r);
+                        });
+                    }
+
+                    // Limpa e re-popula mantendo ordenação alfabética
+                    filter.innerHTML = '<option value="all">Todos os Responsáveis</option>';
+                    Array.from(responsibles).sort((a, b) => a.localeCompare(b)).forEach(resp => {
+                        const option = document.createElement('option');
+                        option.value = resp;
+                        option.textContent = resp;
+                        filter.appendChild(option);
+                    });
+
+                    // Restaura valor anterior se ainda existir
+                    if (Array.from(filter.options).some(o => o.value === currentVal)) {
+                        filter.value = currentVal;
+                    } else {
+                        filter.value = 'all';
+                    }
+                } catch (err) {
+                    console.error('[updateResponsibleFilter] erro:', err);
+                }
+            }
+
+            // ===== MOVED HELPERS (antes de loadData) =====
+            // Funções JavaScript que estavam erroneamente dentro do <style>.
+            function escapeHtml(input) {
+                try {
+                    if (input === null || input === undefined) return '';
+                    return String(input).replace(/[&<>"'\/]/g, function (s) {
+                        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;' }[s]);
+                    });
+                } catch (e) {
+                    console.warn('[escapeHtml] falha ao escapar:', e);
+                    return String(input);
+                }
+            }
+
+            function getStatusDotClass(status) {
+                try {
+                    if (!status) return 'dot-cold';
+                    const s = String(status).toLowerCase();
+                    if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'dot-hot';
+                    if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'dot-warm';
+                    return 'dot-cold';
+                } catch (e) {
+                    console.warn('[getStatusDotClass] erro:', e);
+                    return 'dot-cold';
+                }
+            }
+
+            function getStatusTextClass(status) {
+                try {
+                    if (!status) return 'status-cold';
+                    const s = String(status).toLowerCase();
+                    if (s.includes('hot') || s.includes('quente') || s.includes('alto') || s.includes('imediato')) return 'status-hot';
+                    if (s.includes('warm') || s.includes('médio') || s.includes('media') || s.includes('aquec')) return 'status-warm';
+                    return 'status-cold';
+                } catch (e) {
+                    console.warn('[getStatusTextClass] erro:', e);
+                    return 'status-cold';
+                }
+            }
+
+            function renderChartsOnLoad(summary) {
+                try {
+                    console.debug('[CRM-SCRIPT] renderChartsOnLoad', summary);
+                    const container = document.getElementById('pipeline-charts-container');
+                    if (!container) {
+                        console.warn('[renderChartsOnLoad] container não encontrado');
+                        return;
+                    }
+                    container.innerHTML = '';
+
+                    const pipelineConfig = [
+                        { id: 'starter', name: 'Quantic Starter', icon: 'ph-rocket', class: 'label-starter', barClass: 'bar-starter' },
+                        { id: 'growth', name: 'Quantic Growth', icon: 'ph-chart-line-up', class: 'label-growth', barClass: 'bar-growth' },
+                        { id: 'enterprise', name: 'Quantic Enterprise', icon: 'ph-buildings', class: 'label-enterprise', barClass: 'bar-enterprise' }
+                    ];
+
+                    const stagesOrder = (typeof stages !== 'undefined' && Array.isArray(stages)) ? stages : Object.keys((summary && summary.stages && summary.stages.starter) || {});
+
+                    pipelineConfig.forEach(pipe => {
+                        const card = document.createElement('div');
+                        card.className = 'chart-card';
+
+                        const pipeData = (summary && summary.stages && summary.stages[pipe.id]) || {};
+                        const maxCount = Math.max(...stagesOrder.map(s => pipeData[s] || 0), 1);
+
+                        let chartRowsHtml = '';
+                        stagesOrder.forEach(stage => {
+                            const count = pipeData[stage] || 0;
+                            const percentage = Math.round((count / maxCount) * 100);
+                            chartRowsHtml += `
+						<div class="chart-row">
+							<span class="chart-stage-name">${escapeHtml(stage)}</span>
+							<div class="chart-bar-bg">
+								<div class="chart-bar-fill ${pipe.barClass}" style="width: ${percentage}%"></div>
+							</div>
+							<span class="chart-count">${count}</span>
+						</div>
+					`;
+                        });
+
+                        card.innerHTML = `
+					<div class="chart-header ${pipe.class}">
+						<i class="ph-fill ${pipe.icon}"></i>
+						<span>${pipe.name}</span>
+					</div>
+					<div class="chart-body">
+						${chartRowsHtml}
+					</div>
+				`;
+                        container.appendChild(card);
+                    });
+                } catch (err) {
+                    console.error('[renderChartsOnLoad] erro ao renderizar charts:', err);
+                    const container = document.getElementById('pipeline-charts-container');
+                    if (container) container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar gráficos. Veja console.</div>';
+                }
+            }
+
+            function renderRanking(containerId, data, title, icon, headerClass, barClass, prize) {
+                try {
+                    const container = document.getElementById(containerId);
+                    if (!container) return;
+
+                    const sorted = Object.entries(data || {})
+                        .sort(([, a], [, b]) => b - a);
+
+                    const maxCount = Math.max(...Object.values(data || {}), 1);
+
+                    let rowsHtml = '';
+                    sorted.forEach(([name, count], index) => {
+                        const percentage = Math.round((count / maxCount) * 100);
+                        const rank = index + 1;
+                        rowsHtml += `
                         <div class="chart-row">
-                            <span class="chart-stage-name">${stage}</span>
+                            <div class="rank-badge ${rank === 1 ? 'rank-1' : ''}">${rank}º</div>
+                            <span class="chart-stage-name">${escapeHtml(name)}</span>
                             <div class="chart-bar-bg">
-                                <div class="chart-bar-fill ${pipe.barClass}" style="width: ${percentage}%"></div>
+                                <div class="chart-bar-fill ${barClass}" style="width: ${percentage}%"></div>
                             </div>
                             <span class="chart-count">${count}</span>
                         </div>
                     `;
-                });
+                    });
 
-                card.innerHTML = `
-                    <div class="chart-header ${pipe.class}">
-                        <i class="ph-fill ${pipe.icon}"></i>
-                        <span>${pipe.name}</span>
-                    </div>
-                    <div class="chart-body">
-                        ${chartRowsHtml}
-                    </div>
-                `;
-                chartsContainer.appendChild(card);
-            });
-        }
-
-        function renderRanking(containerId, data, title, icon, labelClass, barClass, prize) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-
-            const card = document.createElement('div');
-            card.className = 'chart-card highlight-card';
-
-            let rowsHtml = '';
-            const rankingData = data || {};
-            const resps = Object.keys(rankingData).sort((a, b) => rankingData[b] - rankingData[a]);
-            const maxCount = Math.max(...Object.values(rankingData), 1);
-
-            resps.forEach((resp, index) => {
-                const count = rankingData[resp];
-                const percentage = (count / maxCount) * 100;
-                const rankClass = index < 3 ? `ranking-row-${index + 1}` : '';
-
-                rowsHtml += `
-                    <div class="chart-row ${rankClass}">
-                        <div class="ranking-badge">${index + 1}</div>
-                        <span class="chart-stage-name" title="${resp}">${resp}</span>
-                        <div class="chart-bar-bg">
-                            <div class="chart-bar-fill ${barClass}" style="width: ${percentage}%"></div>
+                    let prizeHtml = '';
+                    if (prize) {
+                        prizeHtml = `
+                        <div class="ranking-prize-preview">
+                            <div class="prize-info">
+                                <span class="prize-label">${escapeHtml(prize.label)}</span>
+                                <span class="prize-name">${escapeHtml(prize.name)}</span>
+                            </div>
+                            <img src="${prize.image}" alt="Prêmio" class="prize-img">
                         </div>
-                        <span class="chart-count">${count}</span>
+                    `;
+                    }
+
+                    container.innerHTML = `
+                    <div class="chart-card ranking-card">
+                        <div class="chart-header ${headerClass}">
+                            <i class="ph-fill ${icon}"></i>
+                            <span>${escapeHtml(title)}</span>
+                        </div>
+                        <div class="chart-body">
+                            ${rowsHtml || '<p style="color:var(--text-muted); font-size:13px; padding:10px;">Sem dados para o ranking.</p>'}
+                            ${prizeHtml}
+                        </div>
                     </div>
                 `;
-            });
-
-            card.innerHTML = `
-                <div class="chart-header ${labelClass}">
-                    <i class="ph-fill ${icon}"></i>
-                    <span>${title}</span>
-                </div>
-                <div class="chart-body">
-                    ${rowsHtml || `<div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 20px;">Nenhum registro encontrado ainda</div>`}
-                </div>
-                ${prize ? `
-                <div class="ranking-prize-footer">
-                    <img src="${prize.image}" class="prize-footer-image">
-                    <div class="prize-footer-info">
-                        <span class="prize-footer-label">${prize.label}</span>
-                        <span class="prize-footer-name">${prize.name}</span>
-                    </div>
-                </div>
-                ` : ''}
-            `;
-            container.appendChild(card);
-        }
-
-        // Add Event Listeners for filters
-        document.getElementById('crmSearch').addEventListener('input', () => {
-            if (window.allLeads) renderLeads(window.allLeads);
-        });
-        document.getElementById('responsibleFilter').addEventListener('change', () => {
-            if (window.allLeads) renderLeads(window.allLeads);
-        });
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async () => {
-            renderBoard();
-
-            if (window.CRM_LOGIC && CRM_LOGIC.initCrmSupabase()) {
-                await loadData();
-                CRM_LOGIC.subscribeToCrmChanges(() => loadData());
+                } catch (err) {
+                    console.error('[renderRanking] erro:', err);
+                }
             }
 
-            document.querySelectorAll('.pipeline-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentPipeline = btn.textContent.trim();
-                    await loadData();
+            // Selection Logic
+            function toggleLeadSelection(leadId, element, event) {
+                event.stopPropagation();
+                if (selectedLeads.has(leadId)) {
+                    selectedLeads.delete(leadId);
+                    element.closest('.opportunity-card').classList.remove('selected');
+                } else {
+                    selectedLeads.add(leadId);
+                    element.closest('.opportunity-card').classList.add('selected');
+                }
+                updateBulkBar();
+                updateColumnSelectButtons();
+            }
+
+            function updateBulkBar() {
+                const bar = document.getElementById('bulk-action-bar');
+                const countBadge = document.getElementById('selected-count-badge');
+                const count = selectedLeads.size;
+
+                if (count > 0) {
+                    bar?.classList.add('visible');
+                    if (countBadge) countBadge.textContent = count;
+                } else {
+                    bar?.classList.remove('visible');
+                }
+            }
+
+            function clearSelection() {
+                selectedLeads.clear();
+                document.querySelectorAll('.opportunity-card.selected').forEach(card => {
+                    card.classList.remove('selected');
                 });
+                document.querySelectorAll('.select-all-column').forEach(btn => btn.classList.remove('active'));
+                updateBulkBar();
+            }
+
+            function selectAllInStage(stage, event) {
+                event.stopPropagation();
+                const listId = safeListId(stage);
+                const list = document.getElementById(listId);
+                const btn = document.getElementById(`select-all-${listId}`);
+                if (!list || !btn) return;
+
+                const cards = list.querySelectorAll('.opportunity-card');
+                const alreadySelectedAll = btn.classList.contains('active');
+
+                if (alreadySelectedAll) {
+                    // Unselect everything in this column
+                    cards.forEach(card => {
+                        const id = card.getAttribute('data-id');
+                        selectedLeads.delete(id);
+                        card.classList.remove('selected');
+                    });
+                    btn.classList.remove('active');
+                } else {
+                    // Select everything in this column
+                    cards.forEach(card => {
+                        const id = card.getAttribute('data-id');
+                        selectedLeads.add(id);
+                        card.classList.add('selected');
+                    });
+                    btn.classList.add('active');
+                }
+                updateBulkBar();
+            }
+
+            async function applyBulkStageChange() {
+                const newStage = document.getElementById('bulk-stage-select').value;
+                if (!newStage || selectedLeads.size === 0) {
+                    if (window.showToast) window.showToast("Selecione uma etapa de destino", "warning");
+                    return;
+                }
+
+                if (confirm(`Tem certeza que deseja mover ${selectedLeads.size} leads para "${newStage}"?`)) {
+                    const btn = document.getElementById('bulk-apply-btn');
+                    const originalHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> Processando...';
+
+                    try {
+                        await CRM_LOGIC.batchUpdateLeadStages(Array.from(selectedLeads), newStage);
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                        clearSelection();
+                        await loadData();
+                    } catch (err) {
+                        console.error('Bulk update error:', err);
+                        if (window.showToast) window.showToast("Erro ao processar atualização em massa", "error");
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }
+                }
+            }
+
+            function initBulkControls() {
+                const select = document.getElementById('bulk-stage-select');
+                const applyBtn = document.getElementById('bulk-apply-btn');
+
+                if (select) {
+                    // Populate stages
+                    select.innerHTML = '<option value="" disabled selected>Mover para etapa...</option>';
+                    stages.forEach(stage => {
+                        const option = document.createElement('option');
+                        option.value = stage;
+                        option.textContent = stage;
+                        select.appendChild(option);
+                    });
+                }
+
+                if (applyBtn) {
+                    applyBtn.onclick = applyBulkStageChange;
+                }
+            }
+            // ===== FIM MOVED HELPERS =====
+
+            async function loadData() {
+                // carrega summary padrão via CRM_LOGIC (mantém comportamento já existente)
+                if (!window.CRM_LOGIC) return;
+
+                // 1. Load Global Summary and Stage Distribution
+                const summary = await CRM_LOGIC.fetchPipelineSummary();
+                document.getElementById('total-starter').textContent = summary.total?.starter ?? 0;
+                document.getElementById('total-growth').textContent = summary.total?.growth ?? 0;
+                document.getElementById('total-enterprise').textContent = summary.total?.enterprise ?? 0;
+
+                // Update responsible filter options
+                updateResponsibleFilter(summary.salesByResponsible, summary.meetingsByResponsible);
+
+                // 2. Load Board for current pipeline (Ponto único de verdade: tabela opportunities)
+                let leads = await CRM_LOGIC.fetchCrmData(currentPipeline);
+                console.debug('[loadData] leads from CRM_LOGIC:', leads?.length ?? 0);
+
+                // Expor globalmente para filtros/uso posterior
+                window.allLeads = leads || [];
+
+                // 3. Render board com leads da tabela opportunities
+                renderLeads(window.allLeads);
+
+                // 4. Stage Distribution Charts (mantém summary original)
+                renderChartsOnLoad(summary);
+
+                // 5. Leads por Canal: computa baseado no summary.channels (vindo de opportunities)
+                const channelsFromSummary = Object.assign({}, summary.channels || {});
+                console.debug('[loadData] channels from opportunities:', channelsFromSummary);
+                renderChannelsChart(channelsFromSummary);
+
+                // 7. Responsible Rankings (mantém chamada original)
+                renderRanking('sales-ranking-container', summary.salesByResponsible, 'Ranking de Vendas', 'ph-crown', 'label-growth', 'bar-growth', {
+                    name: 'iPhone 17 Pro Max',
+                    image: 'https://reidocelular.com.br/wp-content/uploads/2025/12/iphone-17-pro-max-3.png',
+                    label: 'Prêmio para o 1º Colocado'
+                });
+            }
+
+            function renderLeads(leads) {
+                try {
+                    console.debug('[CRM-SCRIPT] renderLeads start, total leads:', (leads || []).length);
+                    const searchTerm = document.getElementById('crmSearch')?.value?.toLowerCase() || '';
+                    const respFilter = document.getElementById('responsibleFilter')?.value || 'all';
+
+                    // Filter leads
+                    const filteredLeads = (leads || []).filter(opp => {
+                        const matchesSearch = (opp.name?.toLowerCase().includes(searchTerm)) ||
+                            (opp.company?.toLowerCase().includes(searchTerm));
+                        const matchesResp = respFilter === 'all' || opp.responsible === respFilter;
+                        return matchesSearch && matchesResp;
+                    });
+
+                    // Sort leads: QUALIFICADO tag first, then by created date
+                    const sortedLeads = filteredLeads.sort((a, b) => {
+                        const aHasQualificado = (a.tags || []).some(tag =>
+                            typeof tag === 'string' && tag.toUpperCase().includes('QUALIFICADO') && !tag.toUpperCase().includes('DESQUALIFICADO')
+                        );
+                        const bHasQualificado = (b.tags || []).some(tag =>
+                            typeof tag === 'string' && tag.toUpperCase().includes('QUALIFICADO') && !tag.toUpperCase().includes('DESQUALIFICADO')
+                        );
+
+                        // QUALIFICADO sempre primeiro
+                        if (aHasQualificado && !bHasQualificado) return -1;
+                        if (!aHasQualificado && bHasQualificado) return 1;
+
+                        // Se ambos têm ou não têm QUALIFICADO, ordena por data (mais recente primeiro)
+                        return 0;
+                    });
+
+                    // Clear lists
+                    document.querySelectorAll('.opportunity-list').forEach(list => { list.innerHTML = ''; });
+
+                    // Re-inject leads
+                    sortedLeads.forEach(opp => {
+                        const listId = safeListId(opp.stage || 'Contato');
+                        const list = document.getElementById(listId);
+                        if (list) {
+                            const card = document.createElement('div');
+                            const pipelineClass = `strip-${currentPipeline || 'starter'}`;
+
+                            const tags = opp.tags || [];
+
+                            // Normalização do Display da Empresa (Evitar @ extras)
+                            const rawCompany = opp.company || '';
+                            const companyDisplay = rawCompany.startsWith('@') ? rawCompany : '@' + rawCompany;
+
+                            card.className = `opportunity-card ${pipelineClass}`;
+                            if (selectedLeads.has(opp.id)) card.classList.add('selected');
+
+                            card.draggable = true;
+                            card.setAttribute('data-id', opp.id);
+                            card.ondragstart = (e) => handleDragStart(e, opp.id);
+                            card.ondragend = handleDragEnd;
+                            card.onclick = () => openLeadDetails(opp);
+
+                            // Tags Dinâmicas (Garantir tags de canal e status mesmo se não estiverem no banco)
+                            let displayTags = [...tags];
+                            const channel = (opp.channels || '').toLowerCase();
+                            const status = (opp.lead_status || '').toLowerCase();
+
+                            // Adiciona tag INSTAGRAM se for do canal instagram
+                            if (channel.includes('instagram') && !displayTags.some(t => t.toUpperCase() === 'INSTAGRAM')) {
+                                displayTags.push('INSTAGRAM');
+                            }
+
+                            // Adiciona tag GOOGLE MAPS se for do canal maps ou google
+                            if ((channel.includes('maps') || channel.includes('google')) && !displayTags.some(t => t.toUpperCase() === 'GOOGLE MAPS')) {
+                                displayTags.push('GOOGLE MAPS');
+                            }
+
+                            card.innerHTML = `
+                        <div class="opportunity-checkbox-wrapper" onclick="toggleLeadSelection('${opp.id}', this, event)">
+                            <div class="opportunity-checkbox-custom">
+                                <i class="ph-bold ph-check"></i>
+                            </div>
+                        </div>
+                        <span class="client-name">${escapeHtml(opp.name)}</span>
+                        <span class="company-name">${escapeHtml(companyDisplay)}</span>
+                        <div class="tags-container">
+                            ${displayTags.map(tag => {
+                                const tagLower = tag.toLowerCase();
+                                let typeClass = '';
+                                if (tagLower.includes('quente')) typeClass = 'tag-hot';
+                                if (tagLower.includes('maps')) typeClass = 'tag-maps';
+                                if (tagLower.includes('instagram')) typeClass = 'tag-instagram';
+                                if (tagLower.includes('fixo')) typeClass = 'tag-tel-fixo';
+                                if (tagLower.includes('qualificado') && !tagLower.includes('desqualificado')) typeClass = 'tag-qualificado';
+                                if (tagLower.includes('desqualificado')) typeClass = 'tag-desqualificado';
+                                return `<span class="tag ${typeClass}">${escapeHtml(tag)}</span>`;
+                            }).join('')}
+                        </div>
+                        <div class="responsible-badge">
+                            <i class="ph-fill ph-user-circle"></i>
+                            <span>${escapeHtml(opp.responsible)}</span>
+                        </div>
+                    `;
+                            list.appendChild(card);
+                        } else {
+                            // Log se não encontrou a lista (ajuda a debugar stages inconsistentes)
+                            console.warn(`[renderLeads] lista não encontrada para stage="${opp.stage}" (id=${listId}) lead id=${opp.id}`);
+                        }
+                    });
+
+                    updateCounters();
+                    updateColumnSelectButtons();
+                    console.debug('[CRM-SCRIPT] renderLeads finished');
+                } catch (err) {
+                    console.error('[renderLeads] erro ao renderizar leads:', err);
+                    // fallback visual mínimo
+                    const board = document.getElementById('crm-board');
+                    if (board) {
+                        board.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar leads. Veja console para detalhes.</div>';
+                    }
+                }
+            }
+
+            function renderChannelsChart(channelsData) {
+                console.debug('[CRM-SCRIPT] renderChannelsChart start, channelsData:', channelsData);
+                const container = document.getElementById('channels-chart-container');
+                if (!container) {
+                    console.error('[renderChannelsChart] elemento #channels-chart-container não encontrado');
+                    return;
+                }
+
+                try {
+                    const sorted = Object.entries(channelsData || {})
+                        .sort(([, a], [, b]) => b - a);
+
+                    const maxCount = Math.max(...Object.values(channelsData || {}), 1);
+
+                    let cardsHtml = '<div class="channel-grid">';
+                    sorted.forEach(([channel, count]) => {
+                        const percentage = Math.round((count / maxCount) * 100);
+                        let iconClass = 'ph-share-network';
+                        let brandClass = 'bg-generic';
+                        let iconBoxClass = 'icon-generic';
+
+                        const chanLower = channel.toLowerCase();
+                        if (chanLower.includes('instagram')) {
+                            iconClass = 'ph-instagram-logo';
+                            brandClass = 'bg-instagram';
+                            iconBoxClass = 'icon-instagram';
+                        } else if (chanLower.includes('facebook')) {
+                            iconClass = 'ph-facebook-logo';
+                            brandClass = 'bg-facebook';
+                            iconBoxClass = 'icon-facebook';
+                        } else if (chanLower.includes('linkedin')) {
+                            iconClass = 'ph-linkedin-logo';
+                            brandClass = 'bg-linkedin';
+                            iconBoxClass = 'icon-linkedin';
+                        } else if (chanLower.includes('maps') || chanLower.includes('google')) {
+                            iconClass = 'ph-google-logo';
+                            brandClass = 'bg-google';
+                            iconBoxClass = 'icon-google';
+                        }
+
+                        cardsHtml += `
+                        <div class="channel-card-item">
+                            <div class="channel-info">
+                                <div class="channel-label">
+                                    <div class="channel-icon-box ${iconBoxClass}">
+                                        <i class="ph-fill ${iconClass}"></i>
+                                    </div>
+                                    <span>${escapeHtml(channel)}</span>
+                                </div>
+                                <span class="channel-count">${count}</span>
+                            </div>
+                            <div class="channel-bar-bg">
+                                <div class="channel-bar-fill ${brandClass}" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                    });
+                    cardsHtml += '</div>';
+
+                    container.innerHTML = cardsHtml;
+                } catch (err) {
+                    console.error('[renderChannelsChart] erro:', err);
+                    container.innerHTML = '<div style="padding:24px;color:var(--text-muted);">Erro ao renderizar canais. Veja console.</div>';
+                }
+                console.debug('[CRM-SCRIPT] renderChannelsChart end');
+            }
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', async () => {
+                console.debug('[CRM-SCRIPT] DOMContentLoaded -> inicializando board e dados');
+
+                // Pipeline selector listeners
+                document.querySelectorAll('.pipeline-btn').forEach(btn => {
+                    btn.onclick = async () => {
+                        const newPipeline = btn.getAttribute('data-pipeline');
+                        if (newPipeline === currentPipeline) return;
+
+                        // UI Update
+                        document.querySelectorAll('.pipeline-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+
+                        // Data Update
+                        currentPipeline = newPipeline;
+                        await loadData();
+                    };
+                });
+
+                // Search and Filter listeners
+                document.getElementById('crmSearch')?.addEventListener('input', () => {
+                    renderLeads(window.allLeads || []);
+                });
+
+                document.getElementById('responsibleFilter')?.addEventListener('change', () => {
+                    renderLeads(window.allLeads || []);
+                });
+
+                try {
+                    renderBoard();
+                    initBulkControls();
+                    if (window.CRM_LOGIC) {
+                        const initialized = await CRM_LOGIC.initCrmSupabase?.();
+                        console.debug('[CRM-SCRIPT] CRM_LOGIC.initCrmSupabase ->', initialized);
+                        await loadData();
+                        CRM_LOGIC.subscribeToCrmChanges?.(() => {
+                            console.debug('[CRM-SCRIPT] realtime change received -> loadData');
+                            loadData();
+                        });
+                    } else {
+                        console.warn('[CRM-SCRIPT] window.CRM_LOGIC não disponível no DOMContentLoaded');
+                    }
+                } catch (e) {
+                    console.error('[CRM-SCRIPT] erro na inicialização:', e);
+                }
             });
-        });
-    </script>
+        </script>
 </body>
 
 </html>

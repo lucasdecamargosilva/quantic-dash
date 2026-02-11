@@ -5,13 +5,261 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantic Financeiro</title>
-    <link rel="icon" type="image/png" href="favicon.png">
+
+    <!-- Favicons / theme (usa a imagem anexada: favicon.png) -->
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Supabase Core & Configuration (MUST BE IN HEAD) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+
+    <!-- Icon library (using Phosphor Icons for similarity to design) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="theme-handler.js"></script>
+
+    <style>
+        /* ...existing styles from style.css... */
+
+        /* ===== CAPTURE CARDS GRID ===== */
+        .capture-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .capture-card-left,
+        .capture-card-right {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 50%, rgba(255, 255, 255, 0.01) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .capture-card-left::before,
+        .capture-card-right::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .capture-card-left:hover,
+        .capture-card-right:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 50%, rgba(255, 255, 255, 0.02) 100%);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .capture-left-content,
+        .capture-right-content {
+            display: flex;
+            width: 100%;
+            gap: var(--spacing-xl);
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .capture-left-content {
+            flex-direction: row;
+        }
+
+        .capture-right-content {
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .capture-left-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .capture-divider-vertical {
+            width: 1px;
+            height: 80px;
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.05) 100%);
+            transition: all 0.3s ease;
+        }
+
+        .capture-card-left:hover .capture-divider-vertical {
+            height: 100px;
+            background: linear-gradient(180deg, rgba(139, 92, 246, 0.5) 0%, rgba(139, 92, 246, 0.1) 100%);
+        }
+
+        .capture-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .capture-section-header i {
+            font-size: 18px;
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.15);
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .capture-card-left:hover .capture-section-header i,
+        .capture-card-right:hover .capture-section-header i {
+            background: rgba(139, 92, 246, 0.25);
+            transform: scale(1.1);
+        }
+
+        .capture-value {
+            font-size: 42px;
+            font-weight: 900;
+            color: var(--text-white);
+            line-height: 1;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .capture-subtext {
+            font-size: 12px;
+            color: var(--text-gray);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .capture-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .capture-card-left:hover .breakdown-row {
+            background: rgba(139, 92, 246, 0.05);
+            border-color: rgba(139, 92, 246, 0.2);
+            transform: translateX(4px);
+        }
+
+        .breakdown-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .breakdown-label i {
+            font-size: 16px;
+            color: var(--primary-purple);
+        }
+
+        .breakdown-count {
+            font-weight: 800;
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.15);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .funnel-horizontal {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .funnel-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .funnel-row-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            min-width: 140px;
+        }
+
+        .funnel-bar-container {
+            flex: 1;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .funnel-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-purple), rgba(139, 92, 246, 0.6));
+            border-radius: 8px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 16px rgba(139, 92, 246, 0.3);
+        }
+
+        .capture-card-right:hover .funnel-bar {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .funnel-row-count {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--primary-purple);
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 12px;
+            border-radius: 6px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        @media (max-width: 1200px) {
+            .capture-cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== FIM CAPTURE CARDS GRID ===== */
+    </style>
 </head>
 
 <body>
@@ -24,20 +272,32 @@
                 </button>
             </div>
             <nav class="sidebar-nav">
-                <a href="dashboard.html" class="nav-link">
-                    <i class="ph-fill ph-house"></i>
-                    <span class="link-text">Dashboard</span>
+                <a href="index.html" class="nav-link active">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span class="link-text">Desempenho</span>
                 </a>
-                <a href="calculadora-custos.html" class="nav-link">
-                    <i class="ph-fill ph-calculator"></i>
-                    <span class="link-text">Calculadora Custos</span>
+                <a href="crm.html" class="nav-link">
+                    <i class="ph-fill ph-table"></i>
+                    <span class="link-text">CRM Quantic</span>
+                </a>
+                <a href="contatos.html" class="nav-link">
+                    <i class="ph-fill ph-user"></i>
+                    <span class="link-text">Contatos</span>
+                </a>
+                <a href="conversas.html" class="nav-link">
+                    <i class="ph-fill ph-chats-teardrop"></i>
+                    <span class="link-text">Conversas</span>
+                </a>
+                <a href="captacao.html" class="nav-link">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span class="link-text">Captação</span>
+                </a>
+                <a href="materialize.html" class="nav-link">
+                    <i class="ph-fill ph-magic-wand"></i>
+                    <span class="link-text">Materialize</span>
                 </a>
             </nav>
             <div class="sidebar-footer">
-                <button id="themeToggle" class="nav-link theme-btn">
-                    <i class="ph ph-sun"></i>
-                    <span class="link-text">Modo Claro</span>
-                </button>
             </div>
         </aside>
 
@@ -65,20 +325,100 @@
 
                     <div class="user-area">
                         <button class="icon-btn"><i class="ph-fill ph-bell"></i></button>
-                        <div class="user-profile">
-                            <div class="user-info">
-                                <span class="name">Admin</span>
-                                <span class="role">Financeiro</span>
-                            </div>
-                            <div class="avatar">
-                                <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Admin">
-                            </div>
-                        </div>
                     </div>
                 </header>
 
                 <!-- Main Grid -->
                 <main class="dashboard-grid">
+
+                    <!-- NOVO: Painel de Captura de Leads (PRIMEIRO) -->
+                    <section class="section-overview">
+                        <div class="section-header">
+                            <h2><i class="ph-fill ph-lightning"></i> Captura de Leads</h2>
+                        </div>
+
+                        <!-- GRID 2 COLUNAS -->
+                        <div class="capture-cards-grid">
+                            <!-- CARD 1: Leads Capturados + Qualificados -->
+                            <div class="card capture-card-left">
+                                <div class="capture-left-content">
+                                    <!-- Seção: Leads Capturados -->
+                                    <div class="capture-left-section">
+                                        <div class="capture-section-header">
+                                            <i class="ph-fill ph-funnel"></i>
+                                            <span class="section-title">Leads Capturados</span>
+                                        </div>
+                                        <div class="capture-value" id="kpi-leads-captured-value">0</div>
+                                        <div class="capture-breakdown">
+                                            <div class="breakdown-row">
+                                                <span class="breakdown-label"><i class="ph-fill ph-instagram-logo"></i>
+                                                    Instagram</span>
+                                                <span id="kpi-instagram-value" class="breakdown-count">0</span>
+                                            </div>
+                                            <div class="breakdown-row">
+                                                <span class="breakdown-label"><i class="ph-fill ph-map-pin"></i>
+                                                    Maps</span>
+                                                <span id="kpi-maps-value" class="breakdown-count">0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Divisor -->
+                                    <div class="capture-divider-vertical"></div>
+
+                                    <!-- Seção: Leads Qualificados -->
+                                    <div class="capture-left-section">
+                                        <div class="capture-section-header">
+                                            <i class="ph-fill ph-robot"></i>
+                                            <span class="section-title">Qualificados</span>
+                                        </div>
+                                        <div class="capture-value" id="kpi-qualified-value">0</div>
+                                        <span class="capture-subtext">Processados por IA</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CARD 2: Funil de Vendas -->
+                            <div class="card capture-card-right">
+                                <div class="capture-right-content">
+                                    <div class="capture-section-header">
+                                        <i class="ph-fill ph-chart-line-up"></i>
+                                        <span class="section-title">Funil de Vendas</span>
+                                    </div>
+                                    <div class="funnel-horizontal">
+                                        <div class="funnel-row">
+                                            <span class="funnel-row-label">Reuniões Agendadas</span>
+                                            <div class="funnel-bar-container">
+                                                <div class="funnel-bar" id="funnel-bar-1" style="width: 0%"></div>
+                                            </div>
+                                            <span class="funnel-row-count" id="kpi-meetings-scheduled-value">0</span>
+                                        </div>
+                                        <div class="funnel-row">
+                                            <span class="funnel-row-label">Reuniões Realizadas</span>
+                                            <div class="funnel-bar-container">
+                                                <div class="funnel-bar" id="funnel-bar-2" style="width: 0%"></div>
+                                            </div>
+                                            <span class="funnel-row-count" id="kpi-meetings-completed-value">0</span>
+                                        </div>
+                                        <div class="funnel-row">
+                                            <span class="funnel-row-label">Propostas Enviadas</span>
+                                            <div class="funnel-bar-container">
+                                                <div class="funnel-bar" id="funnel-bar-3" style="width: 0%"></div>
+                                            </div>
+                                            <span class="funnel-row-count" id="kpi-proposals-value">0</span>
+                                        </div>
+                                        <div class="funnel-row">
+                                            <span class="funnel-row-label">Vendas Realizadas</span>
+                                            <div class="funnel-bar-container">
+                                                <div class="funnel-bar" id="funnel-bar-4" style="width: 0%"></div>
+                                            </div>
+                                            <span class="funnel-row-count" id="kpi-sales-value">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
                     <!-- Visão Geral Financeira -->
                     <section class="section-overview">
@@ -158,7 +498,7 @@
                             <!-- AI Card 1: Input -->
                             <div class="card kpi-card">
                                 <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-arrow-right"></i></div>
+                                    <div class="icon-box blue"><i class="ph-fill ph-arrow-right"></i></div>
                                     <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> 8%</span>
                                 </div>
                                 <div class="card-spacer"></div>
@@ -172,7 +512,7 @@
                             <!-- AI Card 2: Output -->
                             <div class="card kpi-card">
                                 <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-arrow-left"></i></div>
+                                    <div class="icon-box pink"><i class="ph-fill ph-arrow-left"></i></div>
                                     <span class="badge positive"><i class="ph-bold ph-arrow-up-right"></i> 12%</span>
                                 </div>
                                 <div class="card-spacer"></div>
@@ -186,8 +526,8 @@
                             <!-- AI Card 3: Total Cost -->
                             <div class="card kpi-card">
                                 <div class="card-top">
-                                    <div class="icon-box"><i class="ph-fill ph-chart-bar"></i></div>
-                                    <span class="badge white-pill">74%</span>
+                                    <div class="icon-box purple"><i class="ph-fill ph-chart-bar"></i></div>
+                                    <span class="badge purple-pill">74%</span>
                                 </div>
                                 <div class="card-spacer"></div>
                                 <div class="card-content">
@@ -262,7 +602,7 @@
                                     <div class="donut-chart-container">
                                         <svg viewBox="0 0 100 100" class="donut-chart">
                                             <!-- Background Circle -->
-                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#262626"
+                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#1c1c2a"
                                                 stroke-width="12" />
 
                                             <!-- Segments (Using stroke-dasharray) 
@@ -271,18 +611,18 @@
                                          25% = 62.75
                                          12~13% = ~32
                                     -->
-                                            <!-- Segment 1: Infra (50%) - White -->
-                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ffffff"
+                                            <!-- Segment 1: Infra (50%) - Purple -->
+                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#8b5cf6"
                                                 stroke-width="12" stroke-dasharray="125.5 251" stroke-dashoffset="0"
                                                 transform="rotate(-90 50 50)" />
 
-                                            <!-- Segment 2: API (25%) - Light Gray -->
-                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e5e5e5"
+                                            <!-- Segment 2: API (25%) - Blue -->
+                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3b82f6"
                                                 stroke-width="12" stroke-dasharray="62.75 251"
                                                 stroke-dashoffset="-125.5" transform="rotate(-90 50 50)" />
 
-                                            <!-- Segment 3: Tools (13%) - Medium Gray -->
-                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#a3a3a3"
+                                            <!-- Segment 3: Tools (13%) - Pink. Leaving gap? -->
+                                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#d946ef"
                                                 stroke-width="12" stroke-dasharray="32 251" stroke-dashoffset="-188.25"
                                                 transform="rotate(-90 50 50)" />
 
@@ -293,17 +633,17 @@
 
                                     <div class="chart-legend-list">
                                         <div class="legend-item">
-                                            <span class="dot white" style="background: #ffffff;"></span>
+                                            <span class="dot purple"></span>
                                             <span>Infraestrutura & Servers</span>
                                             <span class="pct">50%</span>
                                         </div>
                                         <div class="legend-item">
-                                            <span class="dot light-gray" style="background: #e5e5e5;"></span>
+                                            <span class="dot blue"></span>
                                             <span>APIs & Token IA</span>
                                             <span class="pct">25%</span>
                                         </div>
                                         <div class="legend-item">
-                                            <span class="dot medium-gray" style="background: #a3a3a3;"></span>
+                                            <span class="dot pink"></span>
                                             <span>Ferramentas (CRM, Mkt..)</span>
                                             <span class="pct">13%</span>
                                         </div>
@@ -334,7 +674,7 @@
                                 <div class="receivables-section">
                                     <div class="section-subheader">
                                         <h4>Contas a Receber</h4>
-                                        <span class="badge white-pill">Top 3</span>
+                                        <span class="badge purple-pill">Top 3</span>
                                     </div>
                                     <div class="receivables-list">
                                         <div class="receivable-item">
@@ -403,7 +743,7 @@
                                         <span class="badge neutral">Média 30%</span>
                                     </div>
                                     <div class="progress-track small">
-                                        <div class="progress-bar white" style="width: 28%"></div>
+                                        <div class="progress-bar purple" style="width: 28%"></div>
                                     </div>
                                 </div>
 
@@ -418,7 +758,7 @@
                                 <div class="card sales-card">
                                     <span class="label">Taxa de Churn</span>
                                     <h3>2.1%</h3>
-                                    <span class="badge white-pill small-text">+0.1% esperado</span>
+                                    <span class="badge purple-pill small-text">+0.1% esperado</span>
                                 </div>
                             </div>
                         </section>
@@ -461,21 +801,250 @@
                     </div>
                     <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
                 </footer>
-            </div> <!-- end app-container -->
-        </div> <!-- end main-content -->
-    </div> <!-- end layout-wrapper -->
-
-    <!-- Supabase Core Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Supabase Configuration (Sensitive data) -->
-    <script src="supabase-config.js"></script>
+            </div>
+        </div>
+    </div>
 
     <!-- Supabase Integration Logic (Modular) -->
     <script src="supabase-logic.js?v=2"></script>
 
     <!-- Dashboard main script -->
     <script src="script.js"></script>
+
+    <!-- ===== SCRIPT 1: Carregamento de Dados de Captura de Leads ===== -->
+    <script>
+        let captureSupabase;
+        let captureMetricsInitialized = false;
+
+        async function initCaptureSupabase() {
+            // Wait for config to load
+            if (window.CONFIG_LOADED) {
+                await window.CONFIG_LOADED;
+            }
+
+            // Robust waiting for supabaseClient
+            let attempts = 0;
+            while (!window.supabaseClient && attempts < 100) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            if (window.supabaseClient) {
+                captureSupabase = window.supabaseClient;
+                console.debug('[initCaptureSupabase] ✅ Supabase inicializado');
+                return true;
+            }
+            console.error('[initCaptureSupabase] ❌ Supabase não disponível após 10s');
+            return false;
+        }
+
+        async function loadCaptureMetrics() {
+            if (!captureSupabase) {
+                console.error('[loadCaptureMetrics] Supabase não inicializado');
+                return;
+            }
+
+            try {
+                console.debug('[loadCaptureMetrics] Iniciando carregamento...');
+
+                // Obtém o usuário logado para filtrar por user_id
+                const { data: { user } } = await captureSupabase.auth.getUser();
+                if (!user) return;
+
+                // 1. Leads Capturados - Instagram (leads_capturados_posts)
+                const { count: instagramCount, error: err1 } = await captureSupabase
+                    .from('leads_capturados_posts')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
+
+                const safeInstagram = instagramCount || 0;
+                console.debug('[loadCaptureMetrics] Instagram:', safeInstagram, 'erro:', err1);
+
+                // 2. Leads Capturados - Google Maps (leads_google_maps)
+                const { count: mapsCount, error: err2 } = await captureSupabase
+                    .from('leads_google_maps')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
+
+                const safeMaps = mapsCount || 0;
+                console.debug('[loadCaptureMetrics] Maps:', safeMaps, 'erro:', err2);
+
+                // 3. Leads Qualificados (leads_qualificados)
+                const { count: qualifiedCount, error: err3 } = await captureSupabase
+                    .from('leads_qualificados')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
+
+                const safeQualified = qualifiedCount || 0;
+                console.debug('[loadCaptureMetrics] Qualified:', safeQualified, 'erro:', err3);
+
+                // 4. Funil - Reuniões Agendadas
+                const { count: scheduledCount, error: err4 } = await captureSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Reunião Agendada')
+                    .eq('user_id', user.id);
+
+                const safeScheduled = scheduledCount || 0;
+                console.debug('[loadCaptureMetrics] Reuniões Agendadas:', safeScheduled, 'erro:', err4);
+
+                // 5. Funil - Reuniões Realizadas
+                const { count: completedCount, error: err5 } = await captureSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Reunião Realizada')
+                    .eq('user_id', user.id);
+
+                const safeCompleted = completedCount || 0;
+                console.debug('[loadCaptureMetrics] Reuniões Realizadas:', safeCompleted, 'erro:', err5);
+
+                // 6. Funil - Propostas Enviadas
+                const { count: proposalsCount, error: err6 } = await captureSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Proposta Enviada')
+                    .eq('user_id', user.id);
+
+                const safeProposals = proposalsCount || 0;
+                console.debug('[loadCaptureMetrics] Propostas Enviadas:', safeProposals, 'erro:', err6);
+
+                // 7. Funil - Vendas Realizadas
+                const { count: salesCount, error: err7 } = await captureSupabase
+                    .from('opportunities')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('stage', 'Venda Realizada')
+                    .eq('user_id', user.id);
+
+                const safeSales = salesCount || 0;
+                console.debug('[loadCaptureMetrics] Vendas Realizadas:', safeSales, 'erro:', err7);
+
+                // Calculate total captured
+                const totalCaptured = safeInstagram + safeMaps;
+
+                // Update LEFT CARD (Leads Capturados + Qualificados)
+                const capturedEl = document.getElementById('kpi-leads-captured-value');
+                const instagramEl = document.getElementById('kpi-instagram-value');
+                const mapsEl = document.getElementById('kpi-maps-value');
+                const qualifiedEl = document.getElementById('kpi-qualified-value');
+
+                if (capturedEl) capturedEl.textContent = totalCaptured.toString();
+                if (instagramEl) instagramEl.textContent = safeInstagram.toString();
+                if (mapsEl) mapsEl.textContent = safeMaps.toString();
+                if (qualifiedEl) qualifiedEl.textContent = safeQualified.toString();
+
+                // Update RIGHT CARD (Funil - valores numéricos)
+                const scheduledCountEl = document.getElementById('kpi-meetings-scheduled-value');
+                const completedCountEl = document.getElementById('kpi-meetings-completed-value');
+                const proposalsCountEl = document.getElementById('kpi-proposals-value');
+                const salesCountEl = document.getElementById('kpi-sales-value');
+
+                if (scheduledCountEl) scheduledCountEl.textContent = safeScheduled.toString();
+                if (completedCountEl) completedCountEl.textContent = safeCompleted.toString();
+                if (proposalsCountEl) proposalsCountEl.textContent = safeProposals.toString();
+                if (salesCountEl) salesCountEl.textContent = safeSales.toString();
+
+                // Calcular percentuais para as barras do funil
+                const percentages = calculateFunnelPercentages(
+                    safeScheduled,
+                    safeCompleted,
+                    safeProposals,
+                    safeSales
+                );
+
+                // Atualizar largura das barras do funil
+                const bar1 = document.getElementById('funnel-bar-1');
+                const bar2 = document.getElementById('funnel-bar-2');
+                const bar3 = document.getElementById('funnel-bar-3');
+                const bar4 = document.getElementById('funnel-bar-4');
+
+                if (bar1) bar1.style.width = percentages.scheduled + '%';
+                if (bar2) bar2.style.width = percentages.completed + '%';
+                if (bar3) bar3.style.width = percentages.proposals + '%';
+                if (bar4) bar4.style.width = percentages.sales + '%';
+
+                console.debug('[loadCaptureMetrics] ✅ Todos os dados atualizados:', {
+                    total_capturados: totalCaptured,
+                    instagram: safeInstagram,
+                    maps: safeMaps,
+                    qualificados: safeQualified,
+                    reunioes_agendadas: safeScheduled,
+                    reunioes_realizadas: safeCompleted,
+                    propostas: safeProposals,
+                    vendas: safeSales,
+                    percentuais: percentages
+                });
+            } catch (err) {
+                console.error('[loadCaptureMetrics] ❌ Erro:', err);
+            }
+        }
+
+        // Subscribe to real-time changes
+        async function subscribeCaptureMetrics() {
+            if (!captureSupabase) return;
+
+            // Real-time: Instagram captures
+            captureSupabase
+                .channel('capture-instagram-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_capturados_posts' }, () => {
+                    console.debug('[RT] Nova captura Instagram');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Maps captures
+            captureSupabase
+                .channel('capture-maps-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_google_maps' }, () => {
+                    console.debug('[RT] Nova captura Maps');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Qualified leads
+            captureSupabase
+                .channel('capture-qualified-rt')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads_qualificados' }, () => {
+                    console.debug('[RT] Novo lead qualificado');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+
+            // Real-time: Opportunities changes
+            captureSupabase
+                .channel('capture-opportunities-rt')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'opportunities' }, () => {
+                    console.debug('[RT] Mudança em opportunities');
+                    loadCaptureMetrics();
+                })
+                .subscribe();
+        }
+
+        // Função auxiliar para calcular percentuais do funil
+        function calculateFunnelPercentages(scheduled, completed, proposals, sales) {
+            const maxValue = Math.max(scheduled, completed, proposals, sales, 1);
+            return {
+                scheduled: (scheduled / maxValue) * 100,
+                completed: (completed / maxValue) * 100,
+                proposals: (proposals / maxValue) * 100,
+                sales: (sales / maxValue) * 100
+            };
+        }
+
+        // Initialize quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.debug('[CaptureMetrics] Inicializando...');
+            if (await initCaptureSupabase()) {
+                console.debug('[CaptureMetrics] ✅ Supabase inicializado com sucesso');
+                await loadCaptureMetrics();
+                await subscribeCaptureMetrics();
+                captureMetricsInitialized = true;
+            } else {
+                console.error('[CaptureMetrics] ❌ Falha ao inicializar Supabase');
+            }
+        });
+    </script>
+    <!-- ===== FIM SCRIPT CAPTURA DE LEADS ===== -->
+
 </body>
 
 </html>

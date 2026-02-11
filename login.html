@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Quantic Solutions</title>
+
+    <!-- Favicons / theme (usa a imagem anexada: favicon.png) -->
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <!-- Use same font as dashboard -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <style>
+        /* Override/Extend dashboard styles specifically for login */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: var(--bg-dark);
+            /* Dashboard Background */
+            color: var(--text-white);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glows like in the dashboard */
+        .bg-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--primary-purple-glow) 0%, transparent 70%);
+            z-index: 0;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .bg-glow-1 {
+            top: -200px;
+            right: -200px;
+            opacity: 0.5;
+        }
+
+        .bg-glow-2 {
+            bottom: -200px;
+            left: -200px;
+            opacity: 0.3;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-card);
+            /* Dashboard Card Color */
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 48px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo-section {
+            margin-bottom: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .login-logo {
+            height: 32px;
+            width: auto;
+            margin-bottom: 8px;
+        }
+
+        .logo-section h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-white);
+            letter-spacing: -0.5px;
+        }
+
+        .logo-section p {
+            color: var(--text-gray);
+            font-size: 15px;
+            margin-top: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 16px;
+            color: var(--text-muted);
+            font-size: 20px;
+        }
+
+        .login-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 14px 14px 14px 48px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .login-input:focus {
+            border-color: var(--primary-purple);
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 0 4px var(--primary-purple-glow);
+        }
+
+        .login-btn {
+            width: 100%;
+            background: var(--gradient-primary);
+            /* Dashboard Purple Gradient */
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 16px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: inherit;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px var(--primary-purple-glow);
+            filter: brightness(1.1);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            margin-bottom: 24px;
+            display: none;
+            text-align: left;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Branding link at bottom */
+        .footer-credit {
+            position: absolute;
+            bottom: 32px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="login-container">
+        <div class="logo-section">
+            <img src="logo.png" alt="Quantic Logo" class="login-logo">
+            <div style="text-align: center;">
+                <h1>Quantic Dashboard</h1>
+                <p>Entre para gerenciar seus resultados</p>
+            </div>
+        </div>
+
+        <div id="error-box" class="error-message"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">E-mail Corporativo</label>
+                <div class="input-wrapper">
+                    <i class="ph ph-envelope-simple"></i>
+                    <input type="email" id="email" class="login-input" placeholder="exemplo@email.com" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Senha de Acesso</label>
+                <div class="input-wrapper">
+                    <i class="ph ph-lock-simple"></i>
+                    <input type="password" id="password" class="login-input" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="login-btn">
+                <span>Acessar Plataforma</span>
+                <i class="ph ph-arrow-right"></i>
+                <div id="spinner" class="loading-spinner"></div>
+            </button>
+        </form>
+    </div>
+
+    <div class="footer-credit">
+        © 2024 Quantic Fin • Advanced Analytics
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const spinner = document.getElementById('spinner');
+        const errorBox = document.getElementById('error-box');
+
+        loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Reset UI
+            errorBox.style.display = 'none';
+            submitBtn.disabled = true;
+            spinner.style.display = 'block';
+
+            try {
+                // AUTH object is defined in auth.js
+                await AUTH.login(email, password);
+                // Success! Signal that we want to show the loader on the next page
+                sessionStorage.setItem('quantic_show_loader', 'true');
+                window.location.href = 'index.html';
+            } catch (err) {
+                console.error(err);
+                let message = 'Credenciais inválidas ou erro de conexão.';
+                if (err.message) {
+                    if (err.message.includes('Invalid login credentials')) {
+                        message = 'E-mail ou senha incorretos.';
+                    } else {
+                        message = err.message;
+                    }
+                }
+                errorBox.textContent = message;
+                errorBox.style.display = 'block';
+                submitBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+
+</html>

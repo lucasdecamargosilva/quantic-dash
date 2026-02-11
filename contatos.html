@@ -5,11 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantic Contatos</title>
+
+    <!-- Favicons / theme (usa a imagem anexada: favicon.png) -->
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="16x16">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Supabase Core & Configuration (MUST BE IN HEAD) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         .contacts-table-header {
@@ -51,7 +62,7 @@
         }
 
         .contacts-table tr:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(139, 92, 246, 0.05);
         }
 
         .contact-name-cell {
@@ -59,12 +70,16 @@
         }
 
         .badge-audience {
-            padding: 4px 8px;
+            display: inline-block;
+            white-space: nowrap;
+            padding: 4px 12px;
             border-radius: 6px;
             font-size: 11px;
             font-weight: 700;
             background: var(--primary-purple);
             color: white;
+            text-align: center;
+            min-width: 90px;
         }
 
         .revenue-cell {
@@ -99,8 +114,8 @@
         .search-input:focus {
             outline: none;
             border-color: var(--primary-purple);
-            background: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            background: rgba(139, 92, 246, 0.1);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
         }
 
         .search-icon {
@@ -115,30 +130,42 @@
     </style>
 </head>
 
-<body class="page-dashboard">
+<body>
     <div class="layout-wrapper">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <img src="dezoitoklogo.png" alt="Dezoitok Logo" class="sidebar-logo">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
                 <button class="toggle-btn" id="toggleSidebar">
                     <i class="ph ph-list"></i>
                 </button>
             </div>
             <nav class="sidebar-nav">
-                <a href="dashboard.html" class="nav-link">
-                    <i class="ph-fill ph-house"></i>
-                    <span class="link-text">Dashboard</span>
+                <a href="index.html" class="nav-link">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span class="link-text">Desempenho</span>
                 </a>
-                <a href="calculadora-custos.html" class="nav-link">
-                    <i class="ph-fill ph-calculator"></i>
-                    <span class="link-text">Calculadora Custos</span>
+                <a href="crm.html" class="nav-link">
+                    <i class="ph-fill ph-table"></i>
+                    <span class="link-text">CRM Quantic</span>
+                </a>
+                <a href="contatos.html" class="nav-link active">
+                    <i class="ph-fill ph-user"></i>
+                    <span class="link-text">Contatos</span>
+                </a>
+                <a href="conversas.html" class="nav-link">
+                    <i class="ph-fill ph-chats-teardrop"></i>
+                    <span class="link-text">Conversas</span>
+                </a>
+                <a href="captacao.html" class="nav-link">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span class="link-text">Captação</span>
+                </a>
+                <a href="materialize.html" class="nav-link">
+                    <i class="ph-fill ph-magic-wand"></i>
+                    <span class="link-text">Materialize</span>
                 </a>
             </nav>
             <div class="sidebar-footer">
-                <button id="themeToggle" class="nav-link theme-btn">
-                    <i class="ph ph-sun"></i>
-                    <span class="link-text">Modo Claro</span>
-                </button>
             </div>
         </aside>
 
@@ -169,6 +196,7 @@
                                 <th>Empresa</th>
                                 <th>Telefone</th>
                                 <th>Email</th>
+                                <th>Origem</th>
                                 <th>Data</th>
                             </tr>
                         </thead>
@@ -188,19 +216,24 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
     <script src="script.js"></script>
     <script>
         let sbClient;
         let allContacts = [];
 
-        function initSupabase() {
-            if (window.supabase && window.SUPABASE_CONFIG) {
-                sbClient = window.supabase.createClient(
-                    window.SUPABASE_CONFIG.URL,
-                    window.SUPABASE_CONFIG.KEY
-                );
+        async function initSupabase() {
+            // Wait for config to load
+            if (window.CONFIG_LOADED) {
+                await window.CONFIG_LOADED;
+            }
+
+            // Wait for auth client to be initialized
+            if (!window.supabaseClient) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            if (window.supabaseClient) {
+                sbClient = window.supabaseClient;
                 return true;
             }
             return false;
@@ -210,17 +243,86 @@
             if (!sbClient) return [];
 
             try {
-                const { data, error } = await sbClient
+                // Obtém usuário para filtro
+                const { data: { user } } = await sbClient.auth.getUser();
+                if (!user) return [];
+
+                // 1. Fetch from consolidated contacts
+                const { data: contacts, error: errC } = await sbClient
                     .from('contacts')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .eq('user_id', user.id);
 
-                if (error) {
-                    console.error('Error fetching contacts:', error);
-                    return [];
+                // 2. Fetch from Instagram (leads_qualificados)
+                const { data: instaLeads, error: errI } = await sbClient
+                    .from('leads_qualificados')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                // 3. Fetch from Google Maps (leads_google_maps)
+                const { data: mapsLeads, error: errM } = await sbClient
+                    .from('leads_google_maps')
+                    .select('*')
+                    .eq('user_id', user.id);
+
+                let merged = [];
+
+                // Add contacts
+                if (contacts) {
+                    contacts.forEach(c => {
+                        merged.push({
+                            full_name: c.full_name,
+                            company_name: c.company_name,
+                            phone: c.phone,
+                            email: c.email,
+                            created_at: c.created_at,
+                            source: 'CRM'
+                        });
+                    });
                 }
-                allContacts = data;
-                return data;
+
+                // Add Instagram leads
+                if (instaLeads) {
+                    instaLeads.forEach(l => {
+                        merged.push({
+                            full_name: l.nome_cliente || l.usuario,
+                            company_name: l.usuario || 'Instagram',
+                            phone: l.telefone,
+                            email: l.email,
+                            created_at: l.created_at,
+                            source: 'Instagram'
+                        });
+                    });
+                }
+
+                // Add Maps leads
+                if (mapsLeads) {
+                    mapsLeads.forEach(l => {
+                        merged.push({
+                            full_name: l.empresa,
+                            company_name: l.empresa || 'Google Maps',
+                            phone: l.telefone,
+                            email: '---',
+                            created_at: l.created_at,
+                            source: 'Google Maps'
+                        });
+                    });
+                }
+
+                // Sort by date DESC
+                merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                // De-duplicate (very simple by phone or email if present)
+                const seen = new Set();
+                const unique = merged.filter(item => {
+                    const key = (item.phone || '') + '|' + (item.email || '') + '|' + (item.full_name || '');
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+
+                allContacts = unique;
+                return unique;
             } catch (err) {
                 console.error('Fetch error:', err);
                 return [];
@@ -231,7 +333,7 @@
             const body = document.getElementById('contacts-body');
 
             if (contacts.length === 0) {
-                body.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum contato encontrado.</td></tr>';
+                body.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhum contato encontrado.</td></tr>';
                 return;
             }
 
@@ -241,10 +343,11 @@
                 const date = contact.created_at ? new Date(contact.created_at).toLocaleDateString('pt-BR') : '---';
 
                 tr.innerHTML = `
-                    <td class="contact-name-cell">${contact.full_name || '---'}</td>
-                    <td>${contact.company_name || '---'}</td>
-                    <td>${contact.phone || '---'}</td>
-                    <td>${contact.email || '---'}</td>
+                    <td class="contact-name-cell">${escapeHtml(contact.full_name || '---')}</td>
+                    <td>${escapeHtml(contact.company_name || '---')}</td>
+                    <td>${escapeHtml(contact.phone || '---')}</td>
+                    <td>${escapeHtml(contact.email || '---')}</td>
+                    <td><span class="badge-audience" style="background: ${contact.source === 'Instagram' ? '#E1306C' : (contact.source === 'Google Maps' ? '#4285F4' : 'var(--primary-purple)')}">${contact.source}</span></td>
                     <td>${date}</td>
                 `;
                 body.appendChild(tr);
@@ -253,26 +356,48 @@
 
         async function initPage() {
             const body = document.getElementById('contacts-body');
-            body.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="ph ph-circle-notch animate-spin" style="font-size: 24px;"></i><br>Carregando contatos...</td></tr>';
+            body.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;"><i class="ph ph-circle-notch animate-spin" style="font-size: 24px;"></i><br>Carregando contatos...</td></tr>';
 
             await fetchContacts();
             renderTable(allContacts);
 
             const searchInput = document.getElementById('contactSearch');
-            searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
-                const filtered = allContacts.filter(contact =>
-                    (contact.full_name?.toLowerCase().includes(term)) ||
-                    (contact.company_name?.toLowerCase().includes(term)) ||
-                    (contact.email?.toLowerCase().includes(term)) ||
-                    (contact.phone?.toLowerCase().includes(term))
-                );
-                renderTable(filtered);
-            });
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase().trim();
+                    console.log('[DEBUG] Searching for:', term);
+
+                    if (!term) {
+                        renderTable(allContacts);
+                        return;
+                    }
+
+                    const filtered = allContacts.filter(contact => {
+                        const name = String(contact.full_name || '').toLowerCase();
+                        const company = String(contact.company_name || '').toLowerCase();
+                        const email = String(contact.email || '').toLowerCase();
+                        const phone = String(contact.phone || '').toLowerCase();
+                        const source = String(contact.source || '').toLowerCase();
+
+                        return name.includes(term) ||
+                            company.includes(term) ||
+                            email.includes(term) ||
+                            phone.includes(term) ||
+                            source.includes(term);
+                    });
+
+                    renderTable(filtered);
+                });
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (initSupabase()) {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // First protect the page
+            if (window.AUTH) {
+                await AUTH.protectPage();
+            }
+
+            if (await initSupabase()) {
                 initPage();
             } else {
                 console.error('Supabase not configured');

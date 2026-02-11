@@ -1,34 +1,30 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const themeToggle = document.getElementById('themeToggle');
-    const html = document.documentElement;
-
-    // Load saved theme
+(function () {
     const savedTheme = localStorage.getItem('theme') || 'dark';
-    html.setAttribute('data-theme', savedTheme);
-    updateToggleState(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
 
-    if (themeToggle) {
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    window.addEventListener('DOMContentLoaded', () => {
+        const toggleBtn = document.getElementById('themeToggle');
+        if (toggleBtn) {
+            updateToggleIcon(savedTheme);
+            toggleBtn.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateToggleState(newTheme);
-        });
-    }
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateToggleIcon(newTheme);
+            });
+        }
+    });
 
-    function updateToggleState(theme) {
-        if (!themeToggle) return;
-        const icon = themeToggle.querySelector('i');
-        const text = themeToggle.querySelector('.link-text');
-
-        if (theme === 'light') {
-            if (icon) icon.className = 'ph ph-moon';
-            if (text) text.textContent = 'Modo Escuro';
-        } else {
-            if (icon) icon.className = 'ph ph-sun';
-            if (text) text.textContent = 'Modo Claro';
+    function updateToggleIcon(theme) {
+        const icon = document.querySelector('#themeToggle i');
+        if (icon) {
+            icon.className = theme === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
+        }
+        const text = document.querySelector('#themeToggle .link-text');
+        if (text) {
+            text.textContent = theme === 'dark' ? 'Modo Claro' : 'Modo Escuro';
         }
     }
-});
+})();
