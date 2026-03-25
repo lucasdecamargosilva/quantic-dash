@@ -182,10 +182,7 @@
     <script>
     var esc = function(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
     var fmt = function(v) { return 'R$\u00a0' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }); };
-    var today = new Date(); today.setHours(0,0,0,0);
-    var in7 = new Date(today); in7.setDate(in7.getDate() + 7);
-
-    function statusDisplay(r) {
+    function statusDisplay(r, today) {
         if (r.status === 'received') return { label: 'Recebido', cls: 'badge-received' };
         if (r.status === 'cancelled') return { label: 'Cancelado', cls: 'badge-cancelled' };
         if (new Date(r.data_vencimento) < today) return { label: 'Vencido', cls: 'badge-overdue' };
@@ -200,12 +197,14 @@
     async function loadClientes() {
         var sb = await getSB();
         var result = await sb.from('pj_clientes').select('id,nome').eq('ativo',true).order('nome');
-        var data = result.data;
+        if (result.error) { console.error('Erro ao carregar clientes:', result.error.message); return; }
         var sel = document.getElementById('inputCliente');
-        sel.innerHTML = '<option value="">&#8212; Selecione &#8212;</option>' + (data||[]).map(function(c) { return '<option value="' + esc(c.id) + '">' + esc(c.nome) + '</option>'; }).join('');
+        sel.innerHTML = '<option value="">&#8212; Selecione &#8212;</option>' + (result.data||[]).map(function(c) { return '<option value="' + esc(c.id) + '">' + esc(c.nome) + '</option>'; }).join('');
     }
 
     async function loadData() {
+        var today = new Date(); today.setHours(0,0,0,0);
+        var in7 = new Date(today); in7.setDate(in7.getDate() + 7);
         var sb = await getSB();
         var mes = document.getElementById('filterMes').value;
         var statusFilter = document.getElementById('filterStatus').value;
@@ -237,20 +236,21 @@
             return;
         }
         document.getElementById('receitasBody').innerHTML = filtered.map(function(r) {
-            var sd = statusDisplay(r);
+            var sd = statusDisplay(r, today);
             var vencDate = r.data_vencimento ? new Date(r.data_vencimento+'T00:00:00').toLocaleDateString('pt-BR') : '&#8212;';
             var clienteNome = (r.pj_clientes && r.pj_clientes.nome) ? esc(r.pj_clientes.nome) : '&#8212;';
             var descricao = r.descricao ? esc(r.descricao) : '&#8212;';
-            var btn = r.status==='open' ? '<button class="btn-sm" onclick="marcarRecebido(\'' + esc(r.id) + '\',' + Number(r.valor) + ')">Recebido</button>' : '';
-            return '<tr><td>' + clienteNome + '</td><td>' + descricao + '</td><td><strong>' + fmt(r.valor) + '</strong></td><td>' + vencDate + '</td><td><span class="status-badge ' + sd.cls + '">' + sd.label + '</span></td><td>' + btn + '</td></tr>';
+            var btn = r.status==='open' ? '<button class="btn-sm" onclick="marcarRecebido(\'' + esc(r.id) + '\',' + Number(r.valor) + ',this)">Recebido</button>' : '';
+            return '<tr><td>' + clienteNome + '</td><td>' + descricao + '</td><td><strong>' + fmt(r.valor) + '</strong></td><td>' + vencDate + '</td><td><span class="status-badge ' + esc(sd.cls) + '">' + sd.label + '</span></td><td>' + btn + '</td></tr>';
         }).join('');
     }
 
-    async function marcarRecebido(id, valor) {
+    async function marcarRecebido(id, valor, btn) {
+        if (btn) btn.disabled = true;
         var sb = await getSB();
         var todayStr = new Date().toISOString().slice(0,10);
         var result = await sb.from('pj_receitas').update({ status:'received', valor_recebido:valor, data_recebimento:todayStr }).eq('id',id);
-        if (result.error) alert('Erro: '+result.error.message);
+        if (result.error) { alert('Erro: '+result.error.message); if (btn) btn.disabled = false; }
         else loadData();
     }
 
@@ -264,9 +264,11 @@
     document.getElementById('filterStatus').addEventListener('change', loadData);
     document.getElementById('filterCliente').addEventListener('input', loadData);
     document.getElementById('btnSalvarReceita').addEventListener('click', async function() {
+        var btn = this;
         var valor = parseFloat(document.getElementById('inputValor').value);
         var vencimento = document.getElementById('inputVencimento').value;
         if (!valor || !vencimento) { alert('Valor e vencimento sao obrigatorios.'); return; }
+        btn.disabled = true;
         var sb = await getSB();
         var result = await sb.from('pj_receitas').insert({
             cliente_id: document.getElementById('inputCliente').value || null,
@@ -275,7 +277,7 @@
             data_emissao: document.getElementById('inputEmissao').value || null,
             data_vencimento: vencimento
         });
-        if (result.error) { alert('Erro: '+result.error.message); return; }
+        if (result.error) { alert('Erro: '+result.error.message); btn.disabled = false; return; }
         document.getElementById('modalReceita').classList.remove('active');
         loadData();
     });
