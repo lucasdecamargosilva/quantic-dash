@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic — DRE</title>
+
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .period-selector { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
+        .period-label { font-size:14px; color:var(--text-muted,#94a3b8); font-weight:600; }
+        .filter-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 14px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
+        .filter-input:focus { border-color:rgba(139,92,246,0.5); }
+        .dre-wrap { max-width:700px; }
+        .dre-table { width:100%; border-collapse:collapse; }
+        .dre-table td { padding:14px 18px; font-size:15px; color:#fff; border-bottom:1px solid rgba(255,255,255,0.05); }
+        .dre-table td:last-child { text-align:right; font-weight:700; }
+        .dre-table tr.section-header td { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted,#94a3b8); padding-top:24px; padding-bottom:6px; border-bottom:none; }
+        .dre-table tr.indent td:first-child { padding-left:32px; font-size:14px; color:var(--text-muted,#94a3b8); }
+        .dre-table tr.total td { border-top:2px solid rgba(255,255,255,0.12); font-size:17px; font-weight:800; padding-top:18px; }
+        .dre-table tr.result td { font-size:18px; font-weight:800; padding:20px 18px; }
+        .dre-table tr.result.positive td { color:#34d399; background:rgba(52,211,153,0.07); }
+        .dre-table tr.result.negative td { color:#f87171; background:rgba(248,113,113,0.07); }
+        .dre-note { font-size:13px; color:var(--text-muted,#94a3b8); margin-top:20px; font-style:italic; }
+    </style>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-link">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span class="link-text">Desempenho</span>
+                </a>
+                <a href="crm.html" class="nav-link">
+                    <i class="ph-fill ph-table"></i>
+                    <span class="link-text">CRM Quantic</span>
+                </a>
+                <a href="contatos.html" class="nav-link">
+                    <i class="ph-fill ph-user"></i>
+                    <span class="link-text">Contatos</span>
+                </a>
+                <a href="conversas.html" class="nav-link">
+                    <i class="ph-fill ph-chats-teardrop"></i>
+                    <span class="link-text">Conversas</span>
+                </a>
+                <a href="captacao.html" class="nav-link">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span class="link-text">Captar&ccedil;&atilde;o</span>
+                </a>
+                <a href="custos.html" class="nav-link">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">Custos</span>
+                </a>
+                <a href="receitas.html" class="nav-link">
+                    <i class="ph-fill ph-money"></i>
+                    <span class="link-text">Receitas</span>
+                </a>
+                <a href="clientes.html" class="nav-link">
+                    <i class="ph-fill ph-buildings"></i>
+                    <span class="link-text">Clientes</span>
+                </a>
+                <a href="dre.html" class="nav-link active">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">DRE</span>
+                </a>
+                <a href="fluxo-caixa.html" class="nav-link">
+                    <i class="ph-fill ph-bank"></i>
+                    <span class="link-text">Fluxo de Caixa</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer"></div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">DRE</h1>
+                    </div>
+                    <div class="user-area">
+                        <button class="icon-btn"><i class="ph-fill ph-bell"></i></button>
+                    </div>
+                </header>
+
+                <main class="dashboard-grid">
+                    <section class="section-overview">
+                        <div class="period-selector">
+                            <span class="period-label">Per&iacute;odo:</span>
+                            <input type="month" class="filter-input" id="filterMes">
+                        </div>
+                        <div class="dre-wrap">
+                            <table class="dre-table"><tbody id="dreBody"></tbody></table>
+                            <p class="dre-note" id="dreNote"></p>
+                        </div>
+                    </section>
+                </main>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>&copy; 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="theme-handler.js"></script>
+    <script>
+    var fmt = function(v) { return 'R$\u00a0' + Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits:2 }); };
+    var pct = function(v,t) { return t===0 ? '\u2014' : (v/t*100).toFixed(1)+'%'; };
+
+    async function getSB() {
+        await window.CONFIG_LOADED;
+        return window.supabaseClient || window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+    }
+
+    async function loadDRE() {
+        var sb = await getSB();
+        var mes = document.getElementById('filterMes').value;
+        var parts = mes.split('-');
+        var year = parts[0], month = parts[1];
+        var firstDay = mes+'-01';
+        var lastDay = new Date(Number(year), Number(month), 0).toISOString().slice(0,10);
+        var recResult = await sb.from('pj_receitas').select('valor').gte('data_vencimento',firstDay).lte('data_vencimento',lastDay);
+        var cusResult = await sb.from('pj_custos_lancados').select('valor').gte('data_pagamento',firstDay).lte('data_pagamento',lastDay);
+        if (recResult.error) { document.getElementById('dreNote').textContent = 'Erro ao carregar receitas: '+recResult.error.message; return; }
+        if (cusResult.error) { document.getElementById('dreNote').textContent = 'Erro ao carregar custos: '+cusResult.error.message; return; }
+        var receitas = recResult.data || [];
+        var custos = cusResult.data || [];
+        var recBruta = receitas.reduce(function(s,r){ return s+Number(r.valor); },0);
+        var custosOp = custos.reduce(function(s,r){ return s+Number(r.valor); },0);
+        var recLiq = recBruta;
+        var resultado = recLiq - custosOp;
+        var cls = resultado >= 0 ? 'positive' : 'negative';
+        var tbody = document.getElementById('dreBody');
+        tbody.textContent = '';
+        var rows = [
+            ['section-header', 'Receitas', ''],
+            ['', 'Receita Bruta', fmt(recBruta)],
+            ['indent', '(\u2212) Dedu\u00e7\u00f5es', fmt(0)],
+            ['total', 'Receita L\u00edquida', fmt(recLiq)],
+            ['section-header', 'Despesas', ''],
+            ['', '(\u2212) Custos Operacionais', fmt(custosOp)],
+            ['result '+cls, 'Resultado Operacional', fmt(resultado)],
+            [cls+' margin-row', 'Margem', pct(resultado,recBruta)]
+        ];
+        rows.forEach(function(row) {
+            var tr = document.createElement('tr');
+            if (row[0]) tr.className = row[0];
+            if (row[0] === 'section-header') {
+                var td = document.createElement('td');
+                td.colSpan = 2;
+                td.textContent = row[1];
+                tr.appendChild(td);
+            } else {
+                var td1 = document.createElement('td');
+                td1.textContent = row[1];
+                if (row[0] && row[0].indexOf('margin-row') !== -1) {
+                    td1.style.color = 'var(--text-muted,#94a3b8)';
+                }
+                var td2 = document.createElement('td');
+                td2.textContent = row[2];
+                tr.appendChild(td1);
+                tr.appendChild(td2);
+            }
+            tbody.appendChild(tr);
+        });
+        document.getElementById('dreNote').textContent = (recBruta===0 && custosOp===0) ? 'Lance receitas e custos para visualizar o DRE.' : '';
+    }
+
+    var now = new Date();
+    document.getElementById('filterMes').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    document.getElementById('filterMes').addEventListener('change', loadDRE);
+    document.getElementById('toggleSidebar') && document.getElementById('toggleSidebar').addEventListener('click', function() { document.getElementById('sidebar').classList.toggle('collapsed'); });
+    loadDRE();
+    </script>
+</body>
+
+</html>
