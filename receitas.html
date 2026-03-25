@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic — Receitas</title>
+
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .summary-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+        .summary-card { background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(139,92,246,0.03) 100%); border:1px solid rgba(139,92,246,0.2); border-radius:16px; padding:22px 24px; display:flex; flex-direction:column; gap:4px; }
+        .summary-label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); }
+        .summary-value { font-size:26px; font-weight:800; color:#fff; letter-spacing:-0.5px; }
+        .summary-value.green { color:#34d399; }
+        .summary-value.red { color:#f87171; }
+        .summary-value.yellow { color:#fbbf24; }
+        .filters-row { display:flex; gap:12px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
+        .filter-select, .filter-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:9px 14px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
+        .btn-primary { background:var(--primary-purple,#8b5cf6); color:#fff; border:none; border-radius:10px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; }
+        .btn-primary:hover { opacity:0.85; }
+        .receitas-table { width:100%; border-collapse:collapse; }
+        .receitas-table th { text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted,#94a3b8); padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.07); }
+        .receitas-table td { padding:14px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:14px; color:#fff; vertical-align:middle; }
+        .receitas-table tr:hover td { background:rgba(139,92,246,0.04); }
+        .status-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+        .badge-open { background:rgba(139,92,246,0.2); color:#a78bfa; }
+        .badge-overdue { background:rgba(248,113,113,0.15); color:#f87171; }
+        .badge-received { background:rgba(52,211,153,0.15); color:#34d399; }
+        .badge-cancelled { background:rgba(148,163,184,0.12); color:#94a3b8; }
+        .btn-sm { background:rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.25); color:#34d399; border-radius:8px; padding:5px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+        .btn-sm:hover { background:rgba(52,211,153,0.22); }
+        .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted,#94a3b8); }
+        .empty-state i { font-size:48px; margin-bottom:12px; display:block; opacity:0.4; }
+        .table-wrap { overflow-x:auto; }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; }
+        .modal-overlay.active { display:flex; }
+        .modal-box { background:var(--bg-card,#1a1a2e); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:32px; width:100%; max-width:480px; }
+        .modal-title { font-size:18px; font-weight:700; color:#fff; margin-bottom:24px; }
+        .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+        .form-label { font-size:12px; font-weight:600; color:var(--text-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; }
+        .form-input, .form-select { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 14px; color:#fff; font-size:14px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; }
+        .form-select option { background:#1a1a2e; }
+        .modal-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+        .btn-secondary { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:10px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; }
+    </style>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-link">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span class="link-text">Desempenho</span>
+                </a>
+                <a href="crm.html" class="nav-link">
+                    <i class="ph-fill ph-table"></i>
+                    <span class="link-text">CRM Quantic</span>
+                </a>
+                <a href="contatos.html" class="nav-link">
+                    <i class="ph-fill ph-user"></i>
+                    <span class="link-text">Contatos</span>
+                </a>
+                <a href="conversas.html" class="nav-link">
+                    <i class="ph-fill ph-chats-teardrop"></i>
+                    <span class="link-text">Conversas</span>
+                </a>
+                <a href="captacao.html" class="nav-link">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span class="link-text">Captacao</span>
+                </a>
+                <a href="custos.html" class="nav-link">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">Custos</span>
+                </a>
+                <a href="receitas.html" class="nav-link active">
+                    <i class="ph-fill ph-money"></i>
+                    <span class="link-text">Receitas</span>
+                </a>
+                <a href="clientes.html" class="nav-link">
+                    <i class="ph-fill ph-buildings"></i>
+                    <span class="link-text">Clientes</span>
+                </a>
+                <a href="dre.html" class="nav-link">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">DRE</span>
+                </a>
+                <a href="fluxo-caixa.html" class="nav-link">
+                    <i class="ph-fill ph-bank"></i>
+                    <span class="link-text">Fluxo de Caixa</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer"></div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Receitas</h1>
+                    </div>
+                    <div class="user-area">
+                        <button class="icon-btn"><i class="ph-fill ph-bell"></i></button>
+                    </div>
+                </header>
+
+                <main class="dashboard-grid">
+                    <section class="section-overview">
+                        <div class="summary-row">
+                            <div class="summary-card"><span class="summary-label">Total a Receber</span><span class="summary-value" id="cardTotalReceber">&#8212;</span></div>
+                            <div class="summary-card"><span class="summary-label">Recebido no Mes</span><span class="summary-value green" id="cardRecebidoMes">&#8212;</span></div>
+                            <div class="summary-card"><span class="summary-label">Vencido</span><span class="summary-value red" id="cardVencido">&#8212;</span></div>
+                            <div class="summary-card"><span class="summary-label">A Vencer em 7 dias</span><span class="summary-value yellow" id="cardVencer7">&#8212;</span></div>
+                        </div>
+                        <div class="filters-row">
+                            <input type="month" class="filter-input" id="filterMes">
+                            <select class="filter-select" id="filterStatus">
+                                <option value="">Todos os status</option>
+                                <option value="open">A Receber</option>
+                                <option value="overdue">Vencido</option>
+                                <option value="received">Recebido</option>
+                                <option value="cancelled">Cancelado</option>
+                            </select>
+                            <input type="text" class="filter-input" id="filterCliente" placeholder="Buscar cliente...">
+                            <button class="btn-primary" id="btnNovaReceita"><i class="ph-fill ph-plus"></i> Nova Receita</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="receitas-table">
+                                <thead><tr><th>Cliente</th><th>Descricao</th><th>Valor</th><th>Vencimento</th><th>Status</th><th></th></tr></thead>
+                                <tbody id="receitasBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </main>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>&#169; 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalReceita">
+        <div class="modal-box">
+            <div class="modal-title">Nova Receita</div>
+            <div class="form-group"><label class="form-label">Cliente</label><select class="form-select" id="inputCliente"></select></div>
+            <div class="form-group"><label class="form-label">Descricao</label><input class="form-input" id="inputDescricao" type="text"></div>
+            <div class="form-group"><label class="form-label">Valor *</label><input class="form-input" id="inputValor" type="number" min="0" step="0.01"></div>
+            <div class="form-group"><label class="form-label">Data Emissao</label><input class="form-input" id="inputEmissao" type="date"></div>
+            <div class="form-group"><label class="form-label">Data Vencimento *</label><input class="form-input" id="inputVencimento" type="date"></div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnCancelarReceita">Cancelar</button>
+                <button class="btn-primary" id="btnSalvarReceita">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="theme-handler.js"></script>
+    <script>
+    var esc = function(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+    var fmt = function(v) { return 'R$\u00a0' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }); };
+    var today = new Date(); today.setHours(0,0,0,0);
+    var in7 = new Date(today); in7.setDate(in7.getDate() + 7);
+
+    function statusDisplay(r) {
+        if (r.status === 'received') return { label: 'Recebido', cls: 'badge-received' };
+        if (r.status === 'cancelled') return { label: 'Cancelado', cls: 'badge-cancelled' };
+        if (new Date(r.data_vencimento) < today) return { label: 'Vencido', cls: 'badge-overdue' };
+        return { label: 'A Receber', cls: 'badge-open' };
+    }
+
+    async function getSB() {
+        await window.CONFIG_LOADED;
+        return window.supabaseClient || window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+    }
+
+    async function loadClientes() {
+        var sb = await getSB();
+        var result = await sb.from('pj_clientes').select('id,nome').eq('ativo',true).order('nome');
+        var data = result.data;
+        var sel = document.getElementById('inputCliente');
+        sel.innerHTML = '<option value="">&#8212; Selecione &#8212;</option>' + (data||[]).map(function(c) { return '<option value="' + esc(c.id) + '">' + esc(c.nome) + '</option>'; }).join('');
+    }
+
+    async function loadData() {
+        var sb = await getSB();
+        var mes = document.getElementById('filterMes').value;
+        var statusFilter = document.getElementById('filterStatus').value;
+        var clienteTerm = document.getElementById('filterCliente').value.toLowerCase();
+
+        var result = await sb.from('pj_receitas').select('*, pj_clientes(nome)').order('data_vencimento', { ascending: false });
+        var all = result.data;
+        var error = result.error;
+        if (error) { document.getElementById('receitasBody').innerHTML = '<tr><td colspan="6">Erro: ' + esc(error.message) + '</td></tr>'; return; }
+
+        var nowMonth = new Date().toISOString().slice(0,7);
+        var openAll = (all||[]).filter(function(r) { return r.status === 'open'; });
+        document.getElementById('cardTotalReceber').textContent = fmt(openAll.reduce(function(s,r){ return s+Number(r.valor); },0));
+        var recMes = (all||[]).filter(function(r) { return r.status === 'received' && r.data_recebimento && r.data_recebimento.startsWith(nowMonth); });
+        document.getElementById('cardRecebidoMes').textContent = fmt(recMes.reduce(function(s,r){ return s+Number(r.valor_recebido); },0));
+        var vencidos = openAll.filter(function(r) { return new Date(r.data_vencimento) < today; });
+        document.getElementById('cardVencido').textContent = fmt(vencidos.reduce(function(s,r){ return s+Number(r.valor); },0));
+        var v7 = openAll.filter(function(r) { var d=new Date(r.data_vencimento); return d>=today && d<=in7; });
+        document.getElementById('cardVencer7').textContent = fmt(v7.reduce(function(s,r){ return s+Number(r.valor); },0));
+
+        var filtered = all || [];
+        if (mes) filtered = filtered.filter(function(r) { return r.data_vencimento && r.data_vencimento.startsWith(mes); });
+        if (statusFilter === 'overdue') filtered = filtered.filter(function(r) { return r.status === 'open' && new Date(r.data_vencimento) < today; });
+        else if (statusFilter) filtered = filtered.filter(function(r) { return r.status === statusFilter; });
+        if (clienteTerm) filtered = filtered.filter(function(r) { return ((r.pj_clientes && r.pj_clientes.nome) || '').toLowerCase().includes(clienteTerm); });
+
+        if (!filtered.length) {
+            document.getElementById('receitasBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="ph-fill ph-money"></i><p>Nenhuma receita para este periodo.</p></div></td></tr>';
+            return;
+        }
+        document.getElementById('receitasBody').innerHTML = filtered.map(function(r) {
+            var sd = statusDisplay(r);
+            var vencDate = r.data_vencimento ? new Date(r.data_vencimento+'T00:00:00').toLocaleDateString('pt-BR') : '&#8212;';
+            var clienteNome = (r.pj_clientes && r.pj_clientes.nome) ? esc(r.pj_clientes.nome) : '&#8212;';
+            var descricao = r.descricao ? esc(r.descricao) : '&#8212;';
+            var btn = r.status==='open' ? '<button class="btn-sm" onclick="marcarRecebido(\'' + esc(r.id) + '\',' + Number(r.valor) + ')">Recebido</button>' : '';
+            return '<tr><td>' + clienteNome + '</td><td>' + descricao + '</td><td><strong>' + fmt(r.valor) + '</strong></td><td>' + vencDate + '</td><td><span class="status-badge ' + sd.cls + '">' + sd.label + '</span></td><td>' + btn + '</td></tr>';
+        }).join('');
+    }
+
+    async function marcarRecebido(id, valor) {
+        var sb = await getSB();
+        var todayStr = new Date().toISOString().slice(0,10);
+        var result = await sb.from('pj_receitas').update({ status:'received', valor_recebido:valor, data_recebimento:todayStr }).eq('id',id);
+        if (result.error) alert('Erro: '+result.error.message);
+        else loadData();
+    }
+
+    document.getElementById('btnNovaReceita').addEventListener('click', function() {
+        ['inputDescricao','inputValor','inputEmissao','inputVencimento'].forEach(function(i) { document.getElementById(i).value=''; });
+        document.getElementById('inputCliente').value='';
+        document.getElementById('modalReceita').classList.add('active');
+    });
+    document.getElementById('btnCancelarReceita').addEventListener('click', function() { document.getElementById('modalReceita').classList.remove('active'); });
+    document.getElementById('filterMes').addEventListener('change', loadData);
+    document.getElementById('filterStatus').addEventListener('change', loadData);
+    document.getElementById('filterCliente').addEventListener('input', loadData);
+    document.getElementById('btnSalvarReceita').addEventListener('click', async function() {
+        var valor = parseFloat(document.getElementById('inputValor').value);
+        var vencimento = document.getElementById('inputVencimento').value;
+        if (!valor || !vencimento) { alert('Valor e vencimento sao obrigatorios.'); return; }
+        var sb = await getSB();
+        var result = await sb.from('pj_receitas').insert({
+            cliente_id: document.getElementById('inputCliente').value || null,
+            descricao: document.getElementById('inputDescricao').value.trim() || null,
+            valor: valor,
+            data_emissao: document.getElementById('inputEmissao').value || null,
+            data_vencimento: vencimento
+        });
+        if (result.error) { alert('Erro: '+result.error.message); return; }
+        document.getElementById('modalReceita').classList.remove('active');
+        loadData();
+    });
+
+    var now = new Date();
+    document.getElementById('filterMes').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    document.getElementById('toggleSidebar') && document.getElementById('toggleSidebar').addEventListener('click', function() { document.getElementById('sidebar').classList.toggle('collapsed'); });
+    loadClientes();
+    loadData();
+    </script>
+</body>
+
+</html>
