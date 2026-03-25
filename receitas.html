@@ -233,7 +233,7 @@
         if (clienteTerm) filtered = filtered.filter(function(r) { return ((r.pj_clientes && r.pj_clientes.nome) || '').toLowerCase().includes(clienteTerm); });
 
         if (!filtered.length) {
-            document.getElementById('receitasBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="ph-fill ph-money"></i><p>Nenhuma receita para este periodo.</p></div></td></tr>';
+            document.getElementById('receitasBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="ph-fill ph-money"></i><p>Nenhuma receita lan\u00e7ada para este per\u00edodo.</p><button class="btn-primary" style="margin:12px auto 0;display:inline-flex;" onclick="document.getElementById(\'btnNovaReceita\').click()"><i class="ph-fill ph-plus"></i> Nova Receita</button></div></td></tr>';
             return;
         }
         document.getElementById('receitasBody').innerHTML = filtered.map(function(r) {
