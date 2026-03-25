@@ -259,6 +259,183 @@
         }
 
         /* ===== FIM CAPTURE CARDS GRID ===== */
+
+        /* ===== CUSTOS OPERACIONAIS ===== */
+        .section-costs {
+            margin-top: 48px;
+        }
+
+        .costs-summary-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .cost-summary-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.03) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 16px;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cost-summary-card.highlight {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(109, 40, 217, 0.08) 100%);
+            border-color: rgba(139, 92, 246, 0.45);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.12);
+        }
+
+        .cost-summary-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .cost-summary-value {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-white, #fff);
+            letter-spacing: -0.5px;
+        }
+
+        .cost-summary-value.red {
+            color: #f87171;
+        }
+
+        .cost-summary-sub {
+            font-size: 12px;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .costs-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        .cost-item-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cost-item-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            background: rgba(139, 92, 246, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .cost-item-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cost-item-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .cost-item-icon.infra    { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .cost-item-icon.ai       { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+        .cost-item-icon.tools    { background: rgba(217, 70, 239, 0.15); color: #e879f9; }
+        .cost-item-icon.people   { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .cost-item-icon.marketing{ background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+        .cost-item-badge {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+
+        .cost-item-badge.anual {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .cost-item-badge.mensal {
+            background: rgba(139, 92, 246, 0.1);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.15);
+        }
+
+        .cost-item-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-white, #fff);
+        }
+
+        .cost-item-category {
+            font-size: 11px;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .cost-item-amount {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-white, #fff);
+            letter-spacing: -0.3px;
+            margin-top: 4px;
+        }
+
+        .cost-item-monthly {
+            font-size: 11px;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .cost-bar-track {
+            height: 3px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .cost-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--primary-purple, #8b5cf6), #a855f7);
+        }
+
+        @media (max-width: 1200px) {
+            .costs-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .costs-summary-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .costs-grid {
+                grid-template-columns: 1fr;
+            }
+            .costs-summary-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* ===== FIM CUSTOS OPERACIONAIS ===== */
     </style>
 </head>
 
@@ -292,9 +469,25 @@
                     <i class="ph-fill ph-funnel"></i>
                     <span class="link-text">Captação</span>
                 </a>
-                <a href="materialize.html" class="nav-link">
-                    <i class="ph-fill ph-magic-wand"></i>
-                    <span class="link-text">Materialize</span>
+                <a href="custos.html" class="nav-link">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">Custos</span>
+                </a>
+                <a href="receitas.html" class="nav-link">
+                    <i class="ph-fill ph-money"></i>
+                    <span class="link-text">Receitas</span>
+                </a>
+                <a href="clientes.html" class="nav-link">
+                    <i class="ph-fill ph-buildings"></i>
+                    <span class="link-text">Clientes</span>
+                </a>
+                <a href="dre.html" class="nav-link">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">DRE</span>
+                </a>
+                <a href="fluxo-caixa.html" class="nav-link">
+                    <i class="ph-fill ph-bank"></i>
+                    <span class="link-text">Fluxo de Caixa</span>
                 </a>
             </nav>
             <div class="sidebar-footer">

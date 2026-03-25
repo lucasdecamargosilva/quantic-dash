@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic — Custos Operacionais</title>
+
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .costs-summary-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .cost-summary-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.03) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 16px;
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cost-summary-card.highlight {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(109, 40, 217, 0.08) 100%);
+            border-color: rgba(139, 92, 246, 0.45);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.12);
+        }
+
+        .cost-summary-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .cost-summary-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-white, #fff);
+            letter-spacing: -0.5px;
+        }
+
+        .cost-summary-value.red { color: #f87171; }
+
+        .cost-summary-sub {
+            font-size: 12px;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .costs-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        .cost-item-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 20px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cost-item-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            background: rgba(139, 92, 246, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.1);
+        }
+
+        .cost-item-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cost-item-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .cost-item-icon.infra     { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .cost-item-icon.ai        { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+        .cost-item-icon.tools     { background: rgba(217, 70, 239, 0.15); color: #e879f9; }
+        .cost-item-icon.people    { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .cost-item-icon.marketing { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+        .cost-item-badge {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+
+        .cost-item-badge.anual {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .cost-item-badge.mensal {
+            background: rgba(139, 92, 246, 0.1);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.15);
+        }
+
+        .cost-item-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-white, #fff);
+            margin-top: 2px;
+        }
+
+        .cost-item-category {
+            font-size: 11px;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .cost-item-amount {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-white, #fff);
+            letter-spacing: -0.3px;
+            margin-top: 4px;
+        }
+
+        .cost-item-due {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-muted, #94a3b8);
+            margin-top: 2px;
+        }
+
+        .cost-item-due i {
+            font-size: 13px;
+            color: #a78bfa;
+        }
+
+        .cost-item-due.warning i { color: #fbbf24; }
+        .cost-item-due.warning { color: #fbbf24; }
+
+        .cost-item-monthly {
+            font-size: 11px;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .cost-bar-track {
+            height: 3px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .cost-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--primary-purple, #8b5cf6), #a855f7);
+        }
+
+        /* ===== PRÓ-LABORE SECTION ===== */
+        .prolabore-section {
+            margin-top: 40px;
+        }
+
+        .prolabore-card {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 20px;
+            padding: 32px 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .prolabore-card:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 32px rgba(16, 185, 129, 0.08);
+        }
+
+        .prolabore-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .prolabore-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: rgba(16, 185, 129, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #34d399;
+            flex-shrink: 0;
+        }
+
+        .prolabore-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .prolabore-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-white, #fff);
+            letter-spacing: -0.3px;
+        }
+
+        .prolabore-sub {
+            font-size: 13px;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .prolabore-due {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #34d399;
+            margin-top: 4px;
+        }
+
+        .prolabore-amount {
+            font-size: 36px;
+            font-weight: 900;
+            color: #34d399;
+            letter-spacing: -1px;
+            flex-shrink: 0;
+        }
+
+        .costs-section-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            margin-top: 32px;
+        }
+
+        .costs-section-label h3 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted, #94a3b8);
+            margin: 0;
+        }
+
+        .costs-section-label .type-pill {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .type-pill.fixo {
+            background: rgba(139, 92, 246, 0.12);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .type-pill.variavel {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .costs-section-label .type-total {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted, #94a3b8);
+            margin-left: auto;
+        }
+
+        .costs-grid-fixed {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+        }
+
+        .costs-grid-variable {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        @media (max-width: 1200px) {
+            .costs-grid-fixed { grid-template-columns: repeat(3, 1fr); }
+            .costs-grid-variable { grid-template-columns: 1fr 1fr; }
+            .costs-summary-row { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .costs-grid-fixed { grid-template-columns: 1fr; }
+            .costs-grid-variable { grid-template-columns: 1fr; }
+            .costs-summary-row { grid-template-columns: 1fr 1fr; }
+            .prolabore-card { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-link">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span class="link-text">Desempenho</span>
+                </a>
+                <a href="crm.html" class="nav-link">
+                    <i class="ph-fill ph-table"></i>
+                    <span class="link-text">CRM Quantic</span>
+                </a>
+                <a href="contatos.html" class="nav-link">
+                    <i class="ph-fill ph-user"></i>
+                    <span class="link-text">Contatos</span>
+                </a>
+                <a href="conversas.html" class="nav-link">
+                    <i class="ph-fill ph-chats-teardrop"></i>
+                    <span class="link-text">Conversas</span>
+                </a>
+                <a href="captacao.html" class="nav-link">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span class="link-text">Captação</span>
+                </a>
+                <a href="custos.html" class="nav-link active">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">Custos</span>
+                </a>
+                <a href="receitas.html" class="nav-link">
+                    <i class="ph-fill ph-money"></i>
+                    <span class="link-text">Receitas</span>
+                </a>
+                <a href="clientes.html" class="nav-link">
+                    <i class="ph-fill ph-buildings"></i>
+                    <span class="link-text">Clientes</span>
+                </a>
+                <a href="dre.html" class="nav-link">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">DRE</span>
+                </a>
+                <a href="fluxo-caixa.html" class="nav-link">
+                    <i class="ph-fill ph-bank"></i>
+                    <span class="link-text">Fluxo de Caixa</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer"></div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Custos Operacionais</h1>
+                    </div>
+                    <div class="user-area">
+                        <button class="icon-btn"><i class="ph-fill ph-bell"></i></button>
+                    </div>
+                </header>
+
+                <main class="dashboard-grid">
+                    <section class="section-overview">
+
+                        <!-- Resumo -->
+                        <div class="costs-summary-row">
+                            <div class="cost-summary-card">
+                                <span class="cost-summary-label">Custos Fixos / Mês</span>
+                                <span class="cost-summary-value">R$ 986</span>
+                                <span class="cost-summary-sub">Claude, Gemini, Uazapi, Hostinger, GoDaddy</span>
+                            </div>
+                            <div class="cost-summary-card">
+                                <span class="cost-summary-label">Custos Variáveis (est.)</span>
+                                <span class="cost-summary-value" style="color:#fbbf24">R$ 647</span>
+                                <span class="cost-summary-sub">Custo IA + Tráfego Pago</span>
+                            </div>
+                            <div class="cost-summary-card">
+                                <span class="cost-summary-label">Pró-Labore</span>
+                                <span class="cost-summary-value" style="color:#34d399">R$ 4.000</span>
+                                <span class="cost-summary-sub">Retirada do sócio</span>
+                            </div>
+                            <div class="cost-summary-card highlight">
+                                <span class="cost-summary-label">Total Geral / Mês</span>
+                                <span class="cost-summary-value red">R$ 5.633</span>
+                                <span class="cost-summary-sub">Empresa + Pró-Labore</span>
+                            </div>
+                        </div>
+
+                        <!-- CUSTOS FIXOS -->
+                        <div class="costs-section-label">
+                            <h3>Custos Fixos</h3>
+                            <span class="type-pill fixo">Fixo</span>
+                            <span class="costs-section-label type-total">R$ 986 / mês</span>
+                        </div>
+                        <div class="costs-grid-fixed">
+
+                            <!-- Claude Code -->
+                            <div class="cost-item-card">
+                                <div class="cost-item-top">
+                                    <div class="cost-item-icon ai"><i class="ph-fill ph-robot"></i></div>
+                                    <span class="cost-item-badge mensal">Mensal</span>
+                                </div>
+                                <span class="cost-item-name">Claude Code</span>
+                                <span class="cost-item-category">IA / Dev Tools</span>
+                                <span class="cost-item-amount">R$ 550</span>
+                                <div class="cost-item-due">
+                                    <i class="ph-fill ph-calendar-check"></i>
+                                    <span>Vence todo dia 10</span>
+                                </div>
+                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:100%"></div></div>
+                            </div>
+
+                            <!-- Hostinger -->
+                            <div class="cost-item-card">
+                                <div class="cost-item-top">
+                                    <div class="cost-item-icon infra"><i class="ph-fill ph-hard-drives"></i></div>
+                                    <span class="cost-item-badge mensal">Mensal</span>
+                                </div>
+                                <span class="cost-item-name">Hostinger</span>
+                                <span class="cost-item-category">Infraestrutura</span>
+                                <span class="cost-item-amount">R$ 170</span>
+                                <div class="cost-item-due">
+                                    <i class="ph-fill ph-calendar-check"></i>
+                                    <span>Vence todo dia 2</span>
+                                </div>
+                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:30.9%"></div></div>
+                            </div>
+
+                            <!-- Uazapi -->
+                            <div class="cost-item-card">
+                                <div class="cost-item-top">
+                                    <div class="cost-item-icon tools"><i class="ph-fill ph-whatsapp-logo"></i></div>
+                                    <span class="cost-item-badge mensal">Mensal</span>
+                                </div>
+                                <span class="cost-item-name">Uazapi</span>
+                                <span class="cost-item-category">WhatsApp API</span>
+                                <span class="cost-item-amount">R$ 138</span>
+                                <div class="cost-item-due">
+                                    <i class="ph-fill ph-calendar-check"></i>
+                                    <span>Vence todo dia 20</span>
+                                </div>
+                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:25.1%"></div></div>
+                            </div>
+
+                            <!-- Gemini Quantic -->
+                            <div class="cost-item-card">
+                                <div class="cost-item-top">
+                                    <div class="cost-item-icon ai"><i class="ph-fill ph-sparkle"></i></div>
+                                    <span class="cost-item-badge mensal">Mensal</span>
+                                </div>
+                                <span class="cost-item-name">Gemini (Quantic)</span>
+                                <span class="cost-item-category">IA / Google</span>
+                                <span class="cost-item-amount">R$ 120</span>
+                                <div class="cost-item-due">
+                                    <i class="ph-fill ph-calendar-check"></i>
+                                    <span>Vence todo dia 3</span>
+                                </div>
+                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:21.8%"></div></div>
+                            </div>
+
+                            <!-- GoDaddy -->
+                            <div class="cost-item-card">
+                                <div class="cost-item-top">
+                                    <div class="cost-item-icon infra"><i class="ph-fill ph-globe"></i></div>
+                                    <span class="cost-item-badge anual">Anual</span>
+                                </div>
+                                <span class="cost-item-name">GoDaddy</span>
+                                <span class="cost-item-category">Domínio</span>
+                                <span class="cost-item-amount">R$ 100</span>
+                                <span class="cost-item-monthly">≈ R$ 8/mês amortizado</span>
+                                <div class="cost-item-due">
+                                    <i class="ph-fill ph-calendar-check"></i>
+                                    <span>Renovação anual</span>
+                                </div>
+                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:1.5%"></div></div>
+                            </div>
+
+                        </div>
+
+                        <!-- CUSTOS VARIÁVEIS -->
+                        <div class="costs-section-label">
+                            <h3>Custos Variáveis</h3>
+                            <span class="type-pill variavel">Variável</span>
+                            <span class="costs-section-label type-total">~R$ 647 / mês (estimado)</span>
+                        </div>
+                        <div class="costs-grid-variable">
+
+                            <!-- Custo IA -->
+                            <div class="cost-item-card">
+                                <div class="cost-item-top">
+                                    <div class="cost-item-icon ai"><i class="ph-fill ph-brain"></i></div>
+                                    <span class="cost-item-badge mensal">Variável</span>
+                                </div>
+                                <span class="cost-item-name">Custo IA</span>
+                                <span class="cost-item-category">APIs & Tokens — varia por uso</span>
+                                <span class="cost-item-amount">~R$ 347</span>
+                                <div class="cost-item-due warning">
+                                    <i class="ph-fill ph-warning"></i>
+                                    <span>Cobra ao atingir R$500 ou no dia 1</span>
+                                </div>
+                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:100%; background: linear-gradient(90deg,#d97706,#f59e0b)"></div></div>
+                            </div>
+
+                            <!-- Tráfego Pago -->
+                            <div class="cost-item-card">
+                                <div class="cost-item-top">
+                                    <div class="cost-item-icon marketing"><i class="ph-fill ph-megaphone-simple"></i></div>
+                                    <span class="cost-item-badge mensal">Variável</span>
+                                </div>
+                                <span class="cost-item-name">Tráfego Pago</span>
+                                <span class="cost-item-category">Marketing — ajustável por campanha</span>
+                                <span class="cost-item-amount">~R$ 300</span>
+                                <div class="cost-item-due">
+                                    <i class="ph-fill ph-calendar-check"></i>
+                                    <span>Vence todo dia 10</span>
+                                </div>
+                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:86.5%; background: linear-gradient(90deg,#d97706,#f59e0b)"></div></div>
+                            </div>
+
+                        </div>
+
+                        <!-- PRÓ-LABORE -->
+                        <div class="prolabore-section">
+                            <div class="section-header" style="margin-bottom: 20px;">
+                                <h2><i class="ph-fill ph-user-circle"></i> Pró-Labore</h2>
+                            </div>
+                            <div class="prolabore-card">
+                                <div class="prolabore-left">
+                                    <div class="prolabore-icon">
+                                        <i class="ph-fill ph-user-circle"></i>
+                                    </div>
+                                    <div class="prolabore-info">
+                                        <span class="prolabore-title">Retirada do Sócio</span>
+                                        <span class="prolabore-sub">Incluído no total geral — separado dos custos operacionais</span>
+                                        <div class="prolabore-due">
+                                            <i class="ph-fill ph-calendar-check"></i>
+                                            <span>Todo mês — sem data fixa definida</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="prolabore-amount">R$ 4.000</span>
+                            </div>
+                        </div>
+
+                    </section>
+                </main>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>© 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="theme-handler.js"></script>
+</body>
+
+</html>
