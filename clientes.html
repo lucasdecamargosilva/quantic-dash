@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic — Clientes</title>
+
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .page-actions { display: flex; align-items: center; gap: 12px; }
+        .btn-primary { background: var(--primary-purple,#8b5cf6); color:#fff; border:none; border-radius:10px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; transition:opacity 0.2s; }
+        .btn-primary:hover { opacity:0.85; }
+        .search-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 16px; color:#fff; font-size:14px; font-family:inherit; outline:none; width:240px; }
+        .search-input:focus { border-color:rgba(139,92,246,0.5); }
+        .clients-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+        .client-card { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:22px 24px; display:flex; flex-direction:column; gap:6px; transition:all 0.25s ease; }
+        .client-card:hover { border-color:rgba(139,92,246,0.3); background:rgba(139,92,246,0.04); transform:translateY(-2px); }
+        .client-card-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px; }
+        .client-avatar { width:40px; height:40px; border-radius:12px; background:rgba(139,92,246,0.2); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:var(--primary-purple,#8b5cf6); }
+        .btn-icon-sm { background:none; border:none; cursor:pointer; color:var(--text-muted,#94a3b8); padding:4px; border-radius:6px; }
+        .btn-icon-sm:hover { color:#f87171; background:rgba(248,113,113,0.1); }
+        .client-name { font-size:16px; font-weight:700; color:#fff; }
+        .client-doc, .client-contact { font-size:12px; color:var(--text-muted,#94a3b8); }
+        .client-stats { display:flex; gap:16px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06); }
+        .client-stat { display:flex; flex-direction:column; gap:2px; }
+        .client-stat-label { font-size:11px; color:var(--text-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; font-weight:600; }
+        .client-stat-value { font-size:15px; font-weight:700; color:#fff; }
+        .client-stat-sub { font-size:11px; color:#f87171; font-weight:600; }
+        .empty-state { grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--text-muted,#94a3b8); }
+        .empty-state i { font-size:48px; margin-bottom:12px; display:block; opacity:0.4; }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; }
+        .modal-overlay.active { display:flex; }
+        .modal-box { background:var(--bg-card,#1a1a2e); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:32px; width:100%; max-width:480px; }
+        .modal-title { font-size:18px; font-weight:700; color:#fff; margin-bottom:24px; }
+        .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+        .form-label { font-size:12px; font-weight:600; color:var(--text-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; }
+        .form-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 14px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
+        .form-input:focus { border-color:rgba(139,92,246,0.5); }
+        .modal-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+        .btn-secondary { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:10px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; }
+    </style>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-link"><i class="ph-fill ph-chart-line-up"></i><span class="link-text">Desempenho</span></a>
+                <a href="crm.html" class="nav-link"><i class="ph-fill ph-table"></i><span class="link-text">CRM Quantic</span></a>
+                <a href="contatos.html" class="nav-link"><i class="ph-fill ph-user"></i><span class="link-text">Contatos</span></a>
+                <a href="conversas.html" class="nav-link"><i class="ph-fill ph-chats-teardrop"></i><span class="link-text">Conversas</span></a>
+                <a href="captacao.html" class="nav-link"><i class="ph-fill ph-funnel"></i><span class="link-text">Captação</span></a>
+                <a href="custos.html" class="nav-link"><i class="ph-fill ph-receipt"></i><span class="link-text">Custos</span></a>
+                <a href="receitas.html" class="nav-link"><i class="ph-fill ph-money"></i><span class="link-text">Receitas</span></a>
+                <a href="clientes.html" class="nav-link active"><i class="ph-fill ph-buildings"></i><span class="link-text">Clientes</span></a>
+                <a href="dre.html" class="nav-link"><i class="ph-fill ph-receipt"></i><span class="link-text">DRE</span></a>
+                <a href="fluxo-caixa.html" class="nav-link"><i class="ph-fill ph-bank"></i><span class="link-text">Fluxo de Caixa</span></a>
+            </nav>
+            <div class="sidebar-footer"></div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Clientes</h1>
+                    </div>
+                    <div class="user-area">
+                        <div class="page-actions">
+                            <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nome ou documento...">
+                            <button class="btn-primary" id="btnNovoCliente"><i class="ph-fill ph-plus"></i> Novo Cliente</button>
+                        </div>
+                    </div>
+                </header>
+
+                <main class="dashboard-grid">
+                    <section class="section-overview">
+                        <div class="clients-grid" id="clientesGrid">
+                            <div class="empty-state"><i class="ph-fill ph-spinner"></i><p>Carregando...</p></div>
+                        </div>
+                    </section>
+                </main>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>&copy; 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalCliente">
+        <div class="modal-box">
+            <div class="modal-title">Novo Cliente</div>
+            <div class="form-group"><label class="form-label">Nome *</label><input class="form-input" id="inputNome" type="text"></div>
+            <div class="form-group"><label class="form-label">CNPJ / CPF</label><input class="form-input" id="inputDocumento" type="text"></div>
+            <div class="form-group"><label class="form-label">E-mail</label><input class="form-input" id="inputEmail" type="email"></div>
+            <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="inputTelefone" type="text"></div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnCancelarCliente">Cancelar</button>
+                <button class="btn-primary" id="btnSalvarCliente">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmt = v => 'R$\u00a0' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+const today = new Date(); today.setHours(0,0,0,0);
+
+async function getSB() {
+    await window.CONFIG_LOADED;
+    return window.supabaseClient || window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+}
+
+async function loadClientes() {
+    const sb = await getSB();
+    const term = document.getElementById('searchInput').value.toLowerCase();
+    const { data: clientes, error } = await sb.from('pj_clientes').select('*').eq('ativo', true).order('nome');
+    if (error) { document.getElementById('clientesGrid').innerHTML = '<div class="empty-state"><p>Erro: ' + esc(error.message) + '</p></div>'; return; }
+    const { data: receitas } = await sb.from('pj_receitas').select('cliente_id, valor, status, data_vencimento');
+    const filtered = (clientes || []).filter(c => !term || c.nome.toLowerCase().includes(term) || (c.documento || '').toLowerCase().includes(term));
+    if (!filtered.length) {
+        document.getElementById('clientesGrid').innerHTML = '<div class="empty-state"><i class="ph-fill ph-buildings"></i><p>Nenhum cliente encontrado.</p></div>';
+        return;
+    }
+    document.getElementById('clientesGrid').innerHTML = filtered.map(c => {
+        const cRec = (receitas || []).filter(r => r.cliente_id === c.id);
+        const totalFaturado = cRec.filter(r => r.status !== 'cancelled').reduce((s,r) => s + Number(r.valor), 0);
+        const emAberto = cRec.filter(r => r.status === 'open').reduce((s,r) => s + Number(r.valor), 0);
+        const vencido = cRec.filter(r => r.status === 'open' && new Date(r.data_vencimento) < today).reduce((s,r) => s + Number(r.valor), 0);
+        const initials = esc(c.nome).split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+        return '<div class="client-card">'
+            + '<div class="client-card-top">'
+            + '<div class="client-avatar">' + initials + '</div>'
+            + '<button class="btn-icon-sm" onclick="desativarCliente(\'' + esc(c.id) + '\')"><i class="ph-fill ph-trash"></i></button>'
+            + '</div>'
+            + '<div class="client-name">' + esc(c.nome) + '</div>'
+            + (c.documento ? '<div class="client-doc">' + esc(c.documento) + '</div>' : '')
+            + (c.email ? '<div class="client-contact"><i class="ph-fill ph-envelope"></i> ' + esc(c.email) + '</div>' : '')
+            + (c.telefone ? '<div class="client-contact"><i class="ph-fill ph-phone"></i> ' + esc(c.telefone) + '</div>' : '')
+            + '<div class="client-stats">'
+            + '<div class="client-stat"><span class="client-stat-label">Total Faturado</span><span class="client-stat-value">' + fmt(totalFaturado) + '</span></div>'
+            + '<div class="client-stat"><span class="client-stat-label">Em Aberto</span><span class="client-stat-value">' + fmt(emAberto) + '</span>' + (vencido > 0 ? '<span class="client-stat-sub">' + fmt(vencido) + ' vencido</span>' : '') + '</div>'
+            + '</div>'
+            + '</div>';
+    }).join('');
+}
+
+async function desativarCliente(id) {
+    if (!confirm('Desativar este cliente?')) return;
+    const sb = await getSB();
+    await sb.from('pj_clientes').update({ ativo: false }).eq('id', id);
+    loadClientes();
+}
+
+document.getElementById('btnNovoCliente').addEventListener('click', () => {
+    ['inputNome','inputDocumento','inputEmail','inputTelefone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('modalCliente').classList.add('active');
+});
+document.getElementById('btnCancelarCliente').addEventListener('click', () => document.getElementById('modalCliente').classList.remove('active'));
+document.getElementById('searchInput').addEventListener('input', loadClientes);
+document.getElementById('btnSalvarCliente').addEventListener('click', async () => {
+    const nome = document.getElementById('inputNome').value.trim();
+    if (!nome) { alert('Nome obrigatorio.'); return; }
+    const sb = await getSB();
+    const { error } = await sb.from('pj_clientes').insert({ nome, documento: document.getElementById('inputDocumento').value.trim() || null, email: document.getElementById('inputEmail').value.trim() || null, telefone: document.getElementById('inputTelefone').value.trim() || null });
+    if (error) { alert('Erro: ' + error.message); return; }
+    document.getElementById('modalCliente').classList.remove('active');
+    loadClientes();
+});
+document.getElementById('toggleSidebar')?.addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+loadClientes();
+    </script>
+
+    <script src="theme-handler.js"></script>
+</body>
+
+</html>
