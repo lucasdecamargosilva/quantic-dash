@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic &mdash; Fluxo de Caixa</title>
+
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .fc-controls { display:flex; align-items:center; gap:16px; margin-bottom:28px; }
+        .period-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:10px; padding:9px 18px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+        .period-btn.active, .period-btn:hover { background:rgba(139,92,246,0.2); border-color:rgba(139,92,246,0.4); color:#a78bfa; }
+        .summary-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+        .summary-card { background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(139,92,246,0.03) 100%); border:1px solid rgba(139,92,246,0.2); border-radius:16px; padding:22px 24px; display:flex; flex-direction:column; gap:4px; }
+        .summary-label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); }
+        .summary-value { font-size:22px; font-weight:800; color:#fff; }
+        .summary-value.green { color:#34d399; }
+        .summary-value.red { color:#f87171; }
+        .saldo-input { background:none; border:none; border-bottom:1px dashed rgba(255,255,255,0.3); color:#fff; font-size:22px; font-weight:800; font-family:inherit; outline:none; width:150px; }
+        .saldo-input:focus { border-bottom-color:rgba(139,92,246,0.6); }
+        .saldo-hint { font-size:11px; color:var(--text-muted,#94a3b8); }
+        .fc-table { width:100%; border-collapse:collapse; }
+        .fc-table th { text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted,#94a3b8); padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.07); }
+        .fc-table td { padding:12px 14px; font-size:14px; color:#fff; border-bottom:1px solid rgba(255,255,255,0.04); }
+        .fc-table tr.has-data td { background:rgba(139,92,246,0.03); }
+        .fc-table tr:hover td { background:rgba(139,92,246,0.05); }
+        .saldo-pos { color:#34d399; font-weight:700; }
+        .saldo-neg { color:#f87171; font-weight:700; }
+        .entrada-val { color:#34d399; }
+        .saida-val { color:#f87171; }
+        .dim { opacity:0.3; }
+        .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted,#94a3b8); }
+        .empty-state i { font-size:48px; margin-bottom:12px; display:block; opacity:0.4; }
+        .table-wrap { overflow-x:auto; }
+    </style>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-link">
+                    <i class="ph-fill ph-chart-line-up"></i>
+                    <span class="link-text">Desempenho</span>
+                </a>
+                <a href="crm.html" class="nav-link">
+                    <i class="ph-fill ph-table"></i>
+                    <span class="link-text">CRM Quantic</span>
+                </a>
+                <a href="contatos.html" class="nav-link">
+                    <i class="ph-fill ph-user"></i>
+                    <span class="link-text">Contatos</span>
+                </a>
+                <a href="conversas.html" class="nav-link">
+                    <i class="ph-fill ph-chats-teardrop"></i>
+                    <span class="link-text">Conversas</span>
+                </a>
+                <a href="captacao.html" class="nav-link">
+                    <i class="ph-fill ph-funnel"></i>
+                    <span class="link-text">Capta&ccedil;&atilde;o</span>
+                </a>
+                <a href="custos.html" class="nav-link">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">Custos</span>
+                </a>
+                <a href="receitas.html" class="nav-link">
+                    <i class="ph-fill ph-money"></i>
+                    <span class="link-text">Receitas</span>
+                </a>
+                <a href="clientes.html" class="nav-link">
+                    <i class="ph-fill ph-buildings"></i>
+                    <span class="link-text">Clientes</span>
+                </a>
+                <a href="dre.html" class="nav-link">
+                    <i class="ph-fill ph-receipt"></i>
+                    <span class="link-text">DRE</span>
+                </a>
+                <a href="fluxo-caixa.html" class="nav-link active">
+                    <i class="ph-fill ph-bank"></i>
+                    <span class="link-text">Fluxo de Caixa</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer"></div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Fluxo de Caixa</h1>
+                    </div>
+                    <div class="user-area">
+                        <button class="icon-btn"><i class="ph-fill ph-bell"></i></button>
+                    </div>
+                </header>
+
+                <main class="dashboard-grid">
+                    <section class="section-overview">
+                        <div class="fc-controls">
+                            <span style="font-size:14px;color:var(--text-muted,#94a3b8);font-weight:600">Per&iacute;odo:</span>
+                            <button class="period-btn active" id="btn30">30 dias</button>
+                            <button class="period-btn" id="btn60">60 dias</button>
+                        </div>
+                        <div class="summary-row">
+                            <div class="summary-card">
+                                <span class="summary-label">Saldo Inicial</span>
+                                <input type="number" class="saldo-input" id="saldoInicial" placeholder="0,00">
+                                <span class="saldo-hint">Pressione Enter para salvar</span>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-label">Total Entradas</span>
+                                <span class="summary-value green" id="cardEntradas">&mdash;</span>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-label">Total Sa&iacute;das</span>
+                                <span class="summary-value red" id="cardSaidas">&mdash;</span>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-label">Saldo Final</span>
+                                <span class="summary-value" id="cardSaldoFinal">&mdash;</span>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="fc-table">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Entradas</th>
+                                        <th>Sa&iacute;das</th>
+                                        <th>Saldo Acumulado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fcBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </main>
+
+                <footer class="main-footer">
+                    <div class="footer-logo">
+                        <i class="ph-fill ph-squares-four"></i> <span>Quantic</span>
+                    </div>
+                    <p>&copy; 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="theme-handler.js"></script>
+    <script>
+    var fmt = function(v) { return 'R$\u00a0' + Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits:2 }); };
+    var dias = 30;
+
+    async function getSB() {
+        await window.CONFIG_LOADED;
+        return window.supabaseClient || window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+    }
+
+    async function loadSaldoInicial() {
+        var sb = await getSB();
+        var userResult = await sb.auth.getUser();
+        var user = userResult.data && userResult.data.user;
+        if (!user) return 0;
+        var result = await sb.from('pj_config').select('valor').eq('user_id',user.id).eq('chave','saldo_inicial_caixa').single();
+        return (result.data && result.data.valor) ? parseFloat(result.data.valor) : 0;
+    }
+
+    async function saveSaldoInicial(val) {
+        var sb = await getSB();
+        var userResult = await sb.auth.getUser();
+        var user = userResult.data && userResult.data.user;
+        if (!user) return;
+        await sb.from('pj_config').upsert({ user_id:user.id, chave:'saldo_inicial_caixa', valor:String(val) }, { onConflict:'user_id,chave' });
+    }
+
+    async function loadFluxo() {
+        var sb = await getSB();
+        var today = new Date(); today.setHours(0,0,0,0);
+        var endDate = new Date(today); endDate.setDate(endDate.getDate()+dias-1);
+        var todayStr = today.toISOString().slice(0,10);
+        var endStr = endDate.toISOString().slice(0,10);
+
+        var recResult = await sb.from('pj_receitas').select('data_vencimento,valor').eq('status','open').gte('data_vencimento',todayStr).lte('data_vencimento',endStr);
+        var cusResult = await sb.from('pj_custos_lancados').select('data_pagamento,valor').gte('data_pagamento',todayStr).lte('data_pagamento',endStr);
+        if (recResult.error) { console.error('Erro receitas:', recResult.error.message); }
+        if (cusResult.error) { console.error('Erro custos:', cusResult.error.message); }
+
+        var dayMap = {};
+        for (var i=0; i<dias; i++) {
+            var d = new Date(today); d.setDate(d.getDate()+i);
+            dayMap[d.toISOString().slice(0,10)] = { entrada:0, saida:0 };
+        }
+        (recResult.data||[]).forEach(function(r) { if (dayMap[r.data_vencimento]) dayMap[r.data_vencimento].entrada += Number(r.valor); });
+        (cusResult.data||[]).forEach(function(c) { if (dayMap[c.data_pagamento]) dayMap[c.data_pagamento].saida += Number(c.valor); });
+
+        var saldoIni = parseFloat(document.getElementById('saldoInicial').value) || 0;
+        var saldoAcum = saldoIni, totalEntradas = 0, totalSaidas = 0;
+        var tbody = document.getElementById('fcBody');
+        tbody.textContent = '';
+
+        var entries = Object.keys(dayMap).sort();
+        var hasAny = false;
+        entries.forEach(function(date) {
+            var entrada = dayMap[date].entrada, saida = dayMap[date].saida;
+            saldoAcum += entrada - saida;
+            totalEntradas += entrada;
+            totalSaidas += saida;
+            var hasData = entrada > 0 || saida > 0;
+            if (hasData) hasAny = true;
+
+            var tr = document.createElement('tr');
+            if (hasData) tr.className = 'has-data';
+
+            var tdDate = document.createElement('td');
+            tdDate.textContent = new Date(date+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+            tr.appendChild(tdDate);
+
+            var tdEntrada = document.createElement('td');
+            if (entrada > 0) {
+                tdEntrada.textContent = '+' + fmt(entrada);
+                tdEntrada.className = 'entrada-val';
+            } else {
+                tdEntrada.textContent = '\u2014';
+                tdEntrada.className = 'dim';
+            }
+            tr.appendChild(tdEntrada);
+
+            var tdSaida = document.createElement('td');
+            if (saida > 0) {
+                tdSaida.textContent = '-' + fmt(saida);
+                tdSaida.className = 'saida-val';
+            } else {
+                tdSaida.textContent = '\u2014';
+                tdSaida.className = 'dim';
+            }
+            tr.appendChild(tdSaida);
+
+            var tdSaldo = document.createElement('td');
+            tdSaldo.textContent = fmt(saldoAcum);
+            tdSaldo.className = saldoAcum >= 0 ? 'saldo-pos' : 'saldo-neg';
+            tr.appendChild(tdSaldo);
+
+            tbody.appendChild(tr);
+        });
+
+        if (!hasAny) {
+            var tr = document.createElement('tr');
+            var td = document.createElement('td');
+            td.colSpan = 4;
+            var div = document.createElement('div');
+            div.className = 'empty-state';
+            var icon = document.createElement('i');
+            icon.className = 'ph-fill ph-bank';
+            var p = document.createElement('p');
+            p.textContent = 'Nenhuma movimenta\u00e7\u00e3o projetada para este per\u00edodo.';
+            div.appendChild(icon);
+            div.appendChild(p);
+            td.appendChild(div);
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        }
+
+        document.getElementById('cardEntradas').textContent = fmt(totalEntradas);
+        document.getElementById('cardSaidas').textContent = fmt(totalSaidas);
+        var sf = saldoIni + totalEntradas - totalSaidas;
+        var sfEl = document.getElementById('cardSaldoFinal');
+        sfEl.textContent = fmt(sf);
+        sfEl.className = 'summary-value ' + (sf >= 0 ? 'green' : 'red');
+    }
+
+    document.getElementById('btn30').addEventListener('click', function() {
+        dias = 30;
+        document.getElementById('btn30').classList.add('active');
+        document.getElementById('btn60').classList.remove('active');
+        loadFluxo();
+    });
+    document.getElementById('btn60').addEventListener('click', function() {
+        dias = 60;
+        document.getElementById('btn60').classList.add('active');
+        document.getElementById('btn30').classList.remove('active');
+        loadFluxo();
+    });
+    // 'blur' handles tab-away/click-away; 'keydown' handles Enter (prevents double-save).
+    document.getElementById('saldoInicial').addEventListener('blur', function(e) { saveSaldoInicial(e.target.value); loadFluxo(); });
+    document.getElementById('saldoInicial').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); saveSaldoInicial(e.target.value); loadFluxo(); } });
+    document.getElementById('toggleSidebar') && document.getElementById('toggleSidebar').addEventListener('click', function() { document.getElementById('sidebar').classList.toggle('collapsed'); });
+
+    async function init() {
+        var s = await loadSaldoInicial();
+        document.getElementById('saldoInicial').value = s || '';
+        loadFluxo();
+    }
+    init();
+    </script>
+</body>
+
+</html>
