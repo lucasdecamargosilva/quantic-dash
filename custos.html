@@ -12,7 +12,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -305,6 +305,168 @@
             border: 1px solid rgba(245, 158, 11, 0.2);
         }
 
+        .type-pill.pl {
+            background: rgba(6, 182, 212, 0.12);
+            color: #22d3ee;
+            border: 1px solid rgba(6, 182, 212, 0.25);
+        }
+
+        .pl-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .pl-card {
+            background: rgba(12, 14, 23, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(6, 182, 212, 0.12);
+            border-radius: 14px;
+            padding: 22px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .pl-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.4), transparent);
+        }
+
+        .pl-card:hover {
+            border-color: rgba(6, 182, 212, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .pl-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .pl-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(6, 182, 212, 0.12);
+            color: #22d3ee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .pl-icon.oculos { background: rgba(167, 139, 250, 0.12); color: #a78bfa; }
+        .pl-icon.roupa  { background: rgba(52, 211, 153, 0.12); color: #34d399; }
+
+        .pl-card-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .pl-card-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .pl-card-sub {
+            font-size: 12px;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .pl-refresh-btn {
+            margin-left: auto;
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            color: #22d3ee;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .pl-refresh-btn:hover {
+            background: rgba(6, 182, 212, 0.2);
+            color: #fff;
+        }
+
+        .pl-refresh-btn.loading i {
+            animation: pl-spin 1s linear infinite;
+        }
+
+        @keyframes pl-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pl-period-input {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: #fff;
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+            height: 30px;
+        }
+
+        .pl-period-input:focus {
+            border-color: rgba(6, 182, 212, 0.35);
+        }
+
+        .pl-period-input::-webkit-calendar-picker-indicator {
+            filter: invert(0.8);
+            cursor: pointer;
+        }
+
+        .pl-period-input:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .pl-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted, #94a3b8);
+            cursor: pointer;
+            user-select: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
+            transition: all 0.2s;
+        }
+
+        .pl-toggle input { accent-color: #22d3ee; margin: 0; }
+        .pl-toggle:hover { border-color: rgba(6, 182, 212, 0.2); color: #fff; }
+        .pl-toggle.active {
+            background: rgba(6, 182, 212, 0.1);
+            border-color: rgba(6, 182, 212, 0.3);
+            color: #22d3ee;
+        }
+
         .costs-section-label .type-total {
             font-size: 12px;
             font-weight: 700;
@@ -353,22 +515,6 @@
                     <i class="ph-fill ph-chart-line-up"></i>
                     <span class="link-text">Desempenho</span>
                 </a>
-                <a href="crm.html" class="nav-link">
-                    <i class="ph-fill ph-table"></i>
-                    <span class="link-text">CRM Quantic</span>
-                </a>
-                <a href="contatos.html" class="nav-link">
-                    <i class="ph-fill ph-user"></i>
-                    <span class="link-text">Contatos</span>
-                </a>
-                <a href="conversas.html" class="nav-link">
-                    <i class="ph-fill ph-chats-teardrop"></i>
-                    <span class="link-text">Conversas</span>
-                </a>
-                <a href="captacao.html" class="nav-link">
-                    <i class="ph-fill ph-funnel"></i>
-                    <span class="link-text">Captação</span>
-                </a>
                 <a href="custos.html" class="nav-link active">
                     <i class="ph-fill ph-receipt"></i>
                     <span class="link-text">Custos</span>
@@ -415,9 +561,9 @@
                                 <span class="cost-summary-sub">Claude, Gemini, Uazapi, Hostinger, GoDaddy</span>
                             </div>
                             <div class="cost-summary-card">
-                                <span class="cost-summary-label">Custos Variáveis (est.)</span>
-                                <span class="cost-summary-value" style="color:#fbbf24">R$ 647</span>
-                                <span class="cost-summary-sub">Custo IA + Tráfego Pago</span>
+                                <span class="cost-summary-label">Custos Variáveis</span>
+                                <span class="cost-summary-value" style="color:#fbbf24" id="summaryVariaveis">R$ 0,00</span>
+                                <span class="cost-summary-sub" id="summaryVariaveisSub">Gerações Provou Levou</span>
                             </div>
                             <div class="cost-summary-card">
                                 <span class="cost-summary-label">Pró-Labore</span>
@@ -426,7 +572,7 @@
                             </div>
                             <div class="cost-summary-card highlight">
                                 <span class="cost-summary-label">Total Geral / Mês</span>
-                                <span class="cost-summary-value red">R$ 5.633</span>
+                                <span class="cost-summary-value red" id="summaryTotal">R$ 4.986,00</span>
                                 <span class="cost-summary-sub">Empresa + Pró-Labore</span>
                             </div>
                         </div>
@@ -522,46 +668,46 @@
 
                         </div>
 
-                        <!-- CUSTOS VARIÁVEIS -->
+                        <!-- CUSTOS VARIÁVEIS (Provou Levou - calculado em tempo real) -->
                         <div class="costs-section-label">
                             <h3>Custos Variáveis</h3>
-                            <span class="type-pill variavel">Variável</span>
-                            <span class="costs-section-label type-total">~R$ 647 / mês (estimado)</span>
+                            <span class="type-pill pl">Provou Levou</span>
+                            <span class="costs-section-label type-total" id="plTotalLabel">—</span>
+                            <input type="month" class="pl-period-input" id="plFilterMes">
+                            <label class="pl-toggle" id="plAcumuladoLabel">
+                                <input type="checkbox" id="plAcumulado">
+                                <span>Acumulado</span>
+                            </label>
+                            <button class="pl-refresh-btn" id="btnRefreshPL" title="Atualizar agora">
+                                <i class="ph-fill ph-arrow-clockwise"></i>
+                                <span>Atualizar</span>
+                            </button>
                         </div>
-                        <div class="costs-grid-variable">
-
-                            <!-- Custo IA -->
-                            <div class="cost-item-card">
-                                <div class="cost-item-top">
-                                    <div class="cost-item-icon ai"><i class="ph-fill ph-brain"></i></div>
-                                    <span class="cost-item-badge mensal">Variável</span>
+                        <div class="pl-grid">
+                            <div class="pl-card">
+                                <div class="pl-card-top">
+                                    <div class="pl-icon oculos"><i class="ph-fill ph-sunglasses"></i></div>
                                 </div>
-                                <span class="cost-item-name">Custo IA</span>
-                                <span class="cost-item-category">APIs & Tokens — varia por uso</span>
-                                <span class="cost-item-amount">~R$ 347</span>
-                                <div class="cost-item-due warning">
-                                    <i class="ph-fill ph-warning"></i>
-                                    <span>Cobra ao atingir R$500 ou no dia 1</span>
-                                </div>
-                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:100%; background: linear-gradient(90deg,#d97706,#f59e0b)"></div></div>
+                                <span class="pl-card-label">Custo Óculos</span>
+                                <span class="pl-card-value" id="plCustoOculos">R$ 0,00</span>
+                                <span class="pl-card-sub" id="plProvasOculos">0 provas · R$ 0,20/prova</span>
                             </div>
-
-                            <!-- Tráfego Pago -->
-                            <div class="cost-item-card">
-                                <div class="cost-item-top">
-                                    <div class="cost-item-icon marketing"><i class="ph-fill ph-megaphone-simple"></i></div>
-                                    <span class="cost-item-badge mensal">Variável</span>
+                            <div class="pl-card">
+                                <div class="pl-card-top">
+                                    <div class="pl-icon roupa"><i class="ph-fill ph-t-shirt"></i></div>
                                 </div>
-                                <span class="cost-item-name">Tráfego Pago</span>
-                                <span class="cost-item-category">Marketing — ajustável por campanha</span>
-                                <span class="cost-item-amount">~R$ 300</span>
-                                <div class="cost-item-due">
-                                    <i class="ph-fill ph-calendar-check"></i>
-                                    <span>Vence todo dia 10</span>
-                                </div>
-                                <div class="cost-bar-track"><div class="cost-bar-fill" style="width:86.5%; background: linear-gradient(90deg,#d97706,#f59e0b)"></div></div>
+                                <span class="pl-card-label">Custo Roupa</span>
+                                <span class="pl-card-value" id="plCustoRoupa">R$ 0,00</span>
+                                <span class="pl-card-sub" id="plProvasRoupa">0 provas · R$ 0,35/prova</span>
                             </div>
-
+                            <div class="pl-card">
+                                <div class="pl-card-top">
+                                    <div class="pl-icon"><i class="ph-fill ph-stack"></i></div>
+                                </div>
+                                <span class="pl-card-label">Total Gerações</span>
+                                <span class="pl-card-value" id="plCustoTotal">R$ 0,00</span>
+                                <span class="pl-card-sub" id="plProvasTotal">0 provas</span>
+                            </div>
                         </div>
 
                         <!-- PRÓ-LABORE -->
@@ -601,6 +747,206 @@
     </div>
 
     <script src="theme-handler.js"></script>
+    <script>
+    (function() {
+        var PL_CACHE_KEY = 'quantic_pl_custos_cache_v1';
+        var PL_CACHE_TTL_MS = 5 * 60 * 1000;
+        var RATE = { oculos: 0.20, roupa: 0.35 };
+
+        function fmtBRL(v) {
+            return 'R$\u00a0' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        function fmtInt(n) {
+            return Number(n || 0).toLocaleString('pt-BR');
+        }
+        function normalizeDomain(o) {
+            var s = String(o == null ? '' : o).toLowerCase().trim();
+            s = s.replace(/^https?:\/\//, '').replace(/^www\./, '');
+            s = s.split('/')[0].split('?')[0];
+            return s;
+        }
+
+        async function getSB() {
+            if (window.CONFIG_LOADED) await window.CONFIG_LOADED;
+            if (window.supabaseClient) return window.supabaseClient;
+            if (!window.SUPABASE_CONFIG || !window.SUPABASE_CONFIG.URL) return null;
+            window.supabaseClient = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+            return window.supabaseClient;
+        }
+
+        async function fetchAllPaginated(sb, table, selectFields) {
+            var all = [];
+            var pageSize = 1000;
+            var from = 0;
+            while (true) {
+                var result = await sb.from(table).select(selectFields).range(from, from + pageSize - 1);
+                if (result.error) { console.warn('pagination', table, result.error.message); break; }
+                if (!result.data || result.data.length === 0) break;
+                all = all.concat(result.data);
+                if (result.data.length < pageSize) break;
+                from += pageSize;
+            }
+            return all;
+        }
+
+        function currentPeriodKey() {
+            var acumulado = document.getElementById('plAcumulado').checked;
+            if (acumulado) return 'all';
+            return 'm:' + document.getElementById('plFilterMes').value;
+        }
+
+        function readCache(key) {
+            try {
+                var raw = localStorage.getItem(PL_CACHE_KEY + ':' + key);
+                if (!raw) return null;
+                var obj = JSON.parse(raw);
+                if (!obj || !obj.updatedAt) return null;
+                var age = Date.now() - new Date(obj.updatedAt).getTime();
+                if (age > PL_CACHE_TTL_MS) return null;
+                return obj;
+            } catch (e) { return null; }
+        }
+        function writeCache(key, data) {
+            try { localStorage.setItem(PL_CACHE_KEY + ':' + key, JSON.stringify(data)); } catch (e) {}
+        }
+
+        var CUSTO_FIXO = 986;
+        var PRO_LABORE = 4000;
+
+        function formatPeriodLabel() {
+            var acumulado = document.getElementById('plAcumulado').checked;
+            if (acumulado) return 'acumulado \u00b7 todos os per\u00edodos';
+            var mes = document.getElementById('plFilterMes').value;
+            if (!mes) return '';
+            var parts = mes.split('-');
+            var year = parts[0];
+            var monthIdx = Number(parts[1]) - 1;
+            var monthNames = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+            return monthNames[monthIdx] + '/' + year;
+        }
+
+        function renderCards(r) {
+            document.getElementById('plCustoOculos').textContent = fmtBRL(r.custoOculos);
+            document.getElementById('plProvasOculos').textContent = fmtInt(r.provasOculos) + ' provas \u00b7 R$ 0,20/prova';
+            document.getElementById('plCustoRoupa').textContent = fmtBRL(r.custoRoupa);
+            document.getElementById('plProvasRoupa').textContent = fmtInt(r.provasRoupa) + ' provas \u00b7 R$ 0,35/prova';
+            document.getElementById('plCustoTotal').textContent = fmtBRL(r.totalCusto);
+            document.getElementById('plProvasTotal').textContent = fmtInt(r.totalProvas) + ' provas';
+            var periodLbl = formatPeriodLabel();
+            document.getElementById('plTotalLabel').textContent = fmtBRL(r.totalCusto) + (periodLbl ? ' \u00b7 ' + periodLbl : '');
+
+            // Reflete no summary do topo (Custos Variáveis + Total Geral)
+            var sumVar = document.getElementById('summaryVariaveis');
+            var sumSub = document.getElementById('summaryVariaveisSub');
+            var sumTot = document.getElementById('summaryTotal');
+            if (sumVar) sumVar.textContent = fmtBRL(r.totalCusto);
+            if (sumSub) sumSub.textContent = fmtInt(r.totalProvas) + ' gera\u00e7\u00f5es \u00b7 ' + (periodLbl || 'per\u00edodo');
+            if (sumTot) sumTot.textContent = fmtBRL(CUSTO_FIXO + r.totalCusto + PRO_LABORE);
+        }
+
+        function monthBounds(mesStr) {
+            if (!mesStr) return null;
+            var parts = mesStr.split('-');
+            var year = Number(parts[0]);
+            var month = Number(parts[1]);
+            var firstDay = mesStr + '-01T00:00:00.000Z';
+            var lastDate = new Date(Date.UTC(year, month, 0));
+            var lastDay = lastDate.toISOString().slice(0, 10) + 'T23:59:59.999Z';
+            return { firstDay: firstDay, lastDay: lastDay };
+        }
+
+        async function compute() {
+            var sb = await getSB();
+            if (!sb) throw new Error('Supabase n\u00e3o conectado');
+            var acumulado = document.getElementById('plAcumulado').checked;
+            var mesStr = document.getElementById('plFilterMes').value;
+            var bounds = acumulado ? null : monthBounds(mesStr);
+
+            var lojistasRes = await sb.from('lojistas').select('origem, categoria');
+            var storesRes = await sb.from('provou_levou_stores').select('domain, categoria');
+            var categoriaMap = {};
+            (lojistasRes.data || []).forEach(function(l) {
+                var d = normalizeDomain(l.origem);
+                if (d) categoriaMap[d] = l.categoria || 'oculos';
+            });
+            (storesRes.data || []).forEach(function(s) {
+                var d = normalizeDomain(s.domain);
+                if (d) categoriaMap[d] = s.categoria || 'oculos';
+            });
+
+            var filters = [];
+            if (bounds) {
+                filters.push({ m: 'gte', a: ['created_at', bounds.firstDay] });
+                filters.push({ m: 'lte', a: ['created_at', bounds.lastDay] });
+            }
+            var tryons = await fetchAllPaginated(sb, 'geracoes_provou_levou', 'origin, created_at', filters);
+
+            var counts = {};
+            tryons.forEach(function(t) {
+                var d = normalizeDomain(t.origin);
+                if (!d) return;
+                counts[d] = (counts[d] || 0) + 1;
+            });
+            var totalProvas = 0, provasOculos = 0, custoOculos = 0, provasRoupa = 0, custoRoupa = 0;
+            Object.keys(counts).forEach(function(origin) {
+                var c = counts[origin];
+                var cat = categoriaMap[origin] || 'oculos';
+                var rate = RATE[cat] != null ? RATE[cat] : RATE.oculos;
+                totalProvas += c;
+                if (cat === 'roupa') { provasRoupa += c; custoRoupa += c * rate; }
+                else { provasOculos += c; custoOculos += c * rate; }
+            });
+            return {
+                updatedAt: new Date().toISOString(),
+                totalProvas: totalProvas,
+                totalCusto: custoOculos + custoRoupa,
+                provasOculos: provasOculos, custoOculos: custoOculos,
+                provasRoupa: provasRoupa, custoRoupa: custoRoupa
+            };
+        }
+
+        async function load(forceRefresh) {
+            var btn = document.getElementById('btnRefreshPL');
+            var key = currentPeriodKey();
+            if (!forceRefresh) {
+                var cached = readCache(key);
+                if (cached) { renderCards(cached); }
+            }
+            if (btn) btn.classList.add('loading');
+            try {
+                var r = await compute();
+                writeCache(key, r);
+                renderCards(r);
+            } catch (e) {
+                console.error('PL custos:', e);
+                document.getElementById('plTotalLabel').textContent = 'Erro ao carregar';
+            } finally {
+                if (btn) btn.classList.remove('loading');
+            }
+        }
+
+        // Inicializa campo de mês com mês atual
+        var now = new Date();
+        document.getElementById('plFilterMes').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+        function updateAcumuladoVisual() {
+            var cb = document.getElementById('plAcumulado');
+            var lbl = document.getElementById('plAcumuladoLabel');
+            var mesInput = document.getElementById('plFilterMes');
+            if (cb.checked) { lbl.classList.add('active'); mesInput.disabled = true; }
+            else { lbl.classList.remove('active'); mesInput.disabled = false; }
+        }
+        updateAcumuladoVisual();
+
+        document.getElementById('btnRefreshPL').addEventListener('click', function() { load(true); });
+        document.getElementById('plFilterMes').addEventListener('change', function() { load(false); });
+        document.getElementById('plAcumulado').addEventListener('change', function() {
+            updateAcumuladoVisual();
+            load(false);
+        });
+        load(false);
+    })();
+    </script>
 </body>
 
 </html>

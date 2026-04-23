@@ -15,7 +15,7 @@ const PLATFORM_TOKEN = process.env.PLATFORM_TOKEN;
 const CHATWOOT_USER_ID = process.env.CHATWOOT_USER_ID || 1;
 
 // Configurações do Supabase
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jytsrxrmgvliyyuktxsd.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://quantic-supabase.k5jwra.easypanel.host';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
 
 // 1. Endpoints do Dashboard (Devem vir PRIMEIRO)

@@ -12,7 +12,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -52,22 +52,6 @@
                 <a href="index.html" class="nav-link">
                     <i class="ph-fill ph-chart-line-up"></i>
                     <span class="link-text">Desempenho</span>
-                </a>
-                <a href="crm.html" class="nav-link">
-                    <i class="ph-fill ph-table"></i>
-                    <span class="link-text">CRM Quantic</span>
-                </a>
-                <a href="contatos.html" class="nav-link">
-                    <i class="ph-fill ph-user"></i>
-                    <span class="link-text">Contatos</span>
-                </a>
-                <a href="conversas.html" class="nav-link">
-                    <i class="ph-fill ph-chats-teardrop"></i>
-                    <span class="link-text">Conversas</span>
-                </a>
-                <a href="captacao.html" class="nav-link">
-                    <i class="ph-fill ph-funnel"></i>
-                    <span class="link-text">Captar&ccedil;&atilde;o</span>
                 </a>
                 <a href="custos.html" class="nav-link">
                     <i class="ph-fill ph-receipt"></i>
@@ -137,6 +121,54 @@
         return window.supabaseClient || window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
     }
 
+    var RATE = { oculos: 0.20, roupa: 0.35 };
+
+    function normalizeDomain(o) {
+        var s = String(o == null ? '' : o).toLowerCase().trim();
+        s = s.replace(/^https?:\/\//, '').replace(/^www\./, '');
+        s = s.split('/')[0].split('?')[0];
+        return s;
+    }
+
+    async function fetchAllPaginated(sb, table, selectFields, filters) {
+        var all = [];
+        var pageSize = 1000;
+        var from = 0;
+        while (true) {
+            var q = sb.from(table).select(selectFields);
+            (filters || []).forEach(function(f) { q = q[f.m].apply(q, f.a); });
+            var r = await q.range(from, from + pageSize - 1);
+            if (r.error) { console.warn('pagination', table, r.error.message); break; }
+            if (!r.data || r.data.length === 0) break;
+            all = all.concat(r.data);
+            if (r.data.length < pageSize) break;
+            from += pageSize;
+        }
+        return all;
+    }
+
+    async function computePLCostForMonth(sb, firstDay, lastDay) {
+        try {
+            var lojRes = await sb.from('lojistas').select('origem, categoria');
+            var storRes = await sb.from('provou_levou_stores').select('domain, categoria');
+            var catMap = {};
+            (lojRes.data || []).forEach(function(l) { var d = normalizeDomain(l.origem); if (d) catMap[d] = l.categoria || 'oculos'; });
+            (storRes.data || []).forEach(function(s) { var d = normalizeDomain(s.domain); if (d) catMap[d] = s.categoria || 'oculos'; });
+            var tryons = await fetchAllPaginated(sb, 'geracoes_provou_levou', 'origin, created_at', [
+                { m: 'gte', a: ['created_at', firstDay] },
+                { m: 'lte', a: ['created_at', lastDay + 'T23:59:59'] }
+            ]);
+            var total = 0;
+            tryons.forEach(function(t) {
+                var d = normalizeDomain(t.origin);
+                if (!d) return;
+                var cat = catMap[d] || 'oculos';
+                total += (RATE[cat] != null ? RATE[cat] : RATE.oculos);
+            });
+            return total;
+        } catch (e) { console.warn('PL month cost:', e); return 0; }
+    }
+
     async function loadDRE() {
         var sb = await getSB();
         var mes = document.getElementById('filterMes').value;
@@ -151,7 +183,9 @@
         var receitas = recResult.data || [];
         var custos = cusResult.data || [];
         var recBruta = receitas.reduce(function(s,r){ return s+Number(r.valor); },0);
-        var custosOp = custos.reduce(function(s,r){ return s+Number(r.valor); },0);
+        var custosLancados = custos.reduce(function(s,r){ return s+Number(r.valor); },0);
+        var plCusto = await computePLCostForMonth(sb, firstDay, lastDay);
+        var custosOp = custosLancados + plCusto;
         var recLiq = recBruta;
         var resultado = recLiq - custosOp;
         var cls = resultado >= 0 ? 'positive' : 'negative';
@@ -164,6 +198,8 @@
             ['total', 'Receita L\u00edquida', fmt(recLiq)],
             ['section-header', 'Despesas', ''],
             ['', '(\u2212) Custos Operacionais', fmt(custosOp)],
+            ['indent', '   Custos Lan\u00e7ados', fmt(custosLancados)],
+            ['indent', '   Gera\u00e7\u00f5es Provou Levou', fmt(plCusto)],
             ['result '+cls, 'Resultado Operacional', fmt(resultado)],
             [cls+' margin-row', 'Margem', pct(resultado,recBruta)]
         ];
@@ -188,7 +224,7 @@
             }
             tbody.appendChild(tr);
         });
-        document.getElementById('dreNote').textContent = (recBruta===0 && custosOp===0) ? 'Lance receitas e custos para visualizar o DRE.' : '';
+        document.getElementById('dreNote').textContent = (recBruta===0 && custosOp===0) ? 'Lance receitas e custos para visualizar o DRE.' : 'Custos operacionais incluem lan\u00e7amentos manuais + custo das gera\u00e7\u00f5es Provou Levou do m\u00eas.';
     }
 
     var now = new Date();

@@ -12,7 +12,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,7 +22,8 @@
 
     <style>
         .summary-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
-        .summary-card { background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(139,92,246,0.03) 100%); border:1px solid rgba(139,92,246,0.2); border-radius:16px; padding:22px 24px; display:flex; flex-direction:column; gap:4px; }
+        .summary-card { background:rgba(12,14,23,0.8); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.05); border-radius:14px; padding:22px 24px; display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden; }
+        .summary-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent); }
         .summary-label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); }
         .summary-value { font-size:26px; font-weight:800; color:#fff; letter-spacing:-0.5px; }
         .summary-value.green { color:#34d399; }
@@ -30,8 +31,8 @@
         .summary-value.yellow { color:#fbbf24; }
         .filters-row { display:flex; gap:12px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
         .filter-select, .filter-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:9px 14px; color:#fff; font-size:14px; font-family:inherit; outline:none; }
-        .btn-primary { background:var(--primary-purple,#8b5cf6); color:#fff; border:none; border-radius:10px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; }
-        .btn-primary:hover { opacity:0.85; }
+        .btn-primary { background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.25); border-radius:8px; padding:10px 20px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s; }
+        .btn-primary:hover { background:rgba(139,92,246,0.25); color:#fff; border-color:rgba(139,92,246,0.4); }
         .receitas-table { width:100%; border-collapse:collapse; }
         .receitas-table th { text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted,#94a3b8); padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.07); }
         .receitas-table td { padding:14px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:14px; color:#fff; vertical-align:middle; }
@@ -46,9 +47,9 @@
         .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted,#94a3b8); }
         .empty-state i { font-size:48px; margin-bottom:12px; display:block; opacity:0.4; }
         .table-wrap { overflow-x:auto; }
-        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; }
         .modal-overlay.active { display:flex; }
-        .modal-box { background:var(--bg-card,#1a1a2e); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:32px; width:100%; max-width:480px; }
+        .modal-box { background:rgba(10,12,20,0.97); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:28px; width:100%; max-width:480px; box-shadow:0 24px 64px rgba(0,0,0,0.5); margin:0 auto; }
         .modal-title { font-size:18px; font-weight:700; color:#fff; margin-bottom:24px; }
         .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
         .form-label { font-size:12px; font-weight:600; color:var(--text-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; }
@@ -56,6 +57,27 @@
         .form-select option { background:#1a1a2e; }
         .modal-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
         .btn-secondary { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:10px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; }
+
+        /* PL Receitas section */
+        .pl-rev-section { margin-top: 40px; }
+        .pl-rev-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+        .pl-rev-header h3 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted,#94a3b8); margin:0; }
+        .pl-rev-pill { background:rgba(6,182,212,0.12); color:#22d3ee; border:1px solid rgba(6,182,212,0.25); font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px; letter-spacing:0.06em; text-transform:uppercase; }
+        .pl-rev-total-label { font-size:12px; font-weight:700; color:var(--text-muted,#94a3b8); margin-left:auto; }
+        .pl-rev-refresh { background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2); color:#22d3ee; font-size:11px; font-weight:600; padding:5px 12px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:inherit; transition:all 0.2s; }
+        .pl-rev-refresh:hover { background:rgba(6,182,212,0.2); color:#fff; }
+        .pl-rev-refresh.loading i { animation: pl-rev-spin 1s linear infinite; }
+        @keyframes pl-rev-spin { to { transform: rotate(360deg); } }
+        .pl-rev-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+        .pl-rev-card { background:rgba(12,14,23,0.8); backdrop-filter:blur(12px); border:1px solid rgba(6,182,212,0.12); border-radius:14px; padding:20px 22px; display:flex; flex-direction:column; gap:4px; position:relative; overflow:hidden; }
+        .pl-rev-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(6,182,212,0.4),transparent); }
+        .pl-rev-card .label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); }
+        .pl-rev-card .value { font-size:24px; font-weight:800; color:#fff; letter-spacing:-0.5px; }
+        .pl-rev-card .value.green { color:#34d399; }
+        .pl-rev-card .sub { font-size:12px; color:var(--text-muted,#94a3b8); }
+        .pl-plan-badge { display:inline-block; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; background:rgba(167,139,250,0.15); color:#a78bfa; border:1px solid rgba(167,139,250,0.25); }
+        .pl-plan-badge.premium { background:rgba(6,182,212,0.15); color:#22d3ee; border-color:rgba(6,182,212,0.25); }
+        .pl-plan-badge.ultra { background:linear-gradient(90deg,rgba(251,191,36,0.15),rgba(236,72,153,0.15)); color:#fbbf24; border-color:rgba(251,191,36,0.3); }
     </style>
 </head>
 
@@ -72,22 +94,6 @@
                 <a href="index.html" class="nav-link">
                     <i class="ph-fill ph-chart-line-up"></i>
                     <span class="link-text">Desempenho</span>
-                </a>
-                <a href="crm.html" class="nav-link">
-                    <i class="ph-fill ph-table"></i>
-                    <span class="link-text">CRM Quantic</span>
-                </a>
-                <a href="contatos.html" class="nav-link">
-                    <i class="ph-fill ph-user"></i>
-                    <span class="link-text">Contatos</span>
-                </a>
-                <a href="conversas.html" class="nav-link">
-                    <i class="ph-fill ph-chats-teardrop"></i>
-                    <span class="link-text">Conversas</span>
-                </a>
-                <a href="captacao.html" class="nav-link">
-                    <i class="ph-fill ph-funnel"></i>
-                    <span class="link-text">Captacao</span>
                 </a>
                 <a href="custos.html" class="nav-link">
                     <i class="ph-fill ph-receipt"></i>
@@ -150,6 +156,65 @@
                                 <tbody id="receitasBody"></tbody>
                             </table>
                         </div>
+
+                        <!-- PROVOU LEVOU: Receitas recorrentes (clientes ativos que pagaram) -->
+                        <div class="pl-rev-section">
+                            <div class="pl-rev-header">
+                                <h3>Receitas Provou Levou</h3>
+                                <span class="pl-rev-pill">Ativos pagantes</span>
+                                <span class="pl-rev-total-label" id="plRevTotalLabel">—</span>
+                                <input type="month" class="filter-input" id="plRevFilterMes" style="padding:6px 12px; font-size:12px; height:30px;">
+                                <label class="pl-toggle" id="plRevAcumuladoLabel" style="display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--text-muted,#94a3b8); cursor:pointer; user-select:none; padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02);">
+                                    <input type="checkbox" id="plRevAcumulado" style="accent-color:#22d3ee; margin:0;">
+                                    <span>Acumulado</span>
+                                </label>
+                                <button class="pl-rev-refresh" id="btnRefreshPLRev" title="Atualizar">
+                                    <i class="ph-fill ph-arrow-clockwise"></i>
+                                    <span>Atualizar</span>
+                                </button>
+                                <button class="btn-primary" id="btnNovoPagamentoPL" style="padding:7px 14px; font-size:12px;">
+                                    <i class="ph-fill ph-plus"></i> Registrar Pagamento
+                                </button>
+                            </div>
+
+                            <div class="pl-rev-cards">
+                                <div class="pl-rev-card">
+                                    <span class="label">Clientes Pagantes</span>
+                                    <span class="value" id="plRevActiveCount">—</span>
+                                    <span class="sub" id="plRevActiveSub">ativos com último pagamento</span>
+                                </div>
+                                <div class="pl-rev-card">
+                                    <span class="label">MRR Total</span>
+                                    <span class="value green" id="plRevMRR">—</span>
+                                    <span class="sub">receita mensal recorrente</span>
+                                </div>
+                                <div class="pl-rev-card">
+                                    <span class="label">Recebido no Período</span>
+                                    <span class="value green" id="plRevRecebidoPeriodo">—</span>
+                                    <span class="sub" id="plRevRecebidoPeriodoSub">pagamentos registrados</span>
+                                </div>
+                                <div class="pl-rev-card">
+                                    <span class="label">Ticket Médio</span>
+                                    <span class="value" id="plRevTicket">—</span>
+                                    <span class="sub">por cliente ativo</span>
+                                </div>
+                            </div>
+
+                            <div class="table-wrap">
+                                <table class="receitas-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Cliente</th>
+                                            <th>Data Pagamento</th>
+                                            <th>Valor</th>
+                                            <th>Plano</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="plRevBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </section>
                 </main>
 
@@ -163,15 +228,53 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modalPagamentoPL">
+        <div class="modal-box">
+            <div class="modal-title">Registrar Pagamento Provou Levou</div>
+            <div class="form-group">
+                <label class="form-label">Cliente *</label>
+                <select class="form-select" id="inputPLCliente"></select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Data do Pagamento *</label>
+                <input class="form-input" id="inputPLData" type="date">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Valor *</label>
+                <input class="form-input" id="inputPLValor" type="number" min="0" step="0.01" placeholder="0,00">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnCancelarPagamentoPL">Cancelar</button>
+                <button class="btn-primary" id="btnSalvarPagamentoPL">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modalReceita">
         <div class="modal-box">
-            <div class="modal-title">Nova Receita</div>
+            <div class="modal-title" id="modalReceitaTitle">Nova Receita</div>
             <div class="form-group"><label class="form-label">Cliente</label><select class="form-select" id="inputCliente"></select></div>
             <div class="form-group"><label class="form-label">Descricao</label><input class="form-input" id="inputDescricao" type="text"></div>
             <div class="form-group"><label class="form-label">Valor *</label><input class="form-input" id="inputValor" type="number" min="0" step="0.01"></div>
             <div class="form-group"><label class="form-label">Data Emissao</label><input class="form-input" id="inputEmissao" type="date"></div>
             <div class="form-group"><label class="form-label">Data Vencimento *</label><input class="form-input" id="inputVencimento" type="date"></div>
+            <div class="form-group"><label class="form-label">Status</label>
+                <select class="form-select" id="inputStatus">
+                    <option value="open">A Receber</option>
+                    <option value="received">Recebido</option>
+                    <option value="cancelled">Cancelado</option>
+                </select>
+            </div>
+            <div class="form-group" id="grpDataRecebimento" style="display:none;">
+                <label class="form-label">Data Recebimento</label>
+                <input class="form-input" id="inputDataRecebimento" type="date">
+            </div>
+            <div class="form-group" id="grpValorRecebido" style="display:none;">
+                <label class="form-label">Valor Recebido</label>
+                <input class="form-input" id="inputValorRecebido" type="number" min="0" step="0.01">
+            </div>
             <div class="modal-actions">
+                <button class="btn-secondary" id="btnExcluirReceita" style="background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.2);color:#f87171;margin-right:auto;display:none;">Excluir</button>
                 <button class="btn-secondary" id="btnCancelarReceita">Cancelar</button>
                 <button class="btn-primary" id="btnSalvarReceita">Salvar</button>
             </div>
@@ -194,12 +297,24 @@
         return window.supabaseClient || window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
     }
 
+    // Map global de clientes PL (id -> nome) usado para resolver o nome na tabela de receitas
+    window.__plClientesMap = window.__plClientesMap || {};
+
     async function loadClientes() {
         var sb = await getSB();
-        var result = await sb.from('pj_clientes').select('id,nome').eq('ativo',true).order('nome');
-        if (result.error) { console.error('Erro ao carregar clientes:', result.error.message); return; }
+        // Puxa clientes do Provou Levou (provou_levou_stores) em vez de pj_clientes
+        var result = await sb.from('provou_levou_stores').select('id, company, name, status').order('company', { ascending: true });
+        if (result.error) { console.error('Erro ao carregar clientes PL:', result.error.message); return; }
+        window.__plClientesMap = {};
         var sel = document.getElementById('inputCliente');
-        sel.innerHTML = '<option value="">&#8212; Selecione &#8212;</option>' + (result.data||[]).map(function(c) { return '<option value="' + esc(c.id) + '">' + esc(c.nome) + '</option>'; }).join('');
+        var opts = ['<option value="">&#8212; Selecione &#8212;</option>'];
+        (result.data || []).forEach(function(c) {
+            var nome = c.company || c.name || '\u2014';
+            window.__plClientesMap[c.id] = nome;
+            var statusSuffix = c.status && c.status !== 'Ativo' ? ' (' + c.status + ')' : '';
+            opts.push('<option value="' + esc(c.id) + '">' + esc(nome) + esc(statusSuffix) + '</option>');
+        });
+        sel.innerHTML = opts.join('');
     }
 
     async function loadData() {
@@ -210,10 +325,14 @@
         var statusFilter = document.getElementById('filterStatus').value;
         var clienteTerm = document.getElementById('filterCliente').value.toLowerCase();
 
-        var result = await sb.from('pj_receitas').select('*, pj_clientes(nome)').order('data_vencimento', { ascending: false });
+        var result = await sb.from('pj_receitas').select('*').order('data_vencimento', { ascending: false });
         var all = result.data;
         var error = result.error;
         if (error) { document.getElementById('receitasBody').innerHTML = '<tr><td colspan="6">Erro: ' + esc(error.message) + '</td></tr>'; return; }
+        // Anexa nome do cliente via lookup no map PL (provou_levou_stores)
+        (all || []).forEach(function(r) {
+            r.__cliente_nome = r.cliente_id ? (window.__plClientesMap[r.cliente_id] || '') : '';
+        });
 
         var nowMonth = new Date().toISOString().slice(0,7);
         var openAll = (all||[]).filter(function(r) { return r.status === 'open'; });
@@ -229,19 +348,24 @@
         if (mes) filtered = filtered.filter(function(r) { return r.data_vencimento && r.data_vencimento.startsWith(mes); });
         if (statusFilter === 'overdue') filtered = filtered.filter(function(r) { return r.status === 'open' && new Date(r.data_vencimento) < today; });
         else if (statusFilter) filtered = filtered.filter(function(r) { return r.status === statusFilter; });
-        if (clienteTerm) filtered = filtered.filter(function(r) { return ((r.pj_clientes && r.pj_clientes.nome) || '').toLowerCase().includes(clienteTerm); });
+        if (clienteTerm) filtered = filtered.filter(function(r) { return (r.__cliente_nome || '').toLowerCase().includes(clienteTerm); });
 
         if (!filtered.length) {
             document.getElementById('receitasBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="ph-fill ph-money"></i><p>Nenhuma receita lan\u00e7ada para este per\u00edodo.</p><button class="btn-primary" style="margin:12px auto 0;display:inline-flex;" onclick="document.getElementById(\'btnNovaReceita\').click()"><i class="ph-fill ph-plus"></i> Nova Receita</button></div></td></tr>';
             return;
         }
+        // Cacheia as linhas para o editor acessar por id
+        window.__receitasCache = {};
+        filtered.forEach(function(r) { window.__receitasCache[r.id] = r; });
+
         document.getElementById('receitasBody').innerHTML = filtered.map(function(r) {
             var sd = statusDisplay(r, today);
             var vencDate = r.data_vencimento ? new Date(r.data_vencimento+'T00:00:00').toLocaleDateString('pt-BR') : '&#8212;';
-            var clienteNome = (r.pj_clientes && r.pj_clientes.nome) ? esc(r.pj_clientes.nome) : '&#8212;';
+            var clienteNome = r.__cliente_nome ? esc(r.__cliente_nome) : '&#8212;';
             var descricao = r.descricao ? esc(r.descricao) : '&#8212;';
-            var btn = r.status==='open' ? '<button class="btn-sm" onclick="marcarRecebido(\'' + esc(r.id) + '\',' + Number(r.valor) + ',this)">Recebido</button>' : '';
-            return '<tr><td>' + clienteNome + '</td><td>' + descricao + '</td><td><strong>' + fmt(r.valor) + '</strong></td><td>' + vencDate + '</td><td><span class="status-badge ' + esc(sd.cls) + '">' + sd.label + '</span></td><td>' + btn + '</td></tr>';
+            var recBtn = r.status==='open' ? '<button class="btn-sm" onclick="marcarRecebido(\'' + esc(r.id) + '\',' + Number(r.valor) + ',this)" style="margin-right:6px;">Recebido</button>' : '';
+            var editBtn = '<button class="btn-sm" style="background:rgba(167,139,250,0.12);border-color:rgba(167,139,250,0.25);color:#a78bfa;" onclick="editarReceita(\'' + esc(r.id) + '\')">Editar</button>';
+            return '<tr><td>' + clienteNome + '</td><td>' + descricao + '</td><td><strong>' + fmt(r.valor) + '</strong></td><td>' + vencDate + '</td><td><span class="status-badge ' + esc(sd.cls) + '">' + sd.label + '</span></td><td>' + recBtn + editBtn + '</td></tr>';
         }).join('');
     }
 
@@ -254,30 +378,99 @@
         else loadData();
     }
 
-    document.getElementById('btnNovaReceita').addEventListener('click', function() {
-        ['inputDescricao','inputValor','inputEmissao','inputVencimento'].forEach(function(i) { document.getElementById(i).value=''; });
-        document.getElementById('inputCliente').value='';
+    // Modo do modal: 'create' | 'edit'
+    window.__modalMode = 'create';
+    window.__editId = null;
+
+    function updateCamposRecebimento() {
+        var isReceived = document.getElementById('inputStatus').value === 'received';
+        document.getElementById('grpDataRecebimento').style.display = isReceived ? '' : 'none';
+        document.getElementById('grpValorRecebido').style.display = isReceived ? '' : 'none';
+    }
+    document.getElementById('inputStatus').addEventListener('change', updateCamposRecebimento);
+
+    function abrirModalCriar() {
+        window.__modalMode = 'create';
+        window.__editId = null;
+        document.getElementById('modalReceitaTitle').textContent = 'Nova Receita';
+        ['inputDescricao','inputValor','inputEmissao','inputVencimento','inputDataRecebimento','inputValorRecebido'].forEach(function(i) { document.getElementById(i).value=''; });
+        document.getElementById('inputCliente').value = '';
+        document.getElementById('inputStatus').value = 'open';
+        document.getElementById('btnExcluirReceita').style.display = 'none';
+        updateCamposRecebimento();
         document.getElementById('modalReceita').classList.add('active');
-    });
+    }
+
+    window.editarReceita = function(id) {
+        var r = window.__receitasCache && window.__receitasCache[id];
+        if (!r) return;
+        window.__modalMode = 'edit';
+        window.__editId = id;
+        document.getElementById('modalReceitaTitle').textContent = 'Editar Receita';
+        document.getElementById('inputCliente').value = r.cliente_id || '';
+        document.getElementById('inputDescricao').value = r.descricao || '';
+        document.getElementById('inputValor').value = r.valor != null ? r.valor : '';
+        document.getElementById('inputEmissao').value = r.data_emissao || '';
+        document.getElementById('inputVencimento').value = r.data_vencimento || '';
+        document.getElementById('inputStatus').value = r.status || 'open';
+        document.getElementById('inputDataRecebimento').value = r.data_recebimento || '';
+        document.getElementById('inputValorRecebido').value = r.valor_recebido != null ? r.valor_recebido : '';
+        document.getElementById('btnExcluirReceita').style.display = 'inline-flex';
+        updateCamposRecebimento();
+        document.getElementById('modalReceita').classList.add('active');
+    };
+
+    document.getElementById('btnNovaReceita').addEventListener('click', abrirModalCriar);
     document.getElementById('btnCancelarReceita').addEventListener('click', function() { document.getElementById('modalReceita').classList.remove('active'); });
     document.getElementById('filterMes').addEventListener('change', loadData);
     document.getElementById('filterStatus').addEventListener('change', loadData);
     document.getElementById('filterCliente').addEventListener('input', loadData);
+
     document.getElementById('btnSalvarReceita').addEventListener('click', async function() {
         var btn = this;
         var valor = parseFloat(document.getElementById('inputValor').value);
         var vencimento = document.getElementById('inputVencimento').value;
         if (!valor || !vencimento) { alert('Valor e vencimento sao obrigatorios.'); return; }
+        var status = document.getElementById('inputStatus').value;
+        var dataRec = document.getElementById('inputDataRecebimento').value || null;
+        var valorRec = document.getElementById('inputValorRecebido').value;
+        if (status === 'received') {
+            if (!dataRec) dataRec = new Date().toISOString().slice(0,10);
+            if (!valorRec) valorRec = valor;
+        } else {
+            dataRec = null;
+            valorRec = null;
+        }
         btn.disabled = true;
         var sb = await getSB();
-        var result = await sb.from('pj_receitas').insert({
+        var payload = {
             cliente_id: document.getElementById('inputCliente').value || null,
             descricao: document.getElementById('inputDescricao').value.trim() || null,
             valor: valor,
             data_emissao: document.getElementById('inputEmissao').value || null,
-            data_vencimento: vencimento
-        });
+            data_vencimento: vencimento,
+            status: status,
+            data_recebimento: dataRec,
+            valor_recebido: valorRec ? Number(valorRec) : null
+        };
+        var result;
+        if (window.__modalMode === 'edit' && window.__editId) {
+            result = await sb.from('pj_receitas').update(payload).eq('id', window.__editId);
+        } else {
+            result = await sb.from('pj_receitas').insert(payload);
+        }
         if (result.error) { alert('Erro: '+result.error.message); btn.disabled = false; return; }
+        btn.disabled = false;
+        document.getElementById('modalReceita').classList.remove('active');
+        loadData();
+    });
+
+    document.getElementById('btnExcluirReceita').addEventListener('click', async function() {
+        if (!window.__editId) return;
+        if (!confirm('Excluir esta receita? Essa ação não pode ser desfeita.')) return;
+        var sb = await getSB();
+        var result = await sb.from('pj_receitas').delete().eq('id', window.__editId);
+        if (result.error) { alert('Erro: '+result.error.message); return; }
         document.getElementById('modalReceita').classList.remove('active');
         loadData();
     });
@@ -285,8 +478,243 @@
     var now = new Date();
     document.getElementById('filterMes').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
     document.getElementById('toggleSidebar') && document.getElementById('toggleSidebar').addEventListener('click', function() { document.getElementById('sidebar').classList.toggle('collapsed'); });
-    loadClientes();
-    loadData();
+    loadClientes().then(loadData);
+
+    // ============ RECEITAS PROVOU LEVOU ============
+    (function() {
+        var PLAN_VALUES = { 'Starter':97, 'Inicial':197, 'Médio':397, 'Premium':797, 'Ultra Power':2200 };
+
+        function fmtInt(n) { return Number(n || 0).toLocaleString('pt-BR'); }
+
+        function planBadgeClass(plan) {
+            if (plan === 'Ultra Power') return 'pl-plan-badge ultra';
+            if (plan === 'Premium') return 'pl-plan-badge premium';
+            return 'pl-plan-badge';
+        }
+
+        function formatPeriodLabel() {
+            if (document.getElementById('plRevAcumulado').checked) return 'acumulado';
+            var mes = document.getElementById('plRevFilterMes').value;
+            if (!mes) return '';
+            var parts = mes.split('-');
+            var monthNames = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+            return monthNames[Number(parts[1]) - 1] + '/' + parts[0];
+        }
+
+        function monthBounds(mesStr) {
+            if (!mesStr) return null;
+            var parts = mesStr.split('-');
+            var year = Number(parts[0]);
+            var month = Number(parts[1]);
+            var firstDay = mesStr + '-01';
+            var lastDay = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+            return { firstDay: firstDay, lastDay: lastDay };
+        }
+
+        var plClientsMap = {};
+
+        async function loadPLClientes() {
+            var sb = await getSB();
+            var res = await sb.from('provou_levou_stores').select('id, company, name, plan, status').order('company', { ascending: true });
+            if (res.error) { console.warn('Carregar clientes PL:', res.error.message); return; }
+            plClientsMap = {};
+            var sel = document.getElementById('inputPLCliente');
+            var opts = ['<option value="">&#8212; Selecione &#8212;</option>'];
+            (res.data || []).forEach(function(c) {
+                plClientsMap[c.id] = { company: c.company || c.name || '—', plan: c.plan || 'Starter', status: c.status };
+                opts.push('<option value="' + esc(c.id) + '" data-plan="' + esc(c.plan || '') + '">' + esc(c.company || c.name || '—') + ' · ' + esc(c.plan || '—') + '</option>');
+            });
+            sel.innerHTML = opts.join('');
+        }
+
+        function renderPLRev(r) {
+            document.getElementById('plRevActiveCount').textContent = fmtInt(r.activeCount);
+            document.getElementById('plRevActiveSub').textContent = fmtInt(r.activeCount) + ' clientes com status Ativo';
+            document.getElementById('plRevMRR').textContent = fmt(r.mrr);
+            document.getElementById('plRevRecebidoPeriodo').textContent = fmt(r.recebidoPeriodo);
+            document.getElementById('plRevRecebidoPeriodoSub').textContent = fmtInt(r.pagamentosNoPeriodo) + ' pagamentos no período';
+            document.getElementById('plRevTicket').textContent = fmt(r.ticket);
+            var periodLbl = formatPeriodLabel();
+            document.getElementById('plRevTotalLabel').textContent = fmt(r.recebidoPeriodo) + (periodLbl ? ' · ' + periodLbl : '');
+
+            var tbody = document.getElementById('plRevBody');
+            tbody.innerHTML = '';
+            if (!r.rows.length) {
+                var tr = document.createElement('tr');
+                var td = document.createElement('td');
+                td.colSpan = 5;
+                td.innerHTML = '<div class="empty-state"><i class="ph-fill ph-currency-circle-dollar"></i><p>Nenhum pagamento registrado neste período.</p></div>';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+            tbody.innerHTML = r.rows.map(function(p) {
+                var badge = planBadgeClass(p.plano);
+                var dataFmt = p.data_pagamento ? new Date(p.data_pagamento + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+                var cliente = p.cliente_nome || '—';
+                var planoTxt = p.plano || '—';
+                return '<tr>' +
+                    '<td><strong>' + esc(cliente) + '</strong></td>' +
+                    '<td>' + dataFmt + '</td>' +
+                    '<td><strong>' + fmt(p.valor) + '</strong></td>' +
+                    '<td><span class="' + badge + '">' + esc(planoTxt) + '</span></td>' +
+                    '<td><button class="btn-sm" style="background:rgba(248,113,113,0.1); border-color:rgba(248,113,113,0.25); color:#f87171;" onclick="plExcluirPagamento(\'' + esc(p.id) + '\')">Excluir</button></td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        async function computePLRev() {
+            var sb = await getSB();
+
+            // 1. Clientes com status e plano
+            var storesRes = await sb.from('provou_levou_stores').select('id, company, name, plan, status');
+            if (storesRes.error) throw new Error(storesRes.error.message);
+            var storeMap = {};
+            var activeCount = 0;
+            var mrr = 0;
+            (storesRes.data || []).forEach(function(s) {
+                var plan = s.plan || 'Starter';
+                storeMap[s.id] = { company: s.company || s.name || '—', plan: plan, status: s.status || 'Ativo' };
+                if (s.status === 'Ativo') {
+                    activeCount++;
+                    mrr += (PLAN_VALUES[plan] || 0);
+                }
+            });
+
+            // 2. Pagamentos filtrados por período
+            var q = sb.from('pl_pagamentos').select('id, cliente_id, data_pagamento, valor, plano').order('data_pagamento', { ascending: false });
+            var acumulado = document.getElementById('plRevAcumulado').checked;
+            if (!acumulado) {
+                var bounds = monthBounds(document.getElementById('plRevFilterMes').value);
+                if (bounds) q = q.gte('data_pagamento', bounds.firstDay).lte('data_pagamento', bounds.lastDay);
+            }
+            var payRes = await q;
+            if (payRes.error) throw new Error(payRes.error.message);
+
+            var rows = (payRes.data || []).map(function(p) {
+                var client = storeMap[p.cliente_id] || {};
+                return {
+                    id: p.id,
+                    cliente_id: p.cliente_id,
+                    cliente_nome: client.company || '—',
+                    data_pagamento: p.data_pagamento,
+                    valor: Number(p.valor || 0),
+                    plano: p.plano || client.plan || '—'
+                };
+            });
+            var recebidoPeriodo = rows.reduce(function(s, p) { return s + p.valor; }, 0);
+            var ticket = activeCount > 0 ? (mrr / activeCount) : 0;
+
+            return {
+                updatedAt: new Date().toISOString(),
+                activeCount: activeCount,
+                mrr: mrr,
+                recebidoPeriodo: recebidoPeriodo,
+                pagamentosNoPeriodo: rows.length,
+                ticket: ticket,
+                rows: rows
+            };
+        }
+
+        async function loadPLRev(forceRefresh) {
+            var btn = document.getElementById('btnRefreshPLRev');
+            if (btn) btn.classList.add('loading');
+            try {
+                var r = await computePLRev();
+                renderPLRev(r);
+            } catch (e) {
+                console.error('PL receitas:', e);
+                document.getElementById('plRevTotalLabel').textContent = 'Erro: ' + e.message;
+            } finally {
+                if (btn) btn.classList.remove('loading');
+            }
+        }
+
+        // ---- MODAL "Registrar Pagamento" ----
+        function openPagamentoPLModal() {
+            document.getElementById('inputPLCliente').value = '';
+            document.getElementById('inputPLData').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('inputPLValor').value = '';
+            loadPLClientes().then(function() {
+                document.getElementById('modalPagamentoPL').classList.add('active');
+            });
+        }
+        function closePagamentoPLModal() {
+            document.getElementById('modalPagamentoPL').classList.remove('active');
+        }
+
+        document.getElementById('inputPLCliente').addEventListener('change', function(e) {
+            var opt = e.target.selectedOptions[0];
+            if (!opt) return;
+            var plan = opt.getAttribute('data-plan');
+            if (plan && PLAN_VALUES[plan]) {
+                document.getElementById('inputPLValor').value = PLAN_VALUES[plan];
+            }
+        });
+
+        document.getElementById('btnSalvarPagamentoPL').addEventListener('click', async function() {
+            var btn = this;
+            var clienteId = document.getElementById('inputPLCliente').value;
+            var data = document.getElementById('inputPLData').value;
+            var valor = parseFloat(document.getElementById('inputPLValor').value);
+            if (!clienteId || !data || !valor || valor <= 0) { alert('Cliente, data e valor (> 0) são obrigatórios.'); return; }
+            btn.disabled = true;
+            var sb = await getSB();
+            var client = plClientsMap[clienteId];
+            var plano = client ? client.plan : null;
+            var result = await sb.from('pl_pagamentos').insert({
+                cliente_id: clienteId,
+                data_pagamento: data,
+                valor: valor,
+                plano: plano
+            });
+            if (result.error) { alert('Erro: ' + result.error.message); btn.disabled = false; return; }
+            btn.disabled = false;
+            closePagamentoPLModal();
+            loadPLRev(true);
+        });
+
+        window.plExcluirPagamento = async function(id) {
+            if (!confirm('Excluir este pagamento? Essa ação não pode ser desfeita.')) return;
+            var sb = await getSB();
+            var result = await sb.from('pl_pagamentos').delete().eq('id', id);
+            if (result.error) { alert('Erro: ' + result.error.message); return; }
+            loadPLRev(true);
+        };
+
+        // Init
+        document.getElementById('plRevFilterMes').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+        function updatePLRevAcumulado() {
+            var cb = document.getElementById('plRevAcumulado');
+            var lbl = document.getElementById('plRevAcumuladoLabel');
+            var mes = document.getElementById('plRevFilterMes');
+            if (cb.checked) {
+                lbl.style.background = 'rgba(6,182,212,0.1)';
+                lbl.style.borderColor = 'rgba(6,182,212,0.3)';
+                lbl.style.color = '#22d3ee';
+                mes.disabled = true;
+                mes.style.opacity = '0.4';
+            } else {
+                lbl.style.background = 'rgba(255,255,255,0.02)';
+                lbl.style.borderColor = 'rgba(255,255,255,0.06)';
+                lbl.style.color = 'var(--text-muted,#94a3b8)';
+                mes.disabled = false;
+                mes.style.opacity = '1';
+            }
+        }
+        updatePLRevAcumulado();
+
+        document.getElementById('btnRefreshPLRev').addEventListener('click', function() { loadPLRev(true); });
+        document.getElementById('plRevFilterMes').addEventListener('change', function() { loadPLRev(false); });
+        document.getElementById('plRevAcumulado').addEventListener('change', function() {
+            updatePLRevAcumulado();
+            loadPLRev(false);
+        });
+        document.getElementById('btnNovoPagamentoPL').addEventListener('click', openPagamentoPLModal);
+        document.getElementById('btnCancelarPagamentoPL').addEventListener('click', closePagamentoPLModal);
+        loadPLRev(false);
+    })();
     </script>
 </body>
 

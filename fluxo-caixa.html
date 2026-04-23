@@ -12,7 +12,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -21,11 +21,17 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
-        .fc-controls { display:flex; align-items:center; gap:16px; margin-bottom:28px; }
-        .period-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:10px; padding:9px 18px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.2s; }
-        .period-btn.active, .period-btn:hover { background:rgba(139,92,246,0.2); border-color:rgba(139,92,246,0.4); color:#a78bfa; }
+        .fc-controls { display:flex; align-items:center; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
+        .date-range { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:6px 12px; }
+        .date-lbl { font-size:11px; font-weight:600; color:var(--text-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; }
+        .date-input-fc { background:transparent; border:none; color:#fff; font-size:13px; font-family:inherit; outline:none; cursor:pointer; padding:4px 0; }
+        .date-input-fc::-webkit-calendar-picker-indicator { filter:invert(0.7); cursor:pointer; }
+        .preset-row { display:flex; gap:6px; flex-wrap:wrap; }
+        .preset-btn { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--text-muted,#94a3b8); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+        .preset-btn:hover { background:rgba(139,92,246,0.12); border-color:rgba(139,92,246,0.25); color:#a78bfa; }
+        .preset-btn.active { background:rgba(139,92,246,0.18); border-color:rgba(139,92,246,0.4); color:#c4b5fd; }
         .summary-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
-        .summary-card { background:linear-gradient(135deg,rgba(139,92,246,0.1) 0%,rgba(139,92,246,0.03) 100%); border:1px solid rgba(139,92,246,0.2); border-radius:16px; padding:22px 24px; display:flex; flex-direction:column; gap:4px; }
+        .summary-card { background:rgba(12,14,23,0.8); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.05); border-radius:14px; position:relative; overflow:hidden; padding:22px 24px; display:flex; flex-direction:column; gap:4px; }
         .summary-label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); }
         .summary-value { font-size:22px; font-weight:800; color:#fff; }
         .summary-value.green { color:#34d399; }
@@ -37,15 +43,103 @@
         .fc-table th { text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted,#94a3b8); padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.07); }
         .fc-table td { padding:12px 14px; font-size:14px; color:#fff; border-bottom:1px solid rgba(255,255,255,0.04); }
         .fc-table tr.has-data td { background:rgba(139,92,246,0.03); }
+        .fc-table tr.row-entrada td { background:rgba(52,211,153,0.06); border-left-color:rgba(52,211,153,0.4); }
+        .fc-table tr.row-entrada td:first-child { box-shadow:inset 3px 0 0 #34d399; }
+        .fc-table tr.row-saida td   { background:rgba(248,113,113,0.06); }
+        .fc-table tr.row-saida td:first-child   { box-shadow:inset 3px 0 0 #f87171; }
+        .fc-table tr.row-entrada:hover td { background:rgba(52,211,153,0.11); }
+        .fc-table tr.row-saida:hover td   { background:rgba(248,113,113,0.11); }
         .fc-table tr:hover td { background:rgba(139,92,246,0.05); }
         .saldo-pos { color:#34d399; font-weight:700; }
         .saldo-neg { color:#f87171; font-weight:700; }
         .entrada-val { color:#34d399; }
         .saida-val { color:#f87171; }
         .dim { opacity:0.3; }
+        .del-btn { background:transparent; border:none; color:rgba(248,113,113,0.4); cursor:pointer; font-size:16px; padding:4px 8px; border-radius:6px; transition:all 0.2s; }
+        .del-btn:hover { background:rgba(248,113,113,0.12); color:#f87171; }
+        .del-btn:disabled { opacity:0.3; cursor:wait; }
         .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted,#94a3b8); }
         .empty-state i { font-size:48px; margin-bottom:12px; display:block; opacity:0.4; }
         .table-wrap { overflow-x:auto; }
+
+        /* Painel de registro de movimentações */
+        .mov-panel { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:28px; }
+        .mov-btn { background:rgba(12,14,23,0.7); border:1px dashed rgba(255,255,255,0.12); border-radius:14px; padding:18px 22px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:all 0.2s; font-family:inherit; color:#fff; text-align:left; }
+        .mov-btn:hover { transform:translateY(-1px); }
+        .mov-btn.entrada:hover { border-color:rgba(52,211,153,0.4); background:rgba(52,211,153,0.04); }
+        .mov-btn.saida:hover { border-color:rgba(248,113,113,0.4); background:rgba(248,113,113,0.04); }
+        .mov-btn-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+        .mov-btn.entrada .mov-btn-icon { background:rgba(52,211,153,0.12); color:#34d399; }
+        .mov-btn.saida   .mov-btn-icon { background:rgba(248,113,113,0.12); color:#f87171; }
+        .mov-btn-text { display:flex; flex-direction:column; gap:2px; }
+        .mov-btn-title { font-size:14px; font-weight:700; color:#fff; }
+        .mov-btn-sub   { font-size:12px; color:var(--text-muted,#94a3b8); }
+
+        /* Modal */
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; }
+        .modal-overlay.active { display:flex; }
+        .modal-box { background:rgba(10,12,20,0.97); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:28px; width:100%; max-width:480px; box-shadow:0 24px 64px rgba(0,0,0,0.5); margin:0 auto; }
+        .modal-title { font-size:18px; font-weight:700; color:#fff; margin-bottom:24px; display:flex; align-items:center; gap:10px; }
+        .modal-title.entrada { color:#34d399; }
+        .modal-title.saida   { color:#f87171; }
+        .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+        .form-label { font-size:12px; font-weight:600; color:var(--text-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; }
+        .form-input, .form-select { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 14px; color:#fff; font-size:14px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; }
+        .form-input:focus, .form-select:focus { border-color:rgba(139,92,246,0.5); }
+        .form-select option { background:#1a1a2e; }
+        .modal-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+        .btn-primary { background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.25); border-radius:8px; padding:10px 20px; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+        .btn-primary:hover { background:rgba(139,92,246,0.25); color:#fff; border-color:rgba(139,92,246,0.4); }
+        .btn-primary.entrada { background:rgba(52,211,153,0.15); color:#34d399; border-color:rgba(52,211,153,0.3); }
+        .btn-primary.entrada:hover { background:rgba(52,211,153,0.25); color:#fff; }
+        .btn-primary.saida { background:rgba(248,113,113,0.15); color:#f87171; border-color:rgba(248,113,113,0.3); }
+        .btn-primary.saida:hover { background:rgba(248,113,113,0.25); color:#fff; }
+        .btn-secondary { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:600; cursor:pointer; }
+
+        /* Toast notifications */
+        .toast-container { position:fixed; top:24px; right:24px; z-index:2000; display:flex; flex-direction:column; gap:10px; pointer-events:none; max-width:360px; }
+        .toast { background:rgba(10,12,20,0.97); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.1); border-left:4px solid #34d399; border-radius:12px; padding:14px 18px; color:#fff; font-size:14px; font-weight:500; box-shadow:0 12px 32px rgba(0,0,0,0.4); pointer-events:auto; display:flex; align-items:flex-start; gap:12px; animation:toast-in 0.25s cubic-bezier(0.2,0.9,0.3,1); min-width:260px; }
+        .toast.success { border-left-color:#34d399; }
+        .toast.success .toast-icon { color:#34d399; }
+        .toast.error   { border-left-color:#f87171; }
+        .toast.error   .toast-icon { color:#f87171; }
+        .toast.info    { border-left-color:#22d3ee; }
+        .toast.info    .toast-icon { color:#22d3ee; }
+        .toast-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+        .toast-text { flex:1; line-height:1.4; }
+        .toast-text strong { display:block; margin-bottom:2px; font-weight:700; }
+        .toast.leaving { animation:toast-out 0.2s ease-in forwards; }
+        @keyframes toast-in { from { transform:translateX(calc(100% + 24px)); opacity:0; } to { transform:translateX(0); opacity:1; } }
+        @keyframes toast-out { to { transform:translateX(calc(100% + 24px)); opacity:0; } }
+
+        /* Devolver Caixa card */
+        .devolver-section { margin-bottom: 28px; }
+        .devolver-header { display:flex; align-items:center; gap:10px; margin-bottom: 14px; }
+        .devolver-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted,#94a3b8); margin:0; }
+        .devolver-pill { background:rgba(251,191,36,0.12); color:#fbbf24; border:1px solid rgba(251,191,36,0.25); font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px; letter-spacing:0.06em; text-transform:uppercase; }
+        .devolver-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+        .devolver-card { background:rgba(12,14,23,0.85); backdrop-filter:blur(12px); border:1px solid rgba(251,191,36,0.15); border-radius:14px; padding:20px 22px; position:relative; overflow:hidden; transition:all 0.2s; }
+        .devolver-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(251,191,36,0.4),transparent); }
+        .devolver-card:hover { border-color:rgba(251,191,36,0.3); transform:translateY(-1px); }
+        .devolver-card-head { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+        .devolver-card-avatar { width:38px; height:38px; border-radius:10px; background:rgba(251,191,36,0.12); color:#fbbf24; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; flex-shrink:0; }
+        .devolver-card-name { font-size:14px; font-weight:700; color:#fff; }
+        .devolver-card-sub { font-size:11px; color:var(--text-muted,#94a3b8); }
+        .devolver-total-label { font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:4px; }
+        .devolver-total-value { font-size:24px; font-weight:800; color:#fbbf24; letter-spacing:-0.5px; margin-bottom:14px; }
+        .dev-stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; padding:12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid rgba(255,255,255,0.04); }
+        .dev-stat { display:flex; flex-direction:column; gap:3px; }
+        .dev-stat-label { font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted,#94a3b8); }
+        .dev-stat-value { font-size:15px; font-weight:800; color:#fff; letter-spacing:-0.3px; }
+        .dev-stat-value.red { color:#f87171; }
+        .dev-stat-value.green { color:#34d399; }
+        .dev-stat-value.amber { color:#fbbf24; }
+        .dev-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .btn-socio { border-radius:8px; padding:9px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s; border:1px solid transparent; }
+        .btn-socio.saque     { background:rgba(248,113,113,0.1); border-color:rgba(248,113,113,0.25); color:#f87171; }
+        .btn-socio.saque:hover { background:rgba(248,113,113,0.2); color:#fecaca; }
+        .btn-socio.devolucao { background:rgba(52,211,153,0.1); border-color:rgba(52,211,153,0.25); color:#34d399; }
+        .btn-socio.devolucao:hover { background:rgba(52,211,153,0.2); color:#bbf7d0; }
     </style>
 </head>
 
@@ -62,22 +156,6 @@
                 <a href="index.html" class="nav-link">
                     <i class="ph-fill ph-chart-line-up"></i>
                     <span class="link-text">Desempenho</span>
-                </a>
-                <a href="crm.html" class="nav-link">
-                    <i class="ph-fill ph-table"></i>
-                    <span class="link-text">CRM Quantic</span>
-                </a>
-                <a href="contatos.html" class="nav-link">
-                    <i class="ph-fill ph-user"></i>
-                    <span class="link-text">Contatos</span>
-                </a>
-                <a href="conversas.html" class="nav-link">
-                    <i class="ph-fill ph-chats-teardrop"></i>
-                    <span class="link-text">Conversas</span>
-                </a>
-                <a href="captacao.html" class="nav-link">
-                    <i class="ph-fill ph-funnel"></i>
-                    <span class="link-text">Capta&ccedil;&atilde;o</span>
                 </a>
                 <a href="custos.html" class="nav-link">
                     <i class="ph-fill ph-receipt"></i>
@@ -118,15 +196,21 @@
                     <section class="section-overview">
                         <div class="fc-controls">
                             <span style="font-size:14px;color:var(--text-muted,#94a3b8);font-weight:600">Per&iacute;odo:</span>
-                            <button class="period-btn active" id="btn30">30 dias</button>
-                            <button class="period-btn" id="btn60">60 dias</button>
-                        </div>
-                        <div class="summary-row">
-                            <div class="summary-card">
-                                <span class="summary-label">Saldo Inicial</span>
-                                <input type="number" class="saldo-input" id="saldoInicial" placeholder="0,00">
-                                <span class="saldo-hint">Pressione Enter para salvar</span>
+                            <div class="date-range">
+                                <label class="date-lbl">De</label>
+                                <input type="date" class="date-input-fc" id="filterDe">
+                                <label class="date-lbl">at&eacute;</label>
+                                <input type="date" class="date-input-fc" id="filterAte">
                             </div>
+                            <div class="preset-row">
+                                <button class="preset-btn" data-preset="mes-atual">M&ecirc;s atual</button>
+                                <button class="preset-btn" data-preset="mes-anterior">M&ecirc;s anterior</button>
+                                <button class="preset-btn" data-preset="proximos-30">Pr&oacute;ximos 30d</button>
+                                <button class="preset-btn" data-preset="ultimos-30">&Uacute;ltimos 30d</button>
+                                <button class="preset-btn" data-preset="tudo">Tudo</button>
+                            </div>
+                        </div>
+                        <div class="summary-row" style="grid-template-columns:repeat(3,1fr);">
                             <div class="summary-card">
                                 <span class="summary-label">Total Entradas</span>
                                 <span class="summary-value green" id="cardEntradas">&mdash;</span>
@@ -136,18 +220,113 @@
                                 <span class="summary-value red" id="cardSaidas">&mdash;</span>
                             </div>
                             <div class="summary-card">
-                                <span class="summary-label">Saldo Final</span>
+                                <span class="summary-label">Saldo do Per&iacute;odo</span>
                                 <span class="summary-value" id="cardSaldoFinal">&mdash;</span>
+                            </div>
+                        </div>
+                        <div class="mov-panel">
+                            <button class="mov-btn entrada" id="btnNovaEntrada">
+                                <div class="mov-btn-icon"><i class="ph-fill ph-arrow-down"></i></div>
+                                <div class="mov-btn-text">
+                                    <span class="mov-btn-title">Registrar Entrada</span>
+                                    <span class="mov-btn-sub">Cria uma receita recebida</span>
+                                </div>
+                            </button>
+                            <button class="mov-btn saida" id="btnNovaSaida">
+                                <div class="mov-btn-icon"><i class="ph-fill ph-arrow-up"></i></div>
+                                <div class="mov-btn-text">
+                                    <span class="mov-btn-title">Registrar Sa&iacute;da</span>
+                                    <span class="mov-btn-sub">Cria um custo pago</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Devolução de Caixa para os sócios -->
+                        <div class="devolver-section">
+                            <div class="devolver-header">
+                                <h3 class="devolver-title">Devolver Caixa</h3>
+                                <span class="devolver-pill">S&oacute;cios</span>
+                            </div>
+                            <div class="devolver-grid">
+                                <div class="devolver-card" id="devCardLDC">
+                                    <div class="devolver-card-head">
+                                        <div class="devolver-card-avatar">LC</div>
+                                        <div>
+                                            <div class="devolver-card-name">Lucas de Camargo</div>
+                                            <div class="devolver-card-sub">S&oacute;cio</div>
+                                        </div>
+                                    </div>
+                                    <div class="dev-stats-row">
+                                        <div class="dev-stat">
+                                            <div class="dev-stat-label">Total Devido</div>
+                                            <div class="dev-stat-value red" id="devDevidoLDC">R$ 0,00</div>
+                                        </div>
+                                        <div class="dev-stat">
+                                            <div class="dev-stat-label">J&aacute; Devolvido</div>
+                                            <div class="dev-stat-value green" id="devDevolvidoLDC">R$ 0,00</div>
+                                        </div>
+                                        <div class="dev-stat">
+                                            <div class="dev-stat-label">Saldo</div>
+                                            <div class="dev-stat-value" id="devSaldoLDC">R$ 0,00</div>
+                                        </div>
+                                    </div>
+                                    <div class="dev-actions">
+                                        <button class="btn-socio saque" data-socio="Lucas de Camargo" data-acao="saque">
+                                            <i class="ph-fill ph-arrow-circle-up"></i>
+                                            <span>Registrar Saque</span>
+                                        </button>
+                                        <button class="btn-socio devolucao" data-socio="Lucas de Camargo" data-acao="devolucao">
+                                            <i class="ph-fill ph-arrow-circle-down"></i>
+                                            <span>Registrar Devolu&ccedil;&atilde;o</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="devolver-card" id="devCardLCI">
+                                    <div class="devolver-card-head">
+                                        <div class="devolver-card-avatar">LC</div>
+                                        <div>
+                                            <div class="devolver-card-name">Lucas Cioni</div>
+                                            <div class="devolver-card-sub">S&oacute;cio</div>
+                                        </div>
+                                    </div>
+                                    <div class="dev-stats-row">
+                                        <div class="dev-stat">
+                                            <div class="dev-stat-label">Total Devido</div>
+                                            <div class="dev-stat-value red" id="devDevidoLCI">R$ 0,00</div>
+                                        </div>
+                                        <div class="dev-stat">
+                                            <div class="dev-stat-label">J&aacute; Devolvido</div>
+                                            <div class="dev-stat-value green" id="devDevolvidoLCI">R$ 0,00</div>
+                                        </div>
+                                        <div class="dev-stat">
+                                            <div class="dev-stat-label">Saldo</div>
+                                            <div class="dev-stat-value" id="devSaldoLCI">R$ 0,00</div>
+                                        </div>
+                                    </div>
+                                    <div class="dev-actions">
+                                        <button class="btn-socio saque" data-socio="Lucas Cioni" data-acao="saque">
+                                            <i class="ph-fill ph-arrow-circle-up"></i>
+                                            <span>Registrar Saque</span>
+                                        </button>
+                                        <button class="btn-socio devolucao" data-socio="Lucas Cioni" data-acao="devolucao">
+                                            <i class="ph-fill ph-arrow-circle-down"></i>
+                                            <span>Registrar Devolu&ccedil;&atilde;o</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="table-wrap">
                             <table class="fc-table">
                                 <thead>
                                     <tr>
-                                        <th>Data</th>
+                                        <th>Descri&ccedil;&atilde;o</th>
+                                        <th>Categoria</th>
                                         <th>Entradas</th>
                                         <th>Sa&iacute;das</th>
                                         <th>Saldo Acumulado</th>
+                                        <th>Data</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="fcBody"></tbody>
@@ -166,151 +345,673 @@
         </div>
     </div>
 
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Modal: Registrar Movimentação -->
+    <div class="modal-overlay" id="modalMov">
+        <div class="modal-box">
+            <div class="modal-title" id="modalMovTitle"><i class="ph-fill ph-arrow-down"></i> Registrar Entrada</div>
+            <div class="form-group">
+                <label class="form-label">Cliente / Origem</label>
+                <select class="form-select" id="movCliente"></select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Descri&ccedil;&atilde;o</label>
+                <input class="form-input" id="movDescricao" type="text" placeholder="Ex: Pagamento cliente X, Reembolso, etc.">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Valor *</label>
+                <input class="form-input" id="movValor" type="number" min="0" step="0.01" placeholder="0,00">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Data *</label>
+                <input class="form-input" id="movData" type="date">
+            </div>
+            <div class="form-group" id="grpMovCategoria">
+                <label class="form-label">Categoria</label>
+                <select class="form-select" id="movCategoria">
+                    <option value="">— Selecione —</option>
+                </select>
+            </div>
+            <div class="form-group" id="grpMovSocio" style="display:none;">
+                <label class="form-label">Sócio *</label>
+                <select class="form-select" id="movSocio">
+                    <option value="">— Selecione —</option>
+                    <option value="Lucas de Camargo">Lucas de Camargo</option>
+                    <option value="Lucas Cioni">Lucas Cioni</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="btnCancelMov">Cancelar</button>
+                <button class="btn-primary" id="btnSalvarMov">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="theme-handler.js"></script>
     <script>
     var fmt = function(v) { return 'R$\u00a0' + Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits:2 }); };
-    var dias = 30;
+    var esc = function(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+
+    // Toast helper — notificação dentro do site (substitui alert())
+    function showToast(opts) {
+        opts = opts || {};
+        var tipo = opts.tipo || 'info'; // 'success' | 'error' | 'info'
+        var titulo = opts.titulo || '';
+        var msg = opts.msg || '';
+        var duracao = opts.duracao || (tipo === 'error' ? 6000 : 3500);
+        var container = document.getElementById('toastContainer');
+        if (!container) return;
+        var toast = document.createElement('div');
+        toast.className = 'toast ' + tipo;
+        var icon = document.createElement('i');
+        icon.className = 'ph-fill toast-icon ' + (tipo === 'success' ? 'ph-check-circle' : tipo === 'error' ? 'ph-warning-circle' : 'ph-info');
+        var txt = document.createElement('div');
+        txt.className = 'toast-text';
+        if (titulo) { var strong = document.createElement('strong'); strong.textContent = titulo; txt.appendChild(strong); }
+        if (msg) txt.appendChild(document.createTextNode(msg));
+        toast.appendChild(icon);
+        toast.appendChild(txt);
+        container.appendChild(toast);
+        setTimeout(function() {
+            toast.classList.add('leaving');
+            setTimeout(function() { toast.remove(); }, 250);
+        }, duracao);
+    }
 
     async function getSB() {
         await window.CONFIG_LOADED;
         return window.supabaseClient || window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
     }
 
-    async function loadSaldoInicial() {
-        var sb = await getSB();
-        var userResult = await sb.auth.getUser();
-        var user = userResult.data && userResult.data.user;
-        if (!user) return 0;
-        var result = await sb.from('pj_config').select('valor').eq('user_id',user.id).eq('chave','saldo_inicial_caixa').single();
-        return (result.data && result.data.valor) ? parseFloat(result.data.valor) : 0;
-    }
-
-    async function saveSaldoInicial(val) {
-        var sb = await getSB();
-        var userResult = await sb.auth.getUser();
-        var user = userResult.data && userResult.data.user;
-        if (!user) return;
-        await sb.from('pj_config').upsert({ user_id:user.id, chave:'saldo_inicial_caixa', valor:String(val) }, { onConflict:'user_id,chave' });
-    }
-
     async function loadFluxo() {
         var sb = await getSB();
-        var today = new Date(); today.setHours(0,0,0,0);
-        var endDate = new Date(today); endDate.setDate(endDate.getDate()+dias-1);
-        var todayStr = today.toISOString().slice(0,10);
-        var endStr = endDate.toISOString().slice(0,10);
-
-        var recResult = await sb.from('pj_receitas').select('data_vencimento,valor').eq('status','open').gte('data_vencimento',todayStr).lte('data_vencimento',endStr);
-        var cusResult = await sb.from('pj_custos_lancados').select('data_pagamento,valor').gte('data_pagamento',todayStr).lte('data_pagamento',endStr);
+        // Busca TUDO (sem filtro de data no banco) e filtra em JS
+        var recResult = await sb.from('pj_receitas').select('id,data_vencimento,data_recebimento,valor,valor_recebido,status,descricao,categoria').neq('status','cancelled');
+        // Fallback se a coluna categoria ainda não foi criada
+        if (recResult.error && /categoria/.test(recResult.error.message || '')) {
+            recResult = await sb.from('pj_receitas').select('id,data_vencimento,data_recebimento,valor,valor_recebido,status,descricao').neq('status','cancelled');
+        }
+        var cusResult = await sb.from('pj_custos_lancados').select('id,data_pagamento,valor,descricao,categoria');
+        console.log('[fluxo-caixa] receitas raw:', recResult);
+        console.log('[fluxo-caixa] custos raw:', cusResult);
         if (recResult.error) { console.error('Erro receitas:', recResult.error.message); }
         if (cusResult.error) { console.error('Erro custos:', cusResult.error.message); }
 
-        var dayMap = {};
-        for (var i=0; i<dias; i++) {
-            var d = new Date(today); d.setDate(d.getDate()+i);
-            dayMap[d.toISOString().slice(0,10)] = { entrada:0, saida:0 };
-        }
-        (recResult.data||[]).forEach(function(r) { if (dayMap[r.data_vencimento]) dayMap[r.data_vencimento].entrada += Number(r.valor); });
-        (cusResult.data||[]).forEach(function(c) { if (dayMap[c.data_pagamento]) dayMap[c.data_pagamento].saida += Number(c.valor); });
+        // Coleta cada movimentação (preservando descrição + id + tabela de origem p/ deletar)
+        var movs = [];
+        (recResult.data || []).forEach(function(r) {
+            var dia = (r.status === 'received' && r.data_recebimento) ? r.data_recebimento : r.data_vencimento;
+            var v = (r.status === 'received' && r.valor_recebido != null) ? Number(r.valor_recebido) : Number(r.valor);
+            if (dia && v) movs.push({ id: r.id, tabela: 'pj_receitas', dia: dia, tipo: 'entrada', valor: v, descricao: r.descricao || '', categoria: r.categoria || '' });
+        });
+        (cusResult.data || []).forEach(function(c) {
+            if (c.data_pagamento) movs.push({ id: c.id, tabela: 'pj_custos_lancados', dia: c.data_pagamento, tipo: 'saida', valor: Number(c.valor), descricao: c.descricao || '', categoria: c.categoria || '' });
+        });
+        console.log('[fluxo-caixa] movimentações normalizadas:', movs);
 
-        var saldoIni = parseFloat(document.getElementById('saldoInicial').value) || 0;
-        var saldoAcum = saldoIni, totalEntradas = 0, totalSaidas = 0;
+        // Aplica filtro de data (se os inputs estiverem preenchidos)
+        var rng = getFilterRange();
+        if (rng.de || rng.ate) {
+            movs = movs.filter(function(m) {
+                if (rng.de && m.dia < rng.de) return false;
+                if (rng.ate && m.dia > rng.ate) return false;
+                return true;
+            });
+        }
+        console.log('[fluxo-caixa] movimentações após filtro:', movs.length, 'de', rng);
+
+        // Ordena por data ascendente para acumular saldo corretamente
+        movs.sort(function(a, b) {
+            if (a.dia < b.dia) return -1;
+            if (a.dia > b.dia) return 1;
+            // Em dias iguais, entradas antes de saídas (visual melhor)
+            if (a.tipo === 'entrada' && b.tipo === 'saida') return -1;
+            if (a.tipo === 'saida' && b.tipo === 'entrada') return 1;
+            return 0;
+        });
+
+        var totalEntradas = 0, totalSaidas = 0;
         var tbody = document.getElementById('fcBody');
         tbody.textContent = '';
 
-        var entries = Object.keys(dayMap).sort();
-        var hasAny = false;
-        entries.forEach(function(date) {
-            var entrada = dayMap[date].entrada, saida = dayMap[date].saida;
-            saldoAcum += entrada - saida;
-            totalEntradas += entrada;
-            totalSaidas += saida;
-            var hasData = entrada > 0 || saida > 0;
-            if (hasData) hasAny = true;
-
-            var tr = document.createElement('tr');
-            if (hasData) tr.className = 'has-data';
-
-            var tdDate = document.createElement('td');
-            tdDate.textContent = new Date(date+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
-            tr.appendChild(tdDate);
-
-            var tdEntrada = document.createElement('td');
-            if (entrada > 0) {
-                tdEntrada.textContent = '+' + fmt(entrada);
-                tdEntrada.className = 'entrada-val';
-            } else {
-                tdEntrada.textContent = '\u2014';
-                tdEntrada.className = 'dim';
-            }
-            tr.appendChild(tdEntrada);
-
-            var tdSaida = document.createElement('td');
-            if (saida > 0) {
-                tdSaida.textContent = '-' + fmt(saida);
-                tdSaida.className = 'saida-val';
-            } else {
-                tdSaida.textContent = '\u2014';
-                tdSaida.className = 'dim';
-            }
-            tr.appendChild(tdSaida);
-
-            var tdSaldo = document.createElement('td');
-            tdSaldo.textContent = fmt(saldoAcum);
-            tdSaldo.className = saldoAcum >= 0 ? 'saldo-pos' : 'saldo-neg';
-            tr.appendChild(tdSaldo);
-
-            tbody.appendChild(tr);
-        });
-
-        if (!hasAny) {
+        if (!movs.length) {
             var tr = document.createElement('tr');
             var td = document.createElement('td');
-            td.colSpan = 4;
+            td.colSpan = 7;
             var div = document.createElement('div');
             div.className = 'empty-state';
             var icon = document.createElement('i');
             icon.className = 'ph-fill ph-bank';
             var p = document.createElement('p');
-            p.textContent = 'Nenhuma movimenta\u00e7\u00e3o projetada para este per\u00edodo.';
+            p.textContent = 'Nenhuma movimenta\u00e7\u00e3o registrada. Use os bot\u00f5es acima para adicionar entradas ou sa\u00eddas.';
             div.appendChild(icon);
             div.appendChild(p);
             td.appendChild(div);
             tr.appendChild(td);
             tbody.appendChild(tr);
+        } else {
+            // 1ª passada (cronológica): calcula saldo acumulado correto para cada mov
+            var saldoAcumTmp = 0;
+            movs.forEach(function(m) {
+                if (m.tipo === 'entrada') { saldoAcumTmp += m.valor; totalEntradas += m.valor; }
+                else                      { saldoAcumTmp -= m.valor; totalSaidas  += m.valor; }
+                m.__saldoAcum = saldoAcumTmp;
+            });
+
+            // 2ª passada (render): inverte para mostrar do mais recente para o mais antigo
+            var movsDesc = movs.slice().reverse();
+            movsDesc.forEach(function(m) {
+                var tr = document.createElement('tr');
+                tr.className = m.tipo === 'entrada' ? 'has-data row-entrada' : 'has-data row-saida';
+
+                // Descrição
+                var tdDesc = document.createElement('td');
+                tdDesc.textContent = m.descricao || (m.tipo === 'entrada' ? 'Entrada manual' : 'Sa\u00edda manual');
+                if (!m.descricao) tdDesc.style.color = 'var(--text-muted, #94a3b8)';
+                tdDesc.style.fontWeight = '600';
+                tr.appendChild(tdDesc);
+
+                // Categoria
+                var tdCat = document.createElement('td');
+                if (m.categoria) {
+                    var pill = document.createElement('span');
+                    pill.textContent = m.categoria;
+                    pill.style.cssText = 'font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.25);';
+                    tdCat.appendChild(pill);
+                } else {
+                    tdCat.textContent = '\u2014';
+                    tdCat.className = 'dim';
+                }
+                tr.appendChild(tdCat);
+
+                // Entrada
+                var tdEntrada = document.createElement('td');
+                if (m.tipo === 'entrada') {
+                    tdEntrada.textContent = '+' + fmt(m.valor);
+                    tdEntrada.className = 'entrada-val';
+                } else {
+                    tdEntrada.textContent = '\u2014';
+                    tdEntrada.className = 'dim';
+                }
+                tr.appendChild(tdEntrada);
+
+                // Saída
+                var tdSaida = document.createElement('td');
+                if (m.tipo === 'saida') {
+                    tdSaida.textContent = '-' + fmt(m.valor);
+                    tdSaida.className = 'saida-val';
+                } else {
+                    tdSaida.textContent = '\u2014';
+                    tdSaida.className = 'dim';
+                }
+                tr.appendChild(tdSaida);
+
+                // Saldo Acumulado (calculado cronologicamente na 1ª passada)
+                var tdSaldo = document.createElement('td');
+                tdSaldo.textContent = fmt(m.__saldoAcum);
+                tdSaldo.className = m.__saldoAcum >= 0 ? 'saldo-pos' : 'saldo-neg';
+                tr.appendChild(tdSaldo);
+
+                // Data
+                var tdDate = document.createElement('td');
+                tdDate.textContent = new Date(m.dia + 'T00:00:00').toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit' });
+                tdDate.style.color = 'var(--text-muted, #94a3b8)';
+                tr.appendChild(tdDate);
+
+                // Ações (editar + excluir)
+                var tdAct = document.createElement('td');
+                tdAct.style.whiteSpace = 'nowrap';
+                var btnEdit = document.createElement('button');
+                btnEdit.className = 'del-btn';
+                btnEdit.style.color = 'rgba(167,139,250,0.5)';
+                btnEdit.title = 'Editar';
+                var iconEdit = document.createElement('i');
+                iconEdit.className = 'ph-fill ph-pencil-simple';
+                btnEdit.appendChild(iconEdit);
+                btnEdit.addEventListener('click', function() { editarMovimentacao(m); });
+                tdAct.appendChild(btnEdit);
+
+                var btnDel = document.createElement('button');
+                btnDel.className = 'del-btn';
+                btnDel.title = 'Excluir';
+                var iconDel = document.createElement('i');
+                iconDel.className = 'ph-fill ph-trash';
+                btnDel.appendChild(iconDel);
+                btnDel.addEventListener('click', function() { excluirMovimentacao(m, btnDel); });
+                tdAct.appendChild(btnDel);
+                tr.appendChild(tdAct);
+
+                tbody.appendChild(tr);
+            });
         }
 
         document.getElementById('cardEntradas').textContent = fmt(totalEntradas);
         document.getElementById('cardSaidas').textContent = fmt(totalSaidas);
-        var sf = saldoIni + totalEntradas - totalSaidas;
+        var sf = totalEntradas - totalSaidas;
         var sfEl = document.getElementById('cardSaldoFinal');
         sfEl.textContent = fmt(sf);
         sfEl.className = 'summary-value ' + (sf >= 0 ? 'green' : 'red');
     }
 
-    document.getElementById('btn30').addEventListener('click', function() {
-        dias = 30;
-        document.getElementById('btn30').classList.add('active');
-        document.getElementById('btn60').classList.remove('active');
-        loadFluxo();
-    });
-    document.getElementById('btn60').addEventListener('click', function() {
-        dias = 60;
-        document.getElementById('btn60').classList.add('active');
-        document.getElementById('btn30').classList.remove('active');
-        loadFluxo();
-    });
-    // 'blur' handles tab-away/click-away; 'keydown' handles Enter (prevents double-save).
-    document.getElementById('saldoInicial').addEventListener('blur', function(e) { saveSaldoInicial(e.target.value); loadFluxo(); });
-    document.getElementById('saldoInicial').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); saveSaldoInicial(e.target.value); loadFluxo(); } });
-    document.getElementById('toggleSidebar') && document.getElementById('toggleSidebar').addEventListener('click', function() { document.getElementById('sidebar').classList.toggle('collapsed'); });
-
-    async function init() {
-        var s = await loadSaldoInicial();
-        document.getElementById('saldoInicial').value = s || '';
+    async function excluirMovimentacao(m, btn) {
+        if (!m || !m.id || !m.tabela) return;
+        var label = m.tipo === 'entrada' ? 'entrada' : 'saída';
+        var desc = m.descricao ? ' "' + m.descricao + '"' : '';
+        if (!confirm('Excluir ' + label + desc + ' de ' + fmt(m.valor) + '? Essa ação não pode ser desfeita.')) return;
+        if (btn) btn.disabled = true;
+        var sb = await getSB();
+        var result = await sb.from(m.tabela).delete().eq('id', m.id).select();
+        if (result.error) {
+            showToast({ tipo:'error', titulo:'Erro ao excluir', msg:result.error.message });
+            if (btn) btn.disabled = false;
+            return;
+        }
+        showToast({ tipo:'success', titulo:'Excluído', msg:label.charAt(0).toUpperCase() + label.slice(1) + ' de ' + fmt(m.valor) + ' removida' });
         loadFluxo();
     }
-    init();
+
+    // Filtro de data: retorna null quando input vazio (sem limite)
+    function getFilterRange() {
+        var de = document.getElementById('filterDe').value || null;
+        var ate = document.getElementById('filterAte').value || null;
+        return { de: de, ate: ate };
+    }
+
+    function setFilterRange(de, ate) {
+        document.getElementById('filterDe').value = de || '';
+        document.getElementById('filterAte').value = ate || '';
+    }
+
+    function applyPreset(preset) {
+        var hoje = new Date(); hoje.setHours(0,0,0,0);
+        var fmtISO = function(d) { return d.toISOString().slice(0,10); };
+        if (preset === 'mes-atual') {
+            var y = hoje.getFullYear(), m = hoje.getMonth();
+            setFilterRange(fmtISO(new Date(y, m, 1)), fmtISO(new Date(y, m + 1, 0)));
+        } else if (preset === 'mes-anterior') {
+            var y2 = hoje.getFullYear(), m2 = hoje.getMonth();
+            setFilterRange(fmtISO(new Date(y2, m2 - 1, 1)), fmtISO(new Date(y2, m2, 0)));
+        } else if (preset === 'proximos-30') {
+            var end30 = new Date(hoje); end30.setDate(end30.getDate() + 30);
+            setFilterRange(fmtISO(hoje), fmtISO(end30));
+        } else if (preset === 'ultimos-30') {
+            var start30 = new Date(hoje); start30.setDate(start30.getDate() - 30);
+            setFilterRange(fmtISO(start30), fmtISO(hoje));
+        } else if (preset === 'tudo') {
+            setFilterRange('', '');
+        }
+        document.querySelectorAll('.preset-btn').forEach(function(b) {
+            b.classList.toggle('active', b.getAttribute('data-preset') === preset);
+        });
+        loadFluxo();
+    }
+
+    document.querySelectorAll('.preset-btn').forEach(function(b) {
+        b.addEventListener('click', function() { applyPreset(b.getAttribute('data-preset')); });
+    });
+    document.getElementById('filterDe').addEventListener('change', function() {
+        document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+        loadFluxo();
+    });
+    document.getElementById('filterAte').addEventListener('change', function() {
+        document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+        loadFluxo();
+    });
+    document.getElementById('toggleSidebar') && document.getElementById('toggleSidebar').addEventListener('click', function() { document.getElementById('sidebar').classList.toggle('collapsed'); });
+
+    // ============ DEVOLVER CAIXA (sócios) ============
+    // Modelo:
+    //  Saque           = saída em pj_custos_lancados (sócio retira → aumenta devido)
+    //  Devolução Saque = entrada em pj_receitas      (sócio devolve → aumenta devolvido)
+    var SOCIOS = [
+        { nome: 'Lucas de Camargo', devido: 'devDevidoLDC', devolvido: 'devDevolvidoLDC', saldo: 'devSaldoLDC' },
+        { nome: 'Lucas Cioni',      devido: 'devDevidoLCI', devolvido: 'devDevolvidoLCI', saldo: 'devSaldoLCI' }
+    ];
+
+    async function loadDevolucoes() {
+        var sb = await getSB();
+        // Saques: saídas em pj_custos_lancados com categoria = 'Saque'
+        var saquesRes = await sb.from('pj_custos_lancados').select('descricao, valor, categoria').eq('categoria', 'Saque');
+        // Devoluções: entradas em pj_receitas com categoria = 'Devolução Saque'
+        var devRes = await sb.from('pj_receitas').select('descricao, valor, valor_recebido, status, categoria').eq('categoria', 'Devolução Saque');
+        // Fallback se a coluna categoria ainda não existir em pj_receitas
+        if (devRes.error && /categoria/.test(devRes.error.message || '')) {
+            devRes = await sb.from('pj_receitas').select('descricao, valor, valor_recebido, status');
+            // Filtra em JS pelas descrições que batem com "Devolução Saque"
+            if (devRes.data) {
+                devRes.data = devRes.data.filter(function(r) {
+                    return (r.descricao || '').toLowerCase().indexOf('devolu') >= 0;
+                });
+            }
+        }
+        if (saquesRes.error) console.warn('[devolver] saques err:', saquesRes.error.message);
+        if (devRes.error) console.warn('[devolver] devoluções err:', devRes.error.message);
+
+        SOCIOS.forEach(function(s) {
+            var needle = s.nome.toLowerCase();
+
+            var devido = (saquesRes.data || []).reduce(function(acc, r) {
+                var desc = (r.descricao || '').toLowerCase();
+                return desc.indexOf(needle) >= 0 ? acc + Number(r.valor || 0) : acc;
+            }, 0);
+
+            var devolvido = (devRes.data || []).reduce(function(acc, r) {
+                var desc = (r.descricao || '').toLowerCase();
+                if (desc.indexOf(needle) < 0) return acc;
+                var v = (r.status === 'received' && r.valor_recebido != null) ? Number(r.valor_recebido) : Number(r.valor || 0);
+                return acc + v;
+            }, 0);
+
+            var saldo = devido - devolvido;
+            var setEl = function(id, value, colorCls) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.textContent = fmt(value);
+                if (colorCls) el.className = 'dev-stat-value ' + colorCls;
+            };
+            setEl(s.devido, devido, 'red');
+            setEl(s.devolvido, devolvido, 'green');
+            setEl(s.saldo, saldo, saldo > 0 ? 'red' : (saldo < 0 ? 'green' : 'amber'));
+        });
+    }
+
+    function saquePara(nome) {
+        abrirModalMov('saida');
+        setTimeout(function() {
+            document.getElementById('movCategoria').value = 'Saque';
+            document.getElementById('movSocio').value = nome;
+            document.getElementById('movDescricao').value = 'Saque - ' + nome;
+            atualizarCampoSocio();
+            var title = document.getElementById('modalMovTitle');
+            while (title.firstChild) title.removeChild(title.firstChild);
+            var icon = document.createElement('i');
+            icon.className = 'ph-fill ph-arrow-circle-up';
+            title.appendChild(icon);
+            title.appendChild(document.createTextNode(' Saque → ' + nome));
+        }, 0);
+    }
+
+    function devolverPara(nome) {
+        abrirModalMov('entrada');
+        setTimeout(function() {
+            document.getElementById('movCategoria').value = 'Devolução Saque';
+            document.getElementById('movSocio').value = nome;
+            document.getElementById('movDescricao').value = 'Devolução Saque - ' + nome;
+            atualizarCampoSocio();
+            var title = document.getElementById('modalMovTitle');
+            while (title.firstChild) title.removeChild(title.firstChild);
+            var icon = document.createElement('i');
+            icon.className = 'ph-fill ph-arrow-circle-down';
+            title.appendChild(icon);
+            title.appendChild(document.createTextNode(' Devolução Saque ← ' + nome));
+        }, 0);
+    }
+
+    document.querySelectorAll('.btn-socio').forEach(function(b) {
+        b.addEventListener('click', function() {
+            var acao = b.getAttribute('data-acao');
+            var socio = b.getAttribute('data-socio');
+            if (acao === 'saque') saquePara(socio);
+            else devolverPara(socio);
+        });
+    });
+
+    function editarMovimentacao(m) {
+        movMode = 'edit';
+        movEditId = m.id;
+        movEditTabela = m.tabela;
+        movTipo = m.tipo;
+
+        abrirModalMov(m.tipo);
+
+        setTimeout(function() {
+            var title = document.getElementById('modalMovTitle');
+            while (title.firstChild) title.removeChild(title.firstChild);
+            var icon = document.createElement('i');
+            icon.className = 'ph-fill ph-pencil-simple';
+            title.appendChild(icon);
+            title.appendChild(document.createTextNode(' Editar ' + (m.tipo === 'entrada' ? 'Entrada' : 'Saída')));
+            document.getElementById('movValor').value = m.valor;
+            document.getElementById('movData').value = m.dia;
+            document.getElementById('movDescricao').value = m.descricao || '';
+            document.getElementById('movCategoria').value = m.categoria || '';
+            // Extrai sócio da descrição se categoria exigir
+            if (CATS_COM_SOCIO[m.categoria]) {
+                var desc = (m.descricao || '').toLowerCase();
+                if (desc.indexOf('lucas de camargo') >= 0) document.getElementById('movSocio').value = 'Lucas de Camargo';
+                else if (desc.indexOf('lucas cioni') >= 0) document.getElementById('movSocio').value = 'Lucas Cioni';
+            }
+            atualizarCampoSocio();
+            movMode = 'edit';
+            movEditId = m.id;
+            movEditTabela = m.tabela;
+        }, 0);
+    }
+
+    // Intercepta o loadFluxo para recalcular devoluções após cada mudança
+    var _origLoadFluxo = loadFluxo;
+    loadFluxo = async function() {
+        await _origLoadFluxo();
+        loadDevolucoes();
+    };
+
+    // Default: mês atual
+    applyPreset('mes-atual');
+
+    // ============ PAINEL: REGISTRAR ENTRADA / SAÍDA ============
+    var movTipo = 'entrada';
+
+    // Categorias padrão por tipo de movimentação
+    var CATEGORIAS_ENTRADA = ['Provou Levou', 'Quantic', 'Tecnologia', 'Marketing', 'Consumível', 'Devolução Saque', 'Outros'];
+    var CATEGORIAS_SAIDA   = ['Provou Levou', 'Quantic', 'Tecnologia', 'Marketing', 'Consumível', 'Saque', 'Pró-Labore', 'Outros'];
+    // Categorias que exigem escolher um sócio
+    var CATS_COM_SOCIO = { 'Saque': true, 'Devolução Saque': true, 'Pró-Labore': true };
+
+    function populateCategorias(tipo) {
+        var sel = document.getElementById('movCategoria');
+        while (sel.firstChild) sel.removeChild(sel.firstChild);
+        var placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '— Selecione —';
+        sel.appendChild(placeholder);
+        var lista = tipo === 'entrada' ? CATEGORIAS_ENTRADA : CATEGORIAS_SAIDA;
+        lista.forEach(function(cat) {
+            var opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            sel.appendChild(opt);
+        });
+    }
+
+    function atualizarCampoSocio() {
+        var cat = document.getElementById('movCategoria').value;
+        var grpSocio = document.getElementById('grpMovSocio');
+        if (CATS_COM_SOCIO[cat]) {
+            grpSocio.style.display = '';
+        } else {
+            grpSocio.style.display = 'none';
+            document.getElementById('movSocio').value = '';
+        }
+    }
+
+    async function loadMovClientes() {
+        var sb = await getSB();
+        var res = await sb.from('provou_levou_stores').select('id, company, name').order('company', { ascending: true });
+        var sel = document.getElementById('movCliente');
+        while (sel.firstChild) sel.removeChild(sel.firstChild);
+        var optNone = document.createElement('option');
+        optNone.value = '';
+        optNone.textContent = '— Nenhum —';
+        sel.appendChild(optNone);
+        (res.data || []).forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.company || c.name || '—';
+            sel.appendChild(opt);
+        });
+    }
+
+    function abrirModalMov(tipo) {
+        movMode = 'create';
+        movEditId = null;
+        movEditTabela = null;
+        movTipo = tipo;
+        var title = document.getElementById('modalMovTitle');
+        var saveBtn = document.getElementById('btnSalvarMov');
+        var grpCliente = document.getElementById('movCliente').parentElement;
+        var grpCategoria = document.getElementById('grpMovCategoria');
+
+        while (title.firstChild) title.removeChild(title.firstChild);
+        var icon = document.createElement('i');
+        if (tipo === 'entrada') {
+            title.className = 'modal-title entrada';
+            icon.className = 'ph-fill ph-arrow-down';
+            title.appendChild(icon);
+            title.appendChild(document.createTextNode(' Registrar Entrada'));
+            saveBtn.className = 'btn-primary entrada';
+            grpCliente.style.display = '';
+        } else {
+            title.className = 'modal-title saida';
+            icon.className = 'ph-fill ph-arrow-up';
+            title.appendChild(icon);
+            title.appendChild(document.createTextNode(' Registrar Saída'));
+            saveBtn.className = 'btn-primary saida';
+            grpCliente.style.display = 'none';
+        }
+        grpCategoria.style.display = '';
+        populateCategorias(tipo);
+
+        document.getElementById('movCliente').value = '';
+        document.getElementById('movDescricao').value = '';
+        document.getElementById('movValor').value = '';
+        document.getElementById('movData').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('movCategoria').value = '';
+        document.getElementById('movSocio').value = '';
+        atualizarCampoSocio();
+        loadMovClientes();
+        document.getElementById('modalMov').classList.add('active');
+    }
+
+    document.getElementById('movCategoria').addEventListener('change', function() {
+        atualizarCampoSocio();
+        // Auto-preenche descrição baseado em categoria + sócio
+        var cat = document.getElementById('movCategoria').value;
+        var socio = document.getElementById('movSocio').value;
+        var descEl = document.getElementById('movDescricao');
+        if (CATS_COM_SOCIO[cat] && socio) {
+            descEl.value = cat + ' - ' + socio;
+        } else if (cat && !descEl.value) {
+            descEl.value = cat;
+        }
+    });
+    document.getElementById('movSocio').addEventListener('change', function() {
+        var cat = document.getElementById('movCategoria').value;
+        var socio = document.getElementById('movSocio').value;
+        if (CATS_COM_SOCIO[cat] && socio) {
+            document.getElementById('movDescricao').value = cat + ' - ' + socio;
+        }
+    });
+
+    function fecharModalMov() {
+        document.getElementById('modalMov').classList.remove('active');
+    }
+
+    document.getElementById('btnNovaEntrada').addEventListener('click', function() { abrirModalMov('entrada'); });
+    document.getElementById('btnNovaSaida').addEventListener('click', function() { abrirModalMov('saida'); });
+    document.getElementById('btnCancelMov').addEventListener('click', fecharModalMov);
+
+    // Estado da modal: create | edit
+    var movMode = 'create';
+    var movEditId = null;
+    var movEditTabela = null;
+
+    document.getElementById('btnSalvarMov').addEventListener('click', async function() {
+        var btn = this;
+        var valor = parseFloat(document.getElementById('movValor').value);
+        var data = document.getElementById('movData').value;
+        var descricao = document.getElementById('movDescricao').value.trim() || null;
+        var categoria = document.getElementById('movCategoria').value.trim() || null;
+        if (!valor || valor <= 0 || !data) { showToast({ tipo:'error', titulo:'Campos obrigatórios', msg:'Valor (> 0) e data são obrigatórios.' }); return; }
+        if (CATS_COM_SOCIO[categoria] && !document.getElementById('movSocio').value) {
+            showToast({ tipo:'error', titulo:'Sócio obrigatório', msg:'Escolha o sócio para ' + categoria + '.' });
+            return;
+        }
+
+        btn.disabled = true;
+        var sb = await getSB();
+        var result;
+        var payload;
+
+        try {
+            if (movTipo === 'entrada') {
+                var clienteId = document.getElementById('movCliente').value || null;
+                payload = {
+                    cliente_id: clienteId,
+                    descricao: descricao,
+                    categoria: categoria,
+                    valor: valor,
+                    valor_recebido: valor,
+                    data_emissao: data,
+                    data_vencimento: data,
+                    data_recebimento: data,
+                    status: 'received'
+                };
+                console.log('[fluxo-caixa] ' + movMode + ' pj_receitas:', payload);
+                if (movMode === 'edit' && movEditId && movEditTabela === 'pj_receitas') {
+                    result = await sb.from('pj_receitas').update(payload).eq('id', movEditId).select();
+                } else {
+                    result = await sb.from('pj_receitas').insert(payload).select();
+                    // Fallback: se coluna categoria ainda não foi criada, remove e tenta de novo
+                    if (result.error && /categoria/.test(result.error.message || '')) {
+                        delete payload.categoria;
+                        result = await sb.from('pj_receitas').insert(payload).select();
+                    }
+                }
+            } else {
+                payload = {
+                    descricao: descricao || 'Saída manual',
+                    categoria: categoria,
+                    valor: valor,
+                    data_pagamento: data,
+                    pago: true
+                };
+                console.log('[fluxo-caixa] ' + movMode + ' pj_custos_lancados:', payload);
+                if (movMode === 'edit' && movEditId && movEditTabela === 'pj_custos_lancados') {
+                    result = await sb.from('pj_custos_lancados').update(payload).eq('id', movEditId).select();
+                } else {
+                    result = await sb.from('pj_custos_lancados').insert(payload).select();
+                }
+            }
+        } catch (e) {
+            showToast({ tipo:'error', titulo:'Erro inesperado', msg:e.message });
+            btn.disabled = false;
+            return;
+        }
+
+        console.log('[fluxo-caixa] resultado:', result);
+
+        if (result.error) {
+            showToast({ tipo:'error', titulo:'Erro Supabase', msg:result.error.message + ' (' + (result.error.code || '—') + ')' });
+            btn.disabled = false;
+            return;
+        }
+        if (!result.data || result.data.length === 0) {
+            showToast({ tipo:'error', titulo:'RLS bloqueando', msg:'Insert sem erro mas sem dados. Verifique policies em pj_' + (movTipo === 'entrada' ? 'receitas' : 'custos_lancados') + '.' });
+            btn.disabled = false;
+            return;
+        }
+
+        btn.disabled = false;
+        fecharModalMov();
+        var verbo = movMode === 'edit' ? 'atualizada' : 'registrada';
+        showToast({ tipo:'success', titulo:(movTipo === 'entrada' ? 'Entrada' : 'Saída') + ' ' + verbo, msg:fmt(valor) + ' em ' + new Date(data+'T00:00:00').toLocaleDateString('pt-BR') });
+        movMode = 'create';
+        movEditId = null;
+        movEditTabela = null;
+        loadFluxo();
+    });
     </script>
 </body>
 
