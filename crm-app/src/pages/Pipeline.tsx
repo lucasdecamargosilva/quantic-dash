@@ -212,7 +212,7 @@ export default function Pipeline() {
       {/* Header */}
       <div className="px-8 pt-7 pb-5 flex items-end justify-between border-b border-edge-subtle">
         <div>
-          <h1 className="font-serif text-3xl text-bright italic tracking-tight">Pipeline</h1>
+          <h1 className="text-[22px] font-bold text-bright tracking-tight">Pipeline</h1>
           <p className="text-dim text-xs mt-1.5 tracking-wide">
             {totalActive} lead{totalActive !== 1 ? "s" : ""} ativo{totalActive !== 1 ? "s" : ""}
             {descartados.length > 0 && (
@@ -251,6 +251,58 @@ export default function Pipeline() {
           {activeLead ? <CardOverlay lead={activeLead} /> : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Total de leads por etapa (acima do Desempenho) */}
+      <div className="px-8 pt-8 pb-2">
+        <div className="flex items-center gap-3 mb-4">
+          <h3 className="text-[13px] font-bold text-bright tracking-tight uppercase">
+            Total de Leads por Etapa
+          </h3>
+          <span className="text-[11px] text-dim tabular-nums ml-auto">
+            {totalActive} ativo{totalActive !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <div
+          className="grid gap-3"
+          style={{ gridTemplateColumns: `repeat(${PIPELINE_STATUSES.length}, 1fr)` }}
+        >
+          {PIPELINE_STATUSES.map((s) => {
+            const n = grouped[s]?.length ?? 0;
+            const pct = totalActive > 0 ? ((n / totalActive) * 100).toFixed(0) : "0";
+            const hex = STATUS_HEX[s];
+            return (
+              <div
+                key={s}
+                className="relative overflow-hidden rounded-[14px] px-5 py-4"
+                style={{
+                  background: "rgba(12, 14, 23, 0.8)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                }}
+              >
+                <div
+                  aria-hidden="true"
+                  className="absolute top-0 left-0 right-0 h-px"
+                  style={{
+                    background: `linear-gradient(90deg, transparent, ${hex}55, transparent)`,
+                  }}
+                />
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full" style={{ background: hex }} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-dim">
+                    {STATUS_LABELS[s]}
+                  </p>
+                </div>
+                <p className="text-3xl font-extrabold tabular-nums leading-none" style={{ color: hex }}>
+                  {n}
+                </p>
+                <p className="text-[11px] text-dim tabular-nums mt-1.5">{pct}% do total</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Desempenho por responsavel */}
       <DesempenhoResponsaveis leads={leads} />

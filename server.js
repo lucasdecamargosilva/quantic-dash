@@ -23,6 +23,10 @@ app.get('/api/config', (req, res) => {
     res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
 });
 
+// Redireciona a raiz pra Custos (página Desempenho desativada)
+app.get('/', (req, res) => res.redirect('/custos.html'));
+app.get('/index.html', (req, res) => res.redirect('/custos.html'));
+
 app.get('/api/chatwoot/sso', async (req, res) => {
     try {
         if (!PLATFORM_TOKEN) throw new Error('PLATFORM_TOKEN missing');

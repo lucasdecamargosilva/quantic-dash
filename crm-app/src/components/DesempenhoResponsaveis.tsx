@@ -56,7 +56,7 @@ export default function DesempenhoResponsaveis({ leads }: Props) {
       <header className="flex items-end justify-between mb-5 pb-3 border-b border-edge-subtle">
         <div>
           <p className="text-[9px] text-dim uppercase tracking-[0.3em] mb-0.5">Sales Ops</p>
-          <h3 className="font-serif text-xl text-bright italic tracking-tight">Desempenho do time</h3>
+          <h3 className="text-[15px] font-bold text-bright tracking-tight uppercase">Desempenho do time</h3>
         </div>
         <p className="text-[9px] text-dim uppercase tracking-[0.3em]">
           {stats.length} responsa{stats.length !== 1 ? "veis" : "vel"}
@@ -77,13 +77,13 @@ function CompactRow({ s, rank }: { s: Stats; rank: number }) {
     <article className="bg-surface/40 border border-edge-subtle rounded-xl px-5 py-4 hover:bg-surface/70 transition-colors">
       <div className="grid items-center gap-5" style={{ gridTemplateColumns: "auto minmax(140px, 1.2fr) minmax(220px, 2fr) auto" }}>
         {/* Rank */}
-        <span className="font-serif italic text-xl text-dim tabular-nums w-7 text-right">
+        <span className="text-lg font-bold text-dim tabular-nums w-7 text-right">
           {String(rank).padStart(2, "0")}
         </span>
 
         {/* Nome */}
         <div className="min-w-0">
-          <p className="font-serif text-lg text-bright italic leading-tight truncate">{s.nome}</p>
+          <p className="text-[15px] font-bold text-bright leading-tight truncate">{s.nome}</p>
           <p className="text-[10px] text-dim uppercase tracking-[0.2em] mt-0.5 font-medium tabular-nums">
             {s.total} leads
           </p>
@@ -136,7 +136,7 @@ function CompactRow({ s, rank }: { s: Stats; rank: number }) {
             highlight={s.fechou > 0}
           />
           <div className="pl-5 border-l border-edge-subtle ml-1">
-            <p className="font-serif italic text-3xl text-violet-light leading-none tabular-nums">
+            <p className="text-[28px] font-extrabold text-violet-light leading-none tabular-nums">
               {s.score}
             </p>
             <p className="text-[9px] text-dim uppercase tracking-[0.2em] mt-1">Score</p>

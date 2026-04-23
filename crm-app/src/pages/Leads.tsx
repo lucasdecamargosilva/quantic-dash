@@ -40,7 +40,7 @@ export default function Leads() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="font-serif text-3xl text-bright italic tracking-tight">Leads</h1>
+          <h1 className="text-[22px] font-bold text-bright tracking-tight">Leads</h1>
           <p className="text-dim text-xs mt-1.5 tracking-wide">{leads.length} coletados</p>
         </div>
         <button

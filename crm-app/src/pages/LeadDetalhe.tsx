@@ -73,7 +73,7 @@ export default function LeadDetalhe() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6 stagger-in">
         <div>
-          <h1 className="font-serif text-3xl text-bright italic tracking-tight">
+          <h1 className="text-[22px] font-bold text-bright tracking-tight">
             {lead.nome_loja || `@${lead.instagram}`}
           </h1>
           <div className="flex items-center gap-2 mt-1.5">

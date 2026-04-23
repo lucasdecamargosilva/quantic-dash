@@ -65,7 +65,7 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
       >
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h2 className="font-serif text-2xl text-bright italic tracking-tight">Novo lead</h2>
+            <h2 className="text-[18px] font-bold text-bright tracking-tight">Novo lead</h2>
             <p className="text-dim text-xs mt-1">Adicione manualmente no pipeline</p>
           </div>
           <button onClick={onClose} className="text-dim hover:text-bright text-xl leading-none">×</button>

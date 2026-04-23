@@ -32,7 +32,7 @@ export default function Dashboard() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="font-serif text-3xl text-bright italic tracking-tight">Dashboard</h1>
+        <h1 className="text-[22px] font-bold text-bright tracking-tight">Dashboard</h1>
         <p className="text-dim text-xs mt-1.5 tracking-wide">Visao geral da prospeccao</p>
       </div>
 
@@ -73,10 +73,10 @@ export default function Dashboard() {
           <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Leads por Semana</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={weeklyData}>
-              <XAxis dataKey="semana" tick={{ fill: "#52525b", fontSize: 10, fontFamily: "Satoshi" }} axisLine={{ stroke: "#27272f" }} tickLine={false} />
-              <YAxis tick={{ fill: "#52525b", fontSize: 10 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="semana" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Sora" }} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} tickLine={false} />
+              <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#16161a", border: "1px solid #27272f", borderRadius: "8px", fontSize: "11px", fontFamily: "Satoshi" }}
+                contentStyle={{ backgroundColor: "rgba(12,14,23,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
                 labelStyle={{ color: "#71717a" }}
                 itemStyle={{ color: "#a78bfa" }}
               />

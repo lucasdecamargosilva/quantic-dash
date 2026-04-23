@@ -118,7 +118,7 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
             {/* Header */}
             <div className="flex items-start justify-between mb-5 pr-8">
               <div>
-                <h2 className="font-serif text-2xl text-bright italic tracking-tight">
+                <h2 className="text-[18px] font-bold text-bright tracking-tight">
                   {lead.nome_loja || `@${lead.instagram}`}
                 </h2>
                 <div className="flex items-center gap-2 mt-1.5">

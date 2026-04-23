@@ -1,18 +1,19 @@
 @import "tailwindcss";
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=instrument-serif@400,400i&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
 
+/* Tokens alinhados com o dashboard financeiro (Quantic) */
 @theme {
-  --color-base: #09090b;
-  --color-raised: #0f0f12;
-  --color-surface: #16161a;
-  --color-panel: #1c1c22;
-  --color-edge: #27272f;
-  --color-edge-subtle: #1f1f26;
-  --color-dim: #52525b;
-  --color-muted: #71717a;
-  --color-sub: #a1a1aa;
-  --color-text: #e4e4e7;
-  --color-bright: #fafafa;
+  --color-base: #05060b;
+  --color-raised: #0c0e17;
+  --color-surface: #12151f;
+  --color-panel: #1a1d28;
+  --color-edge: rgba(255, 255, 255, 0.08);
+  --color-edge-subtle: rgba(255, 255, 255, 0.04);
+  --color-dim: rgba(255, 255, 255, 0.32);
+  --color-muted: rgba(255, 255, 255, 0.55);
+  --color-sub: rgba(255, 255, 255, 0.75);
+  --color-text: rgba(255, 255, 255, 0.85);
+  --color-bright: rgba(255, 255, 255, 0.95);
   --color-violet: #8b5cf6;
   --color-violet-light: #a78bfa;
   --color-violet-deep: #6d28d9;
@@ -21,14 +22,15 @@
   --color-amber: #f59e0b;
   --color-rose: #f43f5e;
   --color-cyan: #06b6d4;
+  --color-cyan-light: #22d3ee;
 
-  --font-sans: 'Satoshi', system-ui, sans-serif;
+  --font-sans: 'Sora', 'Outfit', system-ui, sans-serif;
   --font-serif: 'Instrument Serif', Georgia, serif;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-edge) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
 }
 
 *::selection {
@@ -38,22 +40,23 @@
 
 body {
   font-family: var(--font-sans);
-  background: var(--color-base);
+  background-color: var(--color-base);
+  background-image:
+    radial-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+    radial-gradient(600px 400px at 10% 0%, rgba(139, 92, 246, 0.04), transparent),
+    radial-gradient(500px 300px at 90% 5%, rgba(6, 182, 212, 0.03), transparent);
+  background-size: 24px 24px, 100% 100%, 100% 100%;
   color: var(--color-text);
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Refined noise — barely visible, adds texture depth */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.018;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+/* Refined scrollbar (global) */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.3); }
 
 /* Column styling */
 .col-drop-active {

@@ -38,54 +38,112 @@ const NAV_ITEMS = [
 
 export default function Layout() {
   return (
-    <div className="flex h-screen bg-base text-text">
-      {/* Sidebar */}
-      <aside className="w-[220px] border-r border-edge-subtle flex flex-col bg-raised">
-        {/* Brand */}
-        <div className="px-5 pt-6 pb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-md bg-violet flex items-center justify-center">
-              <span className="text-white text-xs font-black tracking-tighter">PL</span>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-bright tracking-tight leading-none">Prospector</p>
-              <p className="text-[10px] text-dim mt-0.5 tracking-wide uppercase">Provou Levou</p>
-            </div>
+    <div className="flex h-screen text-text" style={{ background: "transparent" }}>
+      {/* Sidebar — padrão Quantic (glass + gradient border + left accent no active) */}
+      <aside
+        className="w-[250px] flex flex-col relative"
+        style={{
+          background: "rgba(8, 10, 18, 0.95)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderRight: "1px solid rgba(255, 255, 255, 0.04)",
+        }}
+      >
+        {/* Gradient line na borda direita (purple → cyan) */}
+        <div
+          aria-hidden="true"
+          className="absolute top-0 right-0 w-px h-full pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(139, 92, 246, 0.2), transparent 30%, transparent 70%, rgba(6, 182, 212, 0.15))",
+          }}
+        />
+
+        {/* Brand header */}
+        <div
+          className="flex items-center gap-3 px-5 h-[72px]"
+          style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}
+        >
+          <div
+            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+            style={{
+              background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
+              boxShadow: "0 0 12px rgba(139, 92, 246, 0.3)",
+            }}
+          >
+            <span className="text-white text-[11px] font-black tracking-tighter">PL</span>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold tracking-tight leading-none" style={{ color: "rgba(255, 255, 255, 0.95)" }}>
+              Prospector
+            </p>
+            <p className="text-[9px] mt-1 tracking-widest uppercase font-bold" style={{ color: "#22d3ee", opacity: 0.7 }}>
+              Provou Levou
+            </p>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 space-y-0.5">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                `flex items-center gap-3 px-3 py-[9px] rounded-md text-[13px] font-medium transition-all duration-150 border-l-2 ${
                   isActive
-                    ? "bg-violet/10 text-violet-light"
-                    : "text-muted hover:text-sub hover:bg-surface"
+                    ? "border-l-[var(--color-violet)]"
+                    : "border-l-transparent hover:border-l-[rgba(139,92,246,0.4)]"
                 }`
               }
+              style={({ isActive }) =>
+                isActive
+                  ? {
+                      background: "rgba(139, 92, 246, 0.08)",
+                      color: "rgba(255, 255, 255, 0.95)",
+                      boxShadow: "inset 0 0 20px rgba(139, 92, 246, 0.04)",
+                    }
+                  : { color: "rgba(255, 255, 255, 0.55)" }
+              }
             >
-              {item.icon}
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  <span
+                    style={{
+                      color: isActive ? "#8b5cf6" : "currentColor",
+                      filter: isActive ? "drop-shadow(0 0 4px rgba(139, 92, 246, 0.4))" : "none",
+                      display: "inline-flex",
+                    }}
+                  >
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="px-4 py-4 mx-3 mb-3 rounded-lg bg-surface border border-edge-subtle">
-          <p className="text-[11px] text-dim leading-relaxed">
-            Limite recomendado: 10-20 DMs por dia.
-          </p>
-        </div>
-
         {/* Voltar para Financeiro */}
         <a
-          href="/"
-          className="mx-3 mb-3 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-[12px] font-semibold bg-violet/10 text-violet-light border border-violet/20 hover:bg-violet/20 transition-all"
+          href="/custos.html"
+          className="mx-3 mb-3 flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-[12px] font-semibold transition-all"
+          style={{
+            background: "rgba(6, 182, 212, 0.06)",
+            color: "#22d3ee",
+            border: "1px solid rgba(6, 182, 212, 0.18)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(6, 182, 212, 0.12)";
+            e.currentTarget.style.borderColor = "rgba(6, 182, 212, 0.3)";
+            e.currentTarget.style.color = "rgba(255, 255, 255, 0.95)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(6, 182, 212, 0.06)";
+            e.currentTarget.style.borderColor = "rgba(6, 182, 212, 0.18)";
+            e.currentTarget.style.color = "#22d3ee";
+          }}
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M10 4L6 8l4 4" />
@@ -96,11 +154,6 @@ export default function Layout() {
 
       {/* Main */}
       <main className="flex-1 overflow-auto relative">
-        {/* Top ambient light */}
-        <div
-          className="fixed top-0 right-[15%] w-[500px] h-[300px] pointer-events-none opacity-[0.03]"
-          style={{ background: "radial-gradient(ellipse, #8b5cf6, transparent 70%)" }}
-        />
         <Outlet />
       </main>
     </div>
