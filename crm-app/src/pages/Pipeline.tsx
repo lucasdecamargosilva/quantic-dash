@@ -241,33 +241,20 @@ export default function Pipeline() {
             )}
           </p>
         </div>
-        <div className="flex items-end gap-4">
-          {/* Filtro de responsavel */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Responsável</label>
-            <select
-              value={filtroResponsavel}
-              onChange={(e) => setFiltroResponsavel(e.target.value)}
-              className="bg-surface border border-edge-subtle rounded-lg px-3 py-1.5 text-xs text-sub focus:outline-none focus:border-violet/30 transition-all min-w-[160px]"
-            >
-              <option value="__todos">Todos</option>
-              <option value="__sem">Sem responsável</option>
-              {responsaveisUnicos.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-          </div>
-          {/* Contadores por status */}
-          <div className="flex gap-4 mb-1">
-            {PIPELINE_STATUSES.map((s) => (
-              <div key={s} className="text-center">
-                <p className="text-lg font-bold text-bright leading-none" style={{ color: STATUS_HEX[s] }}>
-                  {grouped[s]?.length ?? 0}
-                </p>
-                <p className="text-[9px] text-dim uppercase tracking-widest mt-1">{STATUS_LABELS[s]}</p>
-              </div>
+        {/* Filtro de responsavel (canto superior direito) */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Responsável</label>
+          <select
+            value={filtroResponsavel}
+            onChange={(e) => setFiltroResponsavel(e.target.value)}
+            className="bg-surface border border-edge-subtle rounded-lg px-3 py-1.5 text-xs text-sub focus:outline-none focus:border-violet/30 transition-all min-w-[180px]"
+          >
+            <option value="__todos">Todos</option>
+            <option value="__sem">Sem responsável</option>
+            {responsaveisUnicos.map((r) => (
+              <option key={r} value={r}>{r}</option>
             ))}
-          </div>
+          </select>
         </div>
       </div>
 
