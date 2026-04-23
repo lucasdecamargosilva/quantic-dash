@@ -42,7 +42,18 @@ app.get('/api/chatwoot/sso', async (req, res) => {
     }
 });
 
-// 2. Servir arquivos estáticos do Dashboard
+// 2a. CRM (React SPA) — servido sob /crm/*
+const CRM_DIST = path.join(__dirname, 'crm-app', 'dist');
+app.use('/crm', express.static(CRM_DIST));
+// SPA fallback: qualquer rota do React Router dentro do /crm/ retorna o index.html
+app.get(/^\/crm(\/.*)?$/, (req, res, next) => {
+    const fs = require('fs');
+    const indexPath = path.join(CRM_DIST, 'index.html');
+    if (!fs.existsSync(indexPath)) return next();
+    res.sendFile(indexPath);
+});
+
+// 2b. Servir arquivos estáticos do Dashboard (HTML/CSS/JS raiz)
 // Se o arquivo existir na pasta local, ele será entregue.
 app.use(express.static(__dirname));
 

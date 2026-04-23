@@ -1,0 +1,156 @@
+@import "tailwindcss";
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=instrument-serif@400,400i&display=swap');
+
+@theme {
+  --color-base: #09090b;
+  --color-raised: #0f0f12;
+  --color-surface: #16161a;
+  --color-panel: #1c1c22;
+  --color-edge: #27272f;
+  --color-edge-subtle: #1f1f26;
+  --color-dim: #52525b;
+  --color-muted: #71717a;
+  --color-sub: #a1a1aa;
+  --color-text: #e4e4e7;
+  --color-bright: #fafafa;
+  --color-violet: #8b5cf6;
+  --color-violet-light: #a78bfa;
+  --color-violet-deep: #6d28d9;
+  --color-violet-wash: #8b5cf610;
+  --color-emerald: #10b981;
+  --color-amber: #f59e0b;
+  --color-rose: #f43f5e;
+  --color-cyan: #06b6d4;
+
+  --font-sans: 'Satoshi', system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-edge) transparent;
+}
+
+*::selection {
+  background: var(--color-violet-deep);
+  color: white;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-base);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Refined noise — barely visible, adds texture depth */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Column styling */
+.col-drop-active {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.04) 0%, transparent 100%) !important;
+  border-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+/* Stagger animation */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.stagger-in {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+  opacity: 0;
+}
+
+/* Refined scrollbar for pipeline */
+.pipeline-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.pipeline-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pipeline-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-edge);
+  border-radius: 3px;
+}
+
+/* Card hover lift */
+.card-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+/* Drag card — cursor + hover + being dragged */
+.card-drag {
+  cursor: grab;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.18s ease,
+              opacity 0.18s ease,
+              border-color 0.18s ease;
+}
+
+.card-drag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+.card-drag:active {
+  cursor: grabbing;
+}
+
+/* Estado "sendo arrastado" — placeholder fica mais apagado */
+.card-drag.is-dragging {
+  opacity: 0.25;
+  transform: scale(0.96);
+  filter: grayscale(0.4);
+  cursor: grabbing;
+}
+
+/* Coluna ativa recebendo drop — glow + outline */
+.col-drop-active {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, transparent 60%) !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+/* Pulse animation para area "soltar aqui" */
+@keyframes dropPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.02); opacity: 1; }
+}
+
+.drop-hint {
+  animation: dropPulse 1.2s ease-in-out infinite;
+}
+
+/* Accent bar animation */
+@keyframes accentPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
