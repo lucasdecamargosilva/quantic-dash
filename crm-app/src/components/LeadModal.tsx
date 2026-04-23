@@ -110,6 +110,26 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
     onUpdated?.();
   }
 
+  async function salvarInstagram(valor: string, inputEl: HTMLInputElement) {
+    const handle = valor.trim().replace(/^@/, "").toLowerCase();
+    if (!handle) {
+      // não deixa salvar vazio — @ é NOT NULL no banco
+      inputEl.value = lead?.instagram ?? "";
+      return;
+    }
+    if (handle === lead?.instagram) return;
+    const { error } = await supabase.from("leads").update({ instagram: handle }).eq("id", leadId);
+    if (error) {
+      // 23505 = violação de unique (handle já existe)
+      if (error.code === "23505") alert("Esse @ já está em outra oportunidade.");
+      else alert("Erro: " + error.message);
+      inputEl.value = lead?.instagram ?? "";
+      return;
+    }
+    setLead((prev) => (prev ? { ...prev, instagram: handle } : null));
+    onUpdated?.();
+  }
+
   return (
     <div
       className="fixed inset-0 bg-base/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -202,8 +222,18 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
               )}
             </div>
 
-            {/* Dados da oportunidade (4 campos) */}
+            {/* Dados da oportunidade */}
             <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">@ Instagram</label>
+                <input
+                  type="text"
+                  defaultValue={lead.instagram}
+                  onBlur={(e) => salvarInstagram(e.target.value, e.target)}
+                  placeholder="@loja"
+                  className="w-full bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5 text-xs text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
+                />
+              </div>
               <div>
                 <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Responsavel</label>
                 <input
@@ -237,7 +267,7 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
                   className="w-full bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5 text-xs text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
                 />
               </div>
-              <div>
+              <div className="col-span-2">
                 <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Email</label>
                 <input
                   type="email"
