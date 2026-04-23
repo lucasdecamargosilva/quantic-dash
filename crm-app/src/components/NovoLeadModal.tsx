@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { LEAD_STATUSES, STATUS_LABELS } from "../types";
+import { LEAD_STATUSES, STATUS_LABELS, FONTES_OPORTUNIDADE } from "../types";
 import type { LeadStatus } from "../types";
 
 interface Props {
@@ -16,6 +16,9 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
   const [idioma, setIdioma] = useState<"pt" | "en" | "es">("pt");
   const [status, setStatus] = useState<LeadStatus>("novo");
   const [responsavel, setResponsavel] = useState("");
+  const [fonteOportunidade, setFonteOportunidade] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [email, setEmail] = useState("");
   const [notas, setNotas] = useState("");
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState("");
@@ -41,6 +44,9 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
       status,
       tem_provador: false,
       responsavel: responsavel.trim() || null,
+      fonte_oportunidade: fonteOportunidade || null,
+      telefone: telefone.trim() || null,
+      email: email.trim() || null,
     });
 
     setSaving(false);
@@ -145,15 +151,53 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
             </select>
           </div>
 
-          <div>
-            <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-1.5 block">Responsavel</label>
-            <input
-              type="text"
-              value={responsavel}
-              onChange={(e) => setResponsavel(e.target.value)}
-              placeholder="Nome do responsavel"
-              className="w-full bg-surface border border-edge-subtle rounded-lg px-3 py-2 text-sm text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-1.5 block">Responsavel</label>
+              <input
+                type="text"
+                value={responsavel}
+                onChange={(e) => setResponsavel(e.target.value)}
+                placeholder="Nome"
+                className="w-full bg-surface border border-edge-subtle rounded-lg px-3 py-2 text-sm text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-1.5 block">Fonte</label>
+              <select
+                value={fonteOportunidade}
+                onChange={(e) => setFonteOportunidade(e.target.value)}
+                className="w-full bg-surface border border-edge-subtle rounded-lg px-3 py-2 text-sm text-sub focus:outline-none focus:border-violet/30 transition-all"
+              >
+                <option value="">— Selecione —</option>
+                {FONTES_OPORTUNIDADE.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-1.5 block">Telefone</label>
+              <input
+                type="tel"
+                value={telefone}
+                onChange={(e) => setTelefone(e.target.value)}
+                placeholder="(11) 99999-9999"
+                className="w-full bg-surface border border-edge-subtle rounded-lg px-3 py-2 text-sm text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-1.5 block">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="loja@email.com"
+                className="w-full bg-surface border border-edge-subtle rounded-lg px-3 py-2 text-sm text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
+              />
+            </div>
           </div>
 
           <div>

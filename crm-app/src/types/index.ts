@@ -9,9 +9,23 @@ export interface Lead {
   notas: string;
   ponto_positivo: boolean;
   responsavel: string | null;
+  fonte_oportunidade: string | null;
+  telefone: string | null;
+  email: string | null;
   created_at: string;
   updated_at: string;
 }
+
+// Fontes de oportunidade (para dropdown)
+export const FONTES_OPORTUNIDADE = [
+  "Instagram",
+  "Indicação",
+  "Site",
+  "Prospecção Ativa",
+  "WhatsApp",
+  "Evento",
+  "Outro",
+] as const;
 
 export type LeadStatus =
   | "novo"

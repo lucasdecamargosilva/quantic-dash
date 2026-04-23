@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Lead, Interacao, LeadStatus } from "../types";
+import { FONTES_OPORTUNIDADE } from "../types";
 import StatusBadge from "./StatusBadge";
 import InteracaoForm from "./InteracaoForm";
 
@@ -85,6 +86,27 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
     const valor = resp.trim() || null;
     await supabase.from("leads").update({ responsavel: valor }).eq("id", leadId);
     setLead((prev) => (prev ? { ...prev, responsavel: valor } : null));
+    onUpdated?.();
+  }
+
+  async function salvarFonte(fonte: string) {
+    const valor = fonte || null;
+    await supabase.from("leads").update({ fonte_oportunidade: valor }).eq("id", leadId);
+    setLead((prev) => (prev ? { ...prev, fonte_oportunidade: valor } : null));
+    onUpdated?.();
+  }
+
+  async function salvarTelefone(tel: string) {
+    const valor = tel.trim() || null;
+    await supabase.from("leads").update({ telefone: valor }).eq("id", leadId);
+    setLead((prev) => (prev ? { ...prev, telefone: valor } : null));
+    onUpdated?.();
+  }
+
+  async function salvarEmail(mail: string) {
+    const valor = mail.trim() || null;
+    await supabase.from("leads").update({ email: valor }).eq("id", leadId);
+    setLead((prev) => (prev ? { ...prev, email: valor } : null));
     onUpdated?.();
   }
 
@@ -180,16 +202,51 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
               )}
             </div>
 
-            {/* Responsavel */}
-            <div className="mb-4">
-              <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Responsavel</label>
-              <input
-                type="text"
-                defaultValue={lead.responsavel ?? ""}
-                onBlur={(e) => salvarResponsavel(e.target.value)}
-                placeholder="Nome do responsavel"
-                className="w-full bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5 text-xs text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
-              />
+            {/* Dados da oportunidade (4 campos) */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Responsavel</label>
+                <input
+                  type="text"
+                  defaultValue={lead.responsavel ?? ""}
+                  onBlur={(e) => salvarResponsavel(e.target.value)}
+                  placeholder="Nome"
+                  className="w-full bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5 text-xs text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Fonte da oportunidade</label>
+                <select
+                  value={lead.fonte_oportunidade ?? ""}
+                  onChange={(e) => salvarFonte(e.target.value)}
+                  className="w-full bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5 text-xs text-sub focus:outline-none focus:border-violet/30 transition-all"
+                >
+                  <option value="">— Selecione —</option>
+                  {FONTES_OPORTUNIDADE.map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Telefone</label>
+                <input
+                  type="tel"
+                  defaultValue={lead.telefone ?? ""}
+                  onBlur={(e) => salvarTelefone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="w-full bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5 text-xs text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Email</label>
+                <input
+                  type="email"
+                  defaultValue={lead.email ?? ""}
+                  onBlur={(e) => salvarEmail(e.target.value)}
+                  placeholder="loja@email.com"
+                  className="w-full bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5 text-xs text-text placeholder:text-dim/50 focus:outline-none focus:border-violet/30 focus:ring-1 focus:ring-violet/10 transition-all"
+                />
+              </div>
             </div>
 
             {/* Notas */}

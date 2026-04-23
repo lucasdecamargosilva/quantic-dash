@@ -148,6 +148,7 @@ export default function Pipeline() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
+  const [filtroResponsavel, setFiltroResponsavel] = useState<string>("__todos");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -162,6 +163,18 @@ export default function Pipeline() {
     setLeads(data ?? []);
     setLoading(false);
   }
+
+  // Extrai responsáveis únicos dos leads (dinâmico)
+  const responsaveisUnicos = Array.from(
+    new Set(leads.map((l) => l.responsavel).filter((r): r is string => !!r && r.trim() !== ""))
+  ).sort();
+
+  // Aplica o filtro em todos os leads (antes do agrupamento por status)
+  const leadsFiltrados = leads.filter((l) => {
+    if (filtroResponsavel === "__todos") return true;
+    if (filtroResponsavel === "__sem") return !l.responsavel;
+    return l.responsavel === filtroResponsavel;
+  });
 
   async function moveToStatus(leadId: string, newStatus: LeadStatus) {
     // Atualização otimista
@@ -190,14 +203,14 @@ export default function Pipeline() {
 
   const grouped = PIPELINE_STATUSES.reduce(
     (acc, s) => {
-      acc[s] = leads.filter((l) => l.status === s);
+      acc[s] = leadsFiltrados.filter((l) => l.status === s);
       return acc;
     },
     {} as Record<LeadStatus, Lead[]>
   );
 
-  const descartados = leads.filter((l) => l.status === "descartado");
-  const totalActive = leads.length - descartados.length;
+  const descartados = leadsFiltrados.filter((l) => l.status === "descartado");
+  const totalActive = leadsFiltrados.length - descartados.length;
 
   if (loading) {
     return (
@@ -210,7 +223,7 @@ export default function Pipeline() {
   return (
     <div className="min-h-full flex flex-col">
       {/* Header */}
-      <div className="px-8 pt-7 pb-5 flex items-end justify-between border-b border-edge-subtle">
+      <div className="px-8 pt-7 pb-5 flex items-end justify-between border-b border-edge-subtle gap-6">
         <div>
           <h1 className="text-[22px] font-bold text-bright tracking-tight">Pipeline</h1>
           <p className="text-dim text-xs mt-1.5 tracking-wide">
@@ -221,17 +234,40 @@ export default function Pipeline() {
                 &middot; {descartados.length} descartado{descartados.length > 1 ? "s" : ""}
               </span>
             )}
+            {filtroResponsavel !== "__todos" && (
+              <span className="ml-2 text-violet-light">
+                · filtrado por {filtroResponsavel === "__sem" ? "sem responsável" : filtroResponsavel}
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex gap-4 mb-1">
-          {PIPELINE_STATUSES.map((s) => (
-            <div key={s} className="text-center">
-              <p className="text-lg font-bold text-bright leading-none" style={{ color: STATUS_HEX[s] }}>
-                {grouped[s]?.length ?? 0}
-              </p>
-              <p className="text-[9px] text-dim uppercase tracking-widest mt-1">{STATUS_LABELS[s]}</p>
-            </div>
-          ))}
+        <div className="flex items-end gap-4">
+          {/* Filtro de responsavel */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Responsável</label>
+            <select
+              value={filtroResponsavel}
+              onChange={(e) => setFiltroResponsavel(e.target.value)}
+              className="bg-surface border border-edge-subtle rounded-lg px-3 py-1.5 text-xs text-sub focus:outline-none focus:border-violet/30 transition-all min-w-[160px]"
+            >
+              <option value="__todos">Todos</option>
+              <option value="__sem">Sem responsável</option>
+              {responsaveisUnicos.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+          {/* Contadores por status */}
+          <div className="flex gap-4 mb-1">
+            {PIPELINE_STATUSES.map((s) => (
+              <div key={s} className="text-center">
+                <p className="text-lg font-bold text-bright leading-none" style={{ color: STATUS_HEX[s] }}>
+                  {grouped[s]?.length ?? 0}
+                </p>
+                <p className="text-[9px] text-dim uppercase tracking-widest mt-1">{STATUS_LABELS[s]}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
