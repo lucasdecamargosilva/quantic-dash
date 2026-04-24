@@ -107,6 +107,7 @@ def main():
     parser.add_argument("--query", type=str, default=None, help="Query especifica para buscar")
     parser.add_argument("--limit", type=int, default=20, help="Limite de perfis por query")
     parser.add_argument("--min-seg", type=int, default=5000, help="Minimo de seguidores (default: 5000)")
+    parser.add_argument("--categoria", type=str, default="oculos", choices=["oculos", "roupa"], help="Categoria do lead")
     args = parser.parse_args()
 
     if not APIFY_TOKEN:
@@ -146,6 +147,7 @@ def main():
             if lead["seguidores"] < args.min_seg:
                 continue
 
+            lead["categoria"] = args.categoria
             seen_usernames.add(username)
             all_leads.append(lead)
             print(f"    + @{username} — {lead['nome_loja']} ({lead['seguidores']} seg.)")

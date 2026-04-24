@@ -8,27 +8,56 @@ from config import SUPABASE_URL, SUPABASE_KEY
 
 SESSION_DIR = os.path.join(os.path.dirname(__file__), "instagram_session")
 
-MENSAGEM_PT = """Oi! Tudo bem?
+# Mensagens indexadas por (idioma, categoria)
+MENSAGENS = {
+    ("pt", "oculos"): """Oi! Tudo bem?
 
 Estava olhando a loja de vocês e percebi que ainda não têm provador virtual de óculos.
 
 Nós da @provoulevouapp somos um provador virtual que permite o cliente experimentar os óculos pela câmera do celular, direto no site. Nossos clientes estão vendo um aumento de até 13% na conversão.
 
-Posso mandar um teste que fizemos com alguns óculos da loja de vocês?"""
+Posso mandar um teste que fizemos com alguns óculos da loja de vocês?""",
 
-MENSAGEM_EN = """Hey! Saw your store and noticed you don't have a virtual try-on yet.
+    ("pt", "roupa"): """Oi! Tudo bem?
+
+Estava olhando a loja de vocês e percebi que ainda não têm provador virtual.
+
+Nós da @provoulevouapp somos um provador virtual que permite o cliente experimentar as peças pela câmera do celular, direto no site. Nossos clientes estão vendo um aumento de até 13% na conversão.
+
+Posso mandar um teste que fizemos com algumas peças da loja de vocês?""",
+
+    ("en", "oculos"): """Hey! Saw your store and noticed you don't have a virtual try-on yet.
 
 We built a try-on tool that lets customers try glasses through their phone camera directly on your site — our customers see up to a 13% lift in conversion.
 
-Mind if I send a quick demo using a few of your frames?"""
+Mind if I send a quick demo using a few of your frames?""",
 
-MENSAGEM_ES = """¡Hola! ¿Qué tal?
+    ("en", "roupa"): """Hey! Saw your store and noticed you don't have a virtual try-on yet.
+
+We built a try-on tool that lets customers try your pieces through their phone camera directly on your site — our customers see up to a 13% lift in conversion.
+
+Mind if I send a quick demo using some of your pieces?""",
+
+    ("es", "oculos"): """¡Hola! ¿Qué tal?
 
 Estaba viendo tu tienda y noté que todavía no tienen probador virtual de lentes.
 
 Somos un probador virtual que permite al cliente probar los lentes con la cámara del celular, directo en el sitio web. Nuestros clientes están viendo un aumento de hasta 13% en la conversión.
 
-¿Puedo enviarte una prueba que hicimos con algunos lentes de tu tienda?"""
+¿Puedo enviarte una prueba que hicimos con algunos lentes de tu tienda?""",
+
+    ("es", "roupa"): """¡Hola! ¿Qué tal?
+
+Estaba viendo tu tienda y noté que todavía no tienen probador virtual.
+
+Somos un probador virtual que permite al cliente probar las prendas con la cámara del celular, directo en el sitio web. Nuestros clientes están viendo un aumento de hasta 13% en la conversión.
+
+¿Puedo enviarte una prueba que hicimos con algunas prendas de tu tienda?""",
+}
+
+
+def escolher_mensagem(idioma: str, categoria: str) -> str:
+    return MENSAGENS.get((idioma, categoria)) or MENSAGENS[("pt", "oculos")]
 
 
 def cmd_login():
@@ -219,13 +248,9 @@ def cmd_enviar(args):
                 print("  Recriando pagina...")
                 page = browser.new_page()
 
-            idioma = lead.get("idioma", "pt")
-            if idioma == "en":
-                mensagem = MENSAGEM_EN
-            elif idioma == "es":
-                mensagem = MENSAGEM_ES
-            else:
-                mensagem = MENSAGEM_PT
+            # Sempre PT por enquanto
+            categoria = lead.get("categoria", "oculos")
+            mensagem = escolher_mensagem("pt", categoria)
             sucesso = enviar_dm(page, username, mensagem)
 
             if sucesso:

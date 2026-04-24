@@ -11,35 +11,49 @@ import os
 from apify_client import ApifyClient
 from config import APIFY_TOKEN, DATA_DIR, LEADS_BRUTOS_PATH
 
-SHOPPING_QUERIES_PT = [
-    "oculos de sol",
-    "oculos de grau",
-    "oculos polarizado",
-]
-
-SHOPPING_QUERIES_EN = [
-    "sunglasses",
-    "eyewear",
-    "eyeglasses",
-]
-
-SHOPPING_QUERIES_ES = [
-    "gafas de sol",
-    "lentes de sol",
-    "anteojos",
-]
+SHOPPING_QUERIES = {
+    ("oculos", "pt"): ["oculos de sol", "oculos de grau", "oculos polarizado", "armacao de oculos"],
+    ("oculos", "en"): ["sunglasses", "eyewear", "eyeglasses"],
+    ("oculos", "es"): ["gafas de sol", "lentes de sol", "anteojos"],
+    ("roupa", "pt"): [
+        "vestido feminino", "camiseta estampada", "calca jeans feminina",
+        "blusa feminina", "moletom unissex", "biquini", "maio",
+        "short masculino", "camisa social", "jaqueta masculina",
+        "lingerie feminina", "pijama", "casaco feminino",
+        "body feminino", "cropped feminino", "saia midi",
+        "vestido longo", "vestido festa", "vestido curto",
+        "camiseta basica", "t-shirt feminina", "blusa tricot",
+        "calca alfaiataria", "legging fitness", "top fitness",
+        "tenis casual", "sandalia feminina", "bolsa feminina",
+        "oculos acessorio", "moda evangelica vestido",
+        "macacao feminino", "kimono", "vestido boho",
+        "cardiga", "blazer feminino", "blazer masculino",
+        "tactel moletom", "conjunto feminino", "conjunto masculino",
+    ],
+    ("roupa", "en"): ["women dress", "men t-shirt", "hoodie", "swimwear"],
+    ("roupa", "es"): ["vestido mujer", "camiseta hombre", "sudadera"],
+}
 
 # Merchants genericos para ignorar (marketplaces)
 BLOCKED_MERCHANTS = [
     "amazon", "ebay", "mercado livre", "mercadolivre", "magalu",
     "magazine luiza", "americanas", "submarino", "shoppe", "shopee",
     "aliexpress", "wish", "shein", "dafiti", "walmart", "target",
-    "costco", "best buy", "ray-ban", "oakley", "persol",  # marcas grandes conhecidas
+    "costco", "best buy", "ray-ban", "oakley", "persol",
+    "zara", "c&a", "renner", "riachuelo", "marisa", "hering",
+    "lojas torra", "nike", "adidas", "puma", "decathlon",
 ]
 
-KEYWORDS = [
+KEYWORDS_OCULOS = [
     "eyewear", "glasses", "sunglasses", "oculos", "óculos",
     "frames", "optical", "optica", "óptica", "gafas", "lentes",
+]
+
+KEYWORDS_ROUPA = [
+    "moda", "fashion", "loja", "boutique", "store", "brand",
+    "roupa", "wear", "apparel", "clothing", "feminina", "masculina",
+    "bikini", "biquini", "moletom", "vestido", "streetwear", "ropa",
+    "camiseta", "tshirt", "basicos", "atelier",
 ]
 
 
@@ -109,7 +123,7 @@ def buscar_no_instagram(client: ApifyClient, termo: str) -> list[dict]:
         return []
 
 
-def extrair_lead(item: dict) -> dict | None:
+def extrair_lead(item: dict, categoria: str) -> dict | None:
     username = item.get("username", "")
     nome = (item.get("fullName") or "").lower()
     bio = (item.get("biography") or "").lower()
@@ -118,8 +132,9 @@ def extrair_lead(item: dict) -> dict | None:
     if seguidores < 1000:
         return None
 
+    keywords = KEYWORDS_OCULOS if categoria == "oculos" else KEYWORDS_ROUPA
     texto = f"{username} {nome} {bio}"
-    if not any(kw in texto for kw in KEYWORDS):
+    if not any(kw in texto for kw in keywords):
         return None
 
     urls = item.get("externalUrls") or []
@@ -137,12 +152,14 @@ def extrair_lead(item: dict) -> dict | None:
         "bio": item.get("biography") or "",
         "is_business": item.get("isBusinessAccount", False),
         "idioma": detectar_idioma(item.get("biography") or "", item.get("fullName") or "", site),
+        "categoria": categoria,
     }
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--country", choices=["br", "us", "es", "all"], default="all")
+    parser.add_argument("--country", choices=["br", "us", "es", "all"], default="br")
+    parser.add_argument("--categoria", choices=["oculos", "roupa", "all"], default="all")
     parser.add_argument("--limit", type=int, default=30, help="Produtos por query no Google Shopping")
     args = parser.parse_args()
 
@@ -152,36 +169,43 @@ def main():
 
     client = ApifyClient(APIFY_TOKEN)
 
+    country_map = {"br": "pt", "us": "en", "es": "es"}
+    countries = ["br", "us", "es"] if args.country == "all" else [args.country]
+    cats = ["oculos", "roupa"] if args.categoria == "all" else [args.categoria]
+
     configs = []
-    if args.country in ("br", "all"):
-        configs.append(("br", SHOPPING_QUERIES_PT))
-    if args.country in ("us", "all"):
-        configs.append(("us", SHOPPING_QUERIES_EN))
-    if args.country in ("es", "all"):
-        configs.append(("es", SHOPPING_QUERIES_ES))
+    for c in countries:
+        idioma = country_map[c]
+        for cat in cats:
+            queries = SHOPPING_QUERIES.get((cat, idioma), [])
+            if queries:
+                configs.append((c, cat, queries))
 
-    merchants = set()
-    for country, queries in configs:
+    # Mapeia merchant -> categoria (pra associar certo depois)
+    merchants_cat: dict[str, str] = {}
+    for country, cat, queries in configs:
         ms = buscar_google_shopping(client, queries, country, args.limit)
-        merchants.update(ms)
+        for m in ms:
+            if m not in merchants_cat:
+                merchants_cat[m] = cat
 
-    print(f"\n=== {len(merchants)} merchants unicos totais ===")
-    for m in sorted(merchants):
-        print(f"  - {m}")
+    print(f"\n=== {len(merchants_cat)} merchants unicos totais ===")
+    for m, c in sorted(merchants_cat.items()):
+        print(f"  - [{c}] {m}")
 
     print(f"\n=== Buscando no Instagram ===")
     all_leads = []
     seen = set()
 
-    for merchant in sorted(merchants):
-        print(f"\n  @ Buscando '{merchant}'...")
+    for merchant, cat in sorted(merchants_cat.items()):
+        print(f"\n  @ Buscando '{merchant}' ({cat})...")
         items = buscar_no_instagram(client, merchant)
         for item in items:
-            lead = extrair_lead(item)
+            lead = extrair_lead(item, cat)
             if lead and lead["instagram"] and lead["instagram"] not in seen:
                 seen.add(lead["instagram"])
                 all_leads.append(lead)
-                print(f"    + @{lead['instagram']} — {lead['nome_loja']} ({lead['seguidores']} seg.) [{lead['idioma']}]")
+                print(f"    + @{lead['instagram']} — {lead['nome_loja']} ({lead['seguidores']} seg.) [{lead['idioma']} / {cat}]")
 
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(LEADS_BRUTOS_PATH, "w", encoding="utf-8") as f:

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { LEAD_STATUSES, STATUS_LABELS, FONTES_OPORTUNIDADE } from "../types";
-import type { LeadStatus } from "../types";
+import { LEAD_STATUSES, STATUS_LABELS, FONTES_OPORTUNIDADE, CATEGORIAS, CATEGORIA_LABELS } from "../types";
+import type { LeadStatus, Categoria } from "../types";
 
 interface Props {
   onClose: () => void;
@@ -15,6 +15,7 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
   const [seguidores, setSeguidores] = useState("");
   const [idioma, setIdioma] = useState<"pt" | "en" | "es">("pt");
   const [status, setStatus] = useState<LeadStatus>("novo");
+  const [categoria, setCategoria] = useState<Categoria>("oculos");
   const [responsavel, setResponsavel] = useState("");
   const [fonteOportunidade, setFonteOportunidade] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -42,6 +43,7 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
       idioma,
       notas: notas.trim(),
       status,
+      categoria,
       tem_provador: false,
       responsavel: responsavel.trim() || null,
       fonte_oportunidade: fonteOportunidade || null,
@@ -138,17 +140,31 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
             </div>
           </div>
 
-          <div>
-            <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-1.5 block">Status (etapa do pipeline)</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as LeadStatus)}
-              className="w-full bg-surface border border-edge-subtle rounded-lg px-3 py-2 text-sm text-sub focus:outline-none focus:border-violet/30 transition-all"
-            >
-              {LEAD_STATUSES.map((s) => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-1.5 block">Categoria</label>
+              <select
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value as Categoria)}
+                className="w-full bg-surface border border-edge-subtle rounded-lg px-3 py-2 text-sm text-sub focus:outline-none focus:border-violet/30 transition-all"
+              >
+                {CATEGORIAS.map((c) => (
+                  <option key={c} value={c}>{CATEGORIA_LABELS[c]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-1.5 block">Status (etapa)</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as LeadStatus)}
+                className="w-full bg-surface border border-edge-subtle rounded-lg px-3 py-2 text-sm text-sub focus:outline-none focus:border-violet/30 transition-all"
+              >
+                {LEAD_STATUSES.map((s) => (
+                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { Lead, LeadStatus } from "../types";
-import { PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX } from "../types";
+import type { Lead, LeadStatus, Categoria } from "../types";
+import { PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import LeadModal from "../components/LeadModal";
 import DesempenhoResponsaveis from "../components/DesempenhoResponsaveis";
 import {
@@ -149,6 +149,7 @@ export default function Pipeline() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [filtroResponsavel, setFiltroResponsavel] = useState<string>("__todos");
+  const [filtroCategoria, setFiltroCategoria] = useState<Categoria | "todas">("todas");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -169,11 +170,12 @@ export default function Pipeline() {
     new Set(leads.map((l) => l.responsavel).filter((r): r is string => !!r && r.trim() !== ""))
   ).sort();
 
-  // Aplica o filtro em todos os leads (antes do agrupamento por status)
+  // Aplica os filtros (responsavel + categoria) antes do agrupamento por status
   const leadsFiltrados = leads.filter((l) => {
-    if (filtroResponsavel === "__todos") return true;
+    if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
     if (filtroResponsavel === "__sem") return !l.responsavel;
-    return l.responsavel === filtroResponsavel;
+    if (filtroResponsavel !== "__todos" && l.responsavel !== filtroResponsavel) return false;
+    return true;
   });
 
   async function moveToStatus(leadId: string, newStatus: LeadStatus) {
@@ -241,20 +243,50 @@ export default function Pipeline() {
             )}
           </p>
         </div>
-        {/* Filtro de responsavel (canto superior direito) */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Responsável</label>
-          <select
-            value={filtroResponsavel}
-            onChange={(e) => setFiltroResponsavel(e.target.value)}
-            className="bg-surface border border-edge-subtle rounded-lg px-3 py-1.5 text-xs text-sub focus:outline-none focus:border-violet/30 transition-all min-w-[180px]"
-          >
-            <option value="__todos">Todos</option>
-            <option value="__sem">Sem responsável</option>
-            {responsaveisUnicos.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
+        {/* Filtros (canto superior direito): categoria + responsavel */}
+        <div className="flex items-end gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Categoria</label>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setFiltroCategoria("todas")}
+                className={`text-[10px] uppercase tracking-[0.15em] px-2.5 py-1.5 rounded transition-all ${
+                  filtroCategoria === "todas"
+                    ? "bg-violet/20 text-violet-light border border-violet/30"
+                    : "text-dim border border-edge-subtle hover:text-sub"
+                }`}
+              >
+                Todas
+              </button>
+              {CATEGORIAS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setFiltroCategoria(c)}
+                  className={`text-[10px] uppercase tracking-[0.15em] px-2.5 py-1.5 rounded transition-all ${
+                    filtroCategoria === c
+                      ? "bg-violet/20 text-violet-light border border-violet/30"
+                      : "text-dim border border-edge-subtle hover:text-sub"
+                  }`}
+                >
+                  {CATEGORIA_LABELS[c]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Responsável</label>
+            <select
+              value={filtroResponsavel}
+              onChange={(e) => setFiltroResponsavel(e.target.value)}
+              className="bg-surface border border-edge-subtle rounded-lg px-3 py-1.5 text-xs text-sub focus:outline-none focus:border-violet/30 transition-all min-w-[180px]"
+            >
+              <option value="__todos">Todos</option>
+              <option value="__sem">Sem responsável</option>
+              {responsaveisUnicos.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

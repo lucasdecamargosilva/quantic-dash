@@ -39,6 +39,8 @@ def main():
             "tem_provador": lead.get("tem_provador", False),
             "status": "novo",
             "idioma": lead.get("idioma", "pt"),
+            "categoria": lead.get("categoria", "oculos"),
+            "responsavel": "Lucas de Camargo",
         }
 
         supabase.table("leads").insert(row).execute()
