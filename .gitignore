@@ -8,3 +8,10 @@ crm-app/node_modules
 crm-app/.env.local
 crm-app/.env.development.local
 # crm-app/dist — commitado para bypassar build no deploy
+
+# CRM Scraper (Python standalone)
+crm-scraper/.env
+crm-scraper/.venv
+crm-scraper/__pycache__
+crm-scraper/data/*.json
+!crm-scraper/data/.gitkeep
