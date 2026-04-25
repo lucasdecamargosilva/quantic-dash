@@ -18,6 +18,11 @@ const CHATWOOT_USER_ID = process.env.CHATWOOT_USER_ID || 1;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://quantic-supabase.k5jwra.easypanel.host';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
 
+// Configurações do Meta Marketing API (Facebook Ads)
+const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
+const META_AD_ACCOUNT_ID = process.env.META_AD_ACCOUNT_ID;
+const META_API_VERSION = process.env.META_API_VERSION || 'v21.0';
+
 // 1. Endpoints do Dashboard (Devem vir PRIMEIRO)
 app.get('/api/config', (req, res) => {
     res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
@@ -26,6 +31,72 @@ app.get('/api/config', (req, res) => {
 // Redireciona a raiz pra Custos (página Desempenho desativada)
 app.get('/', (req, res) => res.redirect('/custos.html'));
 app.get('/index.html', (req, res) => res.redirect('/custos.html'));
+
+// ========== META ADS (Marketing API) ==========
+// Proxy server-side: o token NUNCA vai pro front
+function metaError(res, error) {
+    console.error('❌ Meta API:', error?.response?.data || error.message);
+    res.status(error?.response?.status || 500).json({
+        error: error?.response?.data?.error?.message || error.message,
+        code: error?.response?.data?.error?.code,
+        type: error?.response?.data?.error?.type
+    });
+}
+
+// Insights agregados (totais + breakdown opcional por dia)
+// Query: ?since=YYYY-MM-DD&until=YYYY-MM-DD&breakdown=daily
+app.get('/api/meta/insights', async (req, res) => {
+    if (!META_ACCESS_TOKEN || !META_AD_ACCOUNT_ID) {
+        return res.status(500).json({ error: 'META_ACCESS_TOKEN ou META_AD_ACCOUNT_ID não configurados' });
+    }
+    try {
+        const since = req.query.since;
+        const until = req.query.until;
+        if (!since || !until) return res.status(400).json({ error: 'since e until são obrigatórios (YYYY-MM-DD)' });
+        const breakdown = req.query.breakdown === 'daily' ? '&time_increment=1' : '';
+        const fields = 'spend,impressions,clicks,ctr,cpc,cpm,reach,actions,action_values,date_start,date_stop';
+        const url = `https://graph.facebook.com/${META_API_VERSION}/${META_AD_ACCOUNT_ID}/insights` +
+            `?fields=${fields}` +
+            `&time_range=${encodeURIComponent(JSON.stringify({ since, until }))}` +
+            breakdown +
+            `&access_token=${META_ACCESS_TOKEN}`;
+        const r = await axios.get(url, { timeout: 15000 });
+        res.json(r.data);
+    } catch (e) { metaError(res, e); }
+});
+
+// Por campanha
+// Query: ?since=YYYY-MM-DD&until=YYYY-MM-DD
+app.get('/api/meta/campaigns', async (req, res) => {
+    if (!META_ACCESS_TOKEN || !META_AD_ACCOUNT_ID) {
+        return res.status(500).json({ error: 'META_ACCESS_TOKEN ou META_AD_ACCOUNT_ID não configurados' });
+    }
+    try {
+        const since = req.query.since;
+        const until = req.query.until;
+        if (!since || !until) return res.status(400).json({ error: 'since e until são obrigatórios' });
+        const fields = 'campaign_id,campaign_name,spend,impressions,clicks,ctr,cpc,cpm,reach,actions,action_values,objective';
+        const url = `https://graph.facebook.com/${META_API_VERSION}/${META_AD_ACCOUNT_ID}/insights` +
+            `?level=campaign&fields=${fields}` +
+            `&time_range=${encodeURIComponent(JSON.stringify({ since, until }))}` +
+            `&limit=200&access_token=${META_ACCESS_TOKEN}`;
+        const r = await axios.get(url, { timeout: 15000 });
+        res.json(r.data);
+    } catch (e) { metaError(res, e); }
+});
+
+// Metadados da conta (nome, currency, timezone) — pra mostrar no header
+app.get('/api/meta/account', async (req, res) => {
+    if (!META_ACCESS_TOKEN || !META_AD_ACCOUNT_ID) {
+        return res.status(500).json({ error: 'META_ACCESS_TOKEN ou META_AD_ACCOUNT_ID não configurados' });
+    }
+    try {
+        const url = `https://graph.facebook.com/${META_API_VERSION}/${META_AD_ACCOUNT_ID}` +
+            `?fields=name,currency,timezone_name,account_status&access_token=${META_ACCESS_TOKEN}`;
+        const r = await axios.get(url, { timeout: 10000 });
+        res.json(r.data);
+    } catch (e) { metaError(res, e); }
+});
 
 app.get('/api/chatwoot/sso', async (req, res) => {
     try {

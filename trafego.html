@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantic — Tráfego Pago</title>
+
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="favicon.png" sizes="180x180">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .tp-controls { display:flex; align-items:center; gap:12px; margin-bottom:24px; flex-wrap:wrap; }
+        .tp-meta { display:flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(139,92,246,0.06); border:1px solid rgba(139,92,246,0.15); border-radius:8px; font-size:11px; color:#a78bfa; font-weight:600; }
+        .tp-meta i { font-size:14px; }
+        .preset-btn { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--text-muted,#94a3b8); border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+        .preset-btn:hover { background:rgba(139,92,246,0.12); color:#a78bfa; }
+        .preset-btn.active { background:rgba(139,92,246,0.18); border-color:rgba(139,92,246,0.4); color:#c4b5fd; }
+        .date-range { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:6px 12px; }
+        .date-lbl { font-size:11px; font-weight:600; color:var(--text-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; }
+        .date-input { background:transparent; border:none; color:#fff; font-size:13px; font-family:inherit; outline:none; cursor:pointer; padding:4px 0; }
+        .date-input::-webkit-calendar-picker-indicator { filter:invert(0.7); cursor:pointer; }
+        .refresh-btn { background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2); color:#22d3ee; font-size:12px; font-weight:600; padding:7px 14px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:inherit; transition:all 0.2s; margin-left:auto; }
+        .refresh-btn:hover { background:rgba(6,182,212,0.2); color:#fff; }
+        .refresh-btn.loading i { animation: tp-spin 1s linear infinite; }
+        @keyframes tp-spin { to { transform: rotate(360deg); } }
+
+        .kpi-row { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:28px; }
+        .kpi { background:rgba(12,14,23,0.85); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.05); border-radius:14px; padding:18px 20px; position:relative; overflow:hidden; }
+        .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(139,92,246,0.4),transparent); }
+        .kpi.cyan::before { background:linear-gradient(90deg,transparent,rgba(6,182,212,0.4),transparent); }
+        .kpi.green::before { background:linear-gradient(90deg,transparent,rgba(52,211,153,0.4),transparent); }
+        .kpi.amber::before { background:linear-gradient(90deg,transparent,rgba(251,191,36,0.4),transparent); }
+        .kpi-label { font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px; }
+        .kpi-value { font-size:22px; font-weight:800; color:#fff; letter-spacing:-0.4px; font-feature-settings:"tnum"; }
+        .kpi-value.cyan { color:#22d3ee; }
+        .kpi-value.green { color:#34d399; }
+        .kpi-value.amber { color:#fbbf24; }
+        .kpi-value.red { color:#f87171; }
+        .kpi-sub { font-size:11px; color:var(--text-muted,#94a3b8); margin-top:4px; }
+
+        .section-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted,#94a3b8); margin-bottom:12px; display:flex; align-items:center; gap:10px; }
+        .section-label .pill { background:rgba(139,92,246,0.12); color:#a78bfa; border:1px solid rgba(139,92,246,0.25); font-size:10px; padding:3px 10px; border-radius:20px; }
+
+        .tp-table-wrap { background:rgba(12,14,23,0.8); border:1px solid rgba(255,255,255,0.05); border-radius:14px; overflow:hidden; backdrop-filter:blur(12px); }
+        .tp-table { width:100%; border-collapse:collapse; }
+        .tp-table th { text-align:left; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted,#94a3b8); padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.02); }
+        .tp-table td { padding:14px 16px; font-size:13px; color:#fff; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+        .tp-table tr:last-child td { border-bottom:none; }
+        .tp-table tr:hover td { background:rgba(139,92,246,0.04); }
+        .tp-table .num { text-align:right; font-feature-settings:"tnum"; }
+        .tp-empty { padding:60px 20px; text-align:center; color:var(--text-muted,#94a3b8); font-size:13px; }
+        .tp-empty i { font-size:42px; opacity:0.4; display:block; margin-bottom:12px; }
+        .tp-error { padding:20px; background:rgba(248,113,113,0.06); border:1px solid rgba(248,113,113,0.15); border-radius:10px; color:#f87171; font-size:13px; }
+    </style>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Quantic Logo" class="sidebar-logo">
+                <button class="toggle-btn" id="toggleSidebar"><i class="ph ph-list"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="custos.html" class="nav-link"><i class="ph-fill ph-receipt"></i><span class="link-text">Custos</span></a>
+                <a href="receitas.html" class="nav-link"><i class="ph-fill ph-money"></i><span class="link-text">Receitas</span></a>
+                <a href="clientes.html" class="nav-link"><i class="ph-fill ph-buildings"></i><span class="link-text">Clientes</span></a>
+                <a href="dre.html" class="nav-link"><i class="ph-fill ph-receipt"></i><span class="link-text">DRE</span></a>
+                <a href="fluxo-caixa.html" class="nav-link"><i class="ph-fill ph-bank"></i><span class="link-text">Fluxo de Caixa</span></a>
+                <a href="trafego.html" class="nav-link active"><i class="ph-fill ph-megaphone-simple"></i><span class="link-text">Tráfego Pago</span></a>
+                <a href="/crm/" class="nav-link nav-switch-crm" title="Mudar para CRM">
+                    <i class="ph-fill ph-arrows-left-right"></i>
+                    <span class="link-text">Mudar para CRM</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer"></div>
+        </aside>
+
+        <div class="main-content">
+            <div class="app-container">
+                <header class="main-header">
+                    <div class="header-left">
+                        <h1 class="page-title">Tráfego Pago</h1>
+                    </div>
+                    <div class="user-area">
+                        <button class="icon-btn"><i class="ph-fill ph-bell"></i></button>
+                    </div>
+                </header>
+
+                <main class="dashboard-grid">
+                    <section class="section-overview">
+                        <div class="tp-controls">
+                            <span class="tp-meta">
+                                <i class="ph-fill ph-meta-logo"></i>
+                                <span id="metaContaNome">—</span>
+                            </span>
+                            <button class="preset-btn" data-preset="hoje">Hoje</button>
+                            <button class="preset-btn" data-preset="ontem">Ontem</button>
+                            <button class="preset-btn active" data-preset="ultimos-7">Últimos 7 dias</button>
+                            <button class="preset-btn" data-preset="ultimos-30">Últimos 30 dias</button>
+                            <button class="preset-btn" data-preset="ultimos-90">Últimos 90 dias</button>
+                            <div class="date-range">
+                                <span class="date-lbl">De</span>
+                                <input type="date" class="date-input" id="filterDe">
+                                <span class="date-lbl">até</span>
+                                <input type="date" class="date-input" id="filterAte">
+                            </div>
+                            <button class="refresh-btn" id="btnRefresh">
+                                <i class="ph-fill ph-arrow-clockwise"></i>
+                                <span>Atualizar</span>
+                            </button>
+                        </div>
+
+                        <div class="kpi-row">
+                            <div class="kpi"><span class="kpi-label">Investido</span><span class="kpi-value" id="kpiSpend">—</span><span class="kpi-sub" id="kpiSpendSub"></span></div>
+                            <div class="kpi cyan"><span class="kpi-label">Impressões</span><span class="kpi-value cyan" id="kpiImpr">—</span><span class="kpi-sub" id="kpiImprSub"></span></div>
+                            <div class="kpi green"><span class="kpi-label">Cliques no link</span><span class="kpi-value green" id="kpiClicks">—</span><span class="kpi-sub">link clicks</span></div>
+                            <div class="kpi amber"><span class="kpi-label">CTR (link)</span><span class="kpi-value amber" id="kpiCtr">—</span><span class="kpi-sub">cliques / impressões</span></div>
+                            <div class="kpi"><span class="kpi-label">CPC (link)</span><span class="kpi-value" id="kpiCpc">—</span><span class="kpi-sub">spend / cliques link</span></div>
+                            <div class="kpi cyan"><span class="kpi-label">CPM</span><span class="kpi-value cyan" id="kpiCpm">—</span><span class="kpi-sub">por mil impressões</span></div>
+                        </div>
+
+                        <div class="section-label">
+                            <span>Campanhas</span>
+                            <span class="pill" id="pillCampaigns">— campanhas</span>
+                        </div>
+                        <div class="tp-table-wrap">
+                            <table class="tp-table">
+                                <thead>
+                                    <tr>
+                                        <th>Campanha</th>
+                                        <th class="num">Investido</th>
+                                        <th class="num">Impressões</th>
+                                        <th class="num">Cliques</th>
+                                        <th class="num">CTR</th>
+                                        <th class="num">CPC</th>
+                                        <th class="num">CPM</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="campaignsBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </main>
+
+                <footer class="main-footer">
+                    <div class="footer-logo"><i class="ph-fill ph-squares-four"></i> <span>Quantic</span></div>
+                    <p>&copy; 2024 Quantic Fin. Todos os direitos reservados.</p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <script src="theme-handler.js"></script>
+    <script>
+    var fmtBRL = function(v) { return 'R$ ' + Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 }); };
+    var fmtInt = function(v) { return Number(v||0).toLocaleString('pt-BR'); };
+    var fmtPct = function(v) { return Number(v||0).toFixed(2) + '%'; };
+
+    function isoDate(d) { return d.toISOString().slice(0, 10); }
+    function applyPreset(preset) {
+        var hoje = new Date(); hoje.setHours(0,0,0,0);
+        var de, ate;
+        if (preset === 'hoje') { de = ate = hoje; }
+        else if (preset === 'ontem') { de = new Date(hoje); de.setDate(de.getDate() - 1); ate = new Date(de); }
+        else if (preset === 'ultimos-7') { ate = hoje; de = new Date(hoje); de.setDate(de.getDate() - 6); }
+        else if (preset === 'ultimos-30') { ate = hoje; de = new Date(hoje); de.setDate(de.getDate() - 29); }
+        else if (preset === 'ultimos-90') { ate = hoje; de = new Date(hoje); de.setDate(de.getDate() - 89); }
+        document.getElementById('filterDe').value = isoDate(de);
+        document.getElementById('filterAte').value = isoDate(ate);
+        document.querySelectorAll('.preset-btn').forEach(function(b) {
+            b.classList.toggle('active', b.getAttribute('data-preset') === preset);
+        });
+        loadAll();
+    }
+
+    function actionValue(actions, type) {
+        if (!actions) return 0;
+        for (var i = 0; i < actions.length; i++) {
+            if (actions[i].action_type === type) return Number(actions[i].value || 0);
+        }
+        return 0;
+    }
+
+    function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+
+    async function loadAccount() {
+        try {
+            var r = await fetch('/api/meta/account');
+            var data = await r.json();
+            if (data.error) { setText('metaContaNome', 'Erro: ' + data.error); return; }
+            setText('metaContaNome', data.name + ' · ' + (data.currency || '') + ' · ' + (data.timezone_name || ''));
+        } catch (e) { setText('metaContaNome', 'Erro ao carregar conta'); }
+    }
+
+    async function loadInsights(since, until) {
+        var r = await fetch('/api/meta/insights?since=' + since + '&until=' + until);
+        var data = await r.json();
+        if (data.error) throw new Error(data.error);
+        var row = (data.data && data.data[0]) || {};
+        var spend = Number(row.spend || 0);
+        var impressions = Number(row.impressions || 0);
+        var linkClicks = actionValue(row.actions, 'link_click');
+        var ctr = impressions > 0 ? (linkClicks / impressions) * 100 : 0;
+        var cpc = linkClicks > 0 ? spend / linkClicks : 0;
+        var cpm = impressions > 0 ? (spend / impressions) * 1000 : 0;
+        setText('kpiSpend', fmtBRL(spend));
+        setText('kpiSpendSub', since === until ? since : (since + ' → ' + until));
+        setText('kpiImpr', fmtInt(impressions));
+        setText('kpiImprSub', 'Reach: ' + fmtInt(row.reach));
+        setText('kpiClicks', fmtInt(linkClicks));
+        setText('kpiCtr', fmtPct(ctr));
+        setText('kpiCpc', fmtBRL(cpc));
+        setText('kpiCpm', fmtBRL(cpm));
+    }
+
+    function clearChildren(el) { while (el && el.firstChild) el.removeChild(el.firstChild); }
+
+    function renderEmpty(tbody, msg) {
+        clearChildren(tbody);
+        var tr = document.createElement('tr');
+        var td = document.createElement('td');
+        td.colSpan = 7;
+        td.className = 'tp-empty';
+        var i = document.createElement('i');
+        i.className = 'ph-fill ph-megaphone-simple';
+        td.appendChild(i);
+        td.appendChild(document.createTextNode(msg));
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+    }
+
+    function appendCell(tr, text, isNum, bold) {
+        var td = document.createElement('td');
+        if (isNum) td.className = 'num';
+        if (bold) {
+            var s = document.createElement('strong');
+            s.textContent = text;
+            td.appendChild(s);
+        } else {
+            td.textContent = text;
+        }
+        tr.appendChild(td);
+    }
+
+    async function loadCampaigns(since, until) {
+        var r = await fetch('/api/meta/campaigns?since=' + since + '&until=' + until);
+        var data = await r.json();
+        if (data.error) throw new Error(data.error);
+        var rows = data.data || [];
+        setText('pillCampaigns', rows.length + ' campanha' + (rows.length === 1 ? '' : 's'));
+        var tbody = document.getElementById('campaignsBody');
+        if (!rows.length) { renderEmpty(tbody, 'Nenhuma campanha com gastos no período.'); return; }
+        rows.sort(function(a, b) { return Number(b.spend || 0) - Number(a.spend || 0); });
+        clearChildren(tbody);
+        rows.forEach(function(c) {
+            var spend = Number(c.spend || 0);
+            var impr = Number(c.impressions || 0);
+            var linkClicks = actionValue(c.actions, 'link_click');
+            var ctr = impr > 0 ? (linkClicks / impr) * 100 : 0;
+            var cpc = linkClicks > 0 ? spend / linkClicks : 0;
+            var cpm = impr > 0 ? (spend / impr) * 1000 : 0;
+            var tr = document.createElement('tr');
+            appendCell(tr, c.campaign_name || c.campaign_id, false, true);
+            appendCell(tr, fmtBRL(spend), true, true);
+            appendCell(tr, fmtInt(impr), true, false);
+            appendCell(tr, fmtInt(linkClicks), true, false);
+            appendCell(tr, fmtPct(ctr), true, false);
+            appendCell(tr, fmtBRL(cpc), true, false);
+            appendCell(tr, fmtBRL(cpm), true, false);
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function loadAll() {
+        var since = document.getElementById('filterDe').value;
+        var until = document.getElementById('filterAte').value;
+        if (!since || !until) return;
+        var btn = document.getElementById('btnRefresh');
+        if (btn) btn.classList.add('loading');
+        try {
+            await Promise.all([loadInsights(since, until), loadCampaigns(since, until)]);
+        } catch (e) {
+            console.error('Tráfego Pago:', e);
+            ['kpiSpend','kpiImpr','kpiClicks','kpiCtr','kpiCpc','kpiCpm'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) { el.textContent = 'Erro'; el.className = 'kpi-value red'; }
+            });
+            var tbody = document.getElementById('campaignsBody');
+            clearChildren(tbody);
+            var tr = document.createElement('tr');
+            var td = document.createElement('td');
+            td.colSpan = 7;
+            var div = document.createElement('div');
+            div.className = 'tp-error';
+            div.textContent = 'Erro: ' + e.message;
+            td.appendChild(div);
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        } finally {
+            if (btn) btn.classList.remove('loading');
+        }
+    }
+
+    document.querySelectorAll('.preset-btn').forEach(function(b) {
+        b.addEventListener('click', function() { applyPreset(b.getAttribute('data-preset')); });
+    });
+    document.getElementById('filterDe').addEventListener('change', function() {
+        document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+        loadAll();
+    });
+    document.getElementById('filterAte').addEventListener('change', function() {
+        document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+        loadAll();
+    });
+    document.getElementById('btnRefresh').addEventListener('click', loadAll);
+    document.getElementById('toggleSidebar') && document.getElementById('toggleSidebar').addEventListener('click', function() { document.getElementById('sidebar').classList.toggle('collapsed'); });
+
+    loadAccount();
+    applyPreset('ultimos-7');
+    </script>
+</body>
+
+</html>
