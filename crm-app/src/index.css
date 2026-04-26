@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
 
-/* Tokens alinhados com o dashboard financeiro (Quantic) */
+/* Tokens alinhados com o dashboard financeiro (Quantic) — DARK (default) */
 @theme {
   --color-base: #05060b;
   --color-raised: #0c0e17;
@@ -24,8 +24,84 @@
   --color-cyan: #06b6d4;
   --color-cyan-light: #22d3ee;
 
+  /* Surfaces específicas (sidebar, cards, modals) — auto-resolve por tema */
+  --color-sidebar: rgba(8, 10, 18, 0.95);
+  --color-sidebar-border: rgba(255, 255, 255, 0.04);
+  --color-card-glass: rgba(12, 14, 23, 0.85);
+  --color-card-border: rgba(255, 255, 255, 0.05);
+  --color-modal-bg: rgba(10, 12, 20, 0.97);
+  --color-modal-border: rgba(255, 255, 255, 0.08);
+  --color-active-bg: rgba(139, 92, 246, 0.08);
+  --color-active-glow: rgba(139, 92, 246, 0.4);
+
   --font-sans: 'Sora', 'Outfit', system-ui, sans-serif;
   --font-serif: 'Instrument Serif', Georgia, serif;
+}
+
+/* === LIGHT MODE === */
+[data-theme="light"] {
+  --color-base: #f5f7fa;
+  --color-raised: #ffffff;
+  --color-surface: #f1f5f9;
+  --color-panel: #e2e8f0;
+  --color-edge: rgba(15, 23, 42, 0.1);
+  --color-edge-subtle: rgba(15, 23, 42, 0.06);
+  --color-dim: rgba(15, 23, 42, 0.4);
+  --color-muted: rgba(15, 23, 42, 0.6);
+  --color-sub: rgba(15, 23, 42, 0.78);
+  --color-text: rgba(15, 23, 42, 0.88);
+  --color-bright: #0f172a;
+  --color-violet: #7c3aed;
+  --color-violet-light: #6d28d9;
+  --color-violet-deep: #5b21b6;
+  --color-violet-wash: #7c3aed10;
+  --color-emerald: #059669;
+  --color-amber: #d97706;
+  --color-rose: #e11d48;
+  --color-cyan: #0891b2;
+  --color-cyan-light: #06b6d4;
+
+  --color-sidebar: rgba(255, 255, 255, 0.95);
+  --color-sidebar-border: rgba(15, 23, 42, 0.08);
+  --color-card-glass: rgba(255, 255, 255, 0.85);
+  --color-card-border: rgba(15, 23, 42, 0.08);
+  --color-modal-bg: rgba(255, 255, 255, 0.97);
+  --color-modal-border: rgba(15, 23, 42, 0.1);
+  --color-active-bg: rgba(124, 58, 237, 0.08);
+  --color-active-glow: rgba(124, 58, 237, 0.35);
+}
+
+[data-theme="light"] body {
+  background-image:
+    radial-gradient(rgba(124, 58, 237, 0.05) 1px, transparent 1px),
+    radial-gradient(600px 400px at 10% 0%, rgba(124, 58, 237, 0.06), transparent),
+    radial-gradient(500px 300px at 90% 5%, rgba(8, 145, 178, 0.05), transparent);
+}
+
+[data-theme="light"] *::selection {
+  background: var(--color-violet);
+  color: white;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.15); }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(124, 58, 237, 0.4); }
+
+/* Light mode: ajusta col-drop-active pra ficar visível em fundo claro */
+[data-theme="light"] .col-drop-active {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.08) 0%, transparent 60%) !important;
+  border-color: rgba(124, 58, 237, 0.3) !important;
+  box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.2);
+}
+
+/* Card hover sombra mais sutil em light */
+[data-theme="light"] .card-lift:hover,
+[data-theme="light"] .card-drag:hover {
+  box-shadow: 0 8px 25px -5px rgba(15, 23, 42, 0.12);
+}
+
+/* Smooth theme transition */
+body, aside, main, .card, .panel, [class*="bg-"], [class*="border-"] {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 * {
