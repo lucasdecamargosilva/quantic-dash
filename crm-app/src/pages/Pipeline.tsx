@@ -150,6 +150,7 @@ export default function Pipeline() {
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [filtroResponsavel, setFiltroResponsavel] = useState<string>("__todos");
   const [filtroCategoria, setFiltroCategoria] = useState<Categoria | "todas">("todas");
+  const [busca, setBusca] = useState<string>("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -170,11 +171,26 @@ export default function Pipeline() {
     new Set(leads.map((l) => l.responsavel).filter((r): r is string => !!r && r.trim() !== ""))
   ).sort();
 
-  // Aplica os filtros (responsavel + categoria) antes do agrupamento por status
+  // Aplica filtros (categoria + responsavel + busca) antes do agrupamento por status
+  const buscaNorm = busca.trim().toLowerCase().replace(/^@/, "");
   const leadsFiltrados = leads.filter((l) => {
     if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
-    if (filtroResponsavel === "__sem") return !l.responsavel;
-    if (filtroResponsavel !== "__todos" && l.responsavel !== filtroResponsavel) return false;
+    if (filtroResponsavel === "__sem" && l.responsavel) return false;
+    if (filtroResponsavel !== "__todos" && filtroResponsavel !== "__sem" && l.responsavel !== filtroResponsavel) return false;
+    if (buscaNorm) {
+      const haystack = [
+        l.instagram,
+        l.nome_loja,
+        l.site,
+        l.email,
+        l.telefone,
+        l.responsavel,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(buscaNorm)) return false;
+    }
     return true;
   });
 
@@ -287,6 +303,38 @@ export default function Pipeline() {
               ))}
             </select>
           </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Buscar</label>
+            <div className="relative">
+              <svg
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ color: "var(--color-dim)" }}
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="@ instagram, nome, email..."
+                className="bg-surface border border-edge-subtle rounded-lg pl-8 pr-7 py-1.5 text-xs text-sub placeholder:text-dim/60 focus:outline-none focus:border-violet/30 transition-all w-[220px]"
+              />
+              {busca && (
+                <button
+                  onClick={() => setBusca("")}
+                  title="Limpar"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-dim hover:text-bright transition-colors"
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2 }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -330,10 +378,10 @@ export default function Pipeline() {
                 key={s}
                 className="relative overflow-hidden rounded-[14px] px-5 py-4"
                 style={{
-                  background: "rgba(12, 14, 23, 0.8)",
+                  background: "var(--color-card-glass)",
                   backdropFilter: "blur(12px)",
                   WebkitBackdropFilter: "blur(12px)",
-                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                  border: "1px solid var(--color-card-border)",
                 }}
               >
                 <div
