@@ -9,8 +9,10 @@ export default function App() {
     <BrowserRouter basename="/crm">
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<Pipeline />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/leads" element={<Leads />} />
+          {/* Compat: rota antiga /dashboard ainda funciona */}
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
       </Routes>

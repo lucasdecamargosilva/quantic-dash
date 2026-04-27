@@ -5,6 +5,21 @@ import type { Lead, LeadStatus, Categoria } from "../types";
 import FunnelChart from "../components/FunnelChart";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
+// Hook que detecta o tema atual via data-theme no html, atualizando reativamente
+function useTheme(): "light" | "dark" {
+  const [theme, setTheme] = useState<"light" | "dark">(() =>
+    (document.documentElement.getAttribute("data-theme") as "light" | "dark") || "dark"
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() => {
+      setTheme((document.documentElement.getAttribute("data-theme") as "light" | "dark") || "dark");
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => obs.disconnect();
+  }, []);
+  return theme;
+}
+
 const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "testando"];
 const ACTIVE_STATUSES: LeadStatus[] = [
   "novo", "dm_enviada", "respondeu", "lead_coletado", "fotos_enviadas",
@@ -14,6 +29,17 @@ const ACTIVE_STATUSES: LeadStatus[] = [
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const theme = useTheme();
+  const isLight = theme === "light";
+
+  // Cores theme-aware pros gráficos do Recharts (que não suportam CSS vars)
+  const tickColor = isLight ? "rgba(15, 23, 42, 0.7)" : "rgba(255, 255, 255, 0.5)";
+  const tickColorBold = isLight ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.7)";
+  const axisLineColor = isLight ? "rgba(15, 23, 42, 0.1)" : "rgba(255, 255, 255, 0.08)";
+  const tooltipBg = isLight ? "rgba(255, 255, 255, 0.97)" : "rgba(12, 14, 23, 0.95)";
+  const tooltipBorder = isLight ? "rgba(15, 23, 42, 0.12)" : "rgba(255, 255, 255, 0.08)";
+  const tooltipLabelColor = isLight ? "rgba(15, 23, 42, 0.6)" : "#71717a";
+  const cursorFill = isLight ? "rgba(124, 58, 237, 0.06)" : "rgba(139, 92, 246, 0.06)";
 
   useEffect(() => {
     supabase.from("leads").select("*").then(({ data }) => {
@@ -164,8 +190,8 @@ export default function Dashboard() {
                 {categoriaData.map((d, i) => <Cell key={i} fill={d.color} />)}
               </Pie>
               <Tooltip
-                contentStyle={{ backgroundColor: "rgba(12,14,23,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
-                itemStyle={{ color: "#fff" }}
+                contentStyle={{ backgroundColor: tooltipBg, backdropFilter: "blur(12px)", border: `1px solid ${tooltipBorder}`, borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
+                itemStyle={{ color: isLight ? "#0f172a" : "#fff" }}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -224,11 +250,11 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={fonteData} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
                 <XAxis type="number" hide />
-                <YAxis dataKey="fonte" type="category" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: "Sora" }} axisLine={false} tickLine={false} width={120} />
+                <YAxis dataKey="fonte" type="category" tick={{ fill: tickColorBold, fontSize: 11, fontFamily: "Sora" }} axisLine={false} tickLine={false} width={120} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "rgba(12,14,23,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
-                  itemStyle={{ color: "#a78bfa" }}
-                  cursor={{ fill: "rgba(139,92,246,0.06)" }}
+                  contentStyle={{ backgroundColor: tooltipBg, backdropFilter: "blur(12px)", border: `1px solid ${tooltipBorder}`, borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
+                  itemStyle={{ color: isLight ? "#7c3aed" : "#a78bfa" }}
+                  cursor={{ fill: cursorFill }}
                 />
                 <Bar dataKey="count" radius={[0, 4, 4, 0]} fill="url(#fGrad)" />
                 <defs>
@@ -252,13 +278,13 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={weeklyData}>
-                <XAxis dataKey="semana" tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Sora" }} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} tickLine={false} />
-                <YAxis tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontFamily: "Sora" }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="semana" tick={{ fill: tickColor, fontSize: 10, fontFamily: "Sora" }} axisLine={{ stroke: axisLineColor }} tickLine={false} />
+                <YAxis tick={{ fill: tickColor, fontSize: 10, fontFamily: "Sora" }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "rgba(12,14,23,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
-                  labelStyle={{ color: "#71717a" }}
-                  itemStyle={{ color: "#a78bfa" }}
-                  cursor={{ fill: "rgba(139,92,246,0.06)" }}
+                  contentStyle={{ backgroundColor: tooltipBg, backdropFilter: "blur(12px)", border: `1px solid ${tooltipBorder}`, borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
+                  labelStyle={{ color: tooltipLabelColor }}
+                  itemStyle={{ color: isLight ? "#7c3aed" : "#a78bfa" }}
+                  cursor={{ fill: cursorFill }}
                 />
                 <Bar dataKey="total" radius={[4, 4, 0, 0]} fill="url(#vGrad)" />
                 <defs>
