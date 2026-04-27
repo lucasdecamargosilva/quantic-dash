@@ -47,6 +47,9 @@ export type LeadStatus =
   | "dm_enviada"
   | "respondeu"
   | "lead_coletado"
+  | "fotos_enviadas"
+  | "stand_by"
+  | "reuniao_agendada"
   | "interessado"
   | "fechou"
   | "perdida"
@@ -57,6 +60,9 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "dm_enviada",
   "respondeu",
   "lead_coletado",
+  "fotos_enviadas",
+  "stand_by",
+  "reuniao_agendada",
   "interessado",
   "fechou",
   "perdida",
@@ -68,6 +74,9 @@ export const PIPELINE_STATUSES: LeadStatus[] = [
   "dm_enviada",
   "respondeu",
   "lead_coletado",
+  "fotos_enviadas",
+  "stand_by",
+  "reuniao_agendada",
   "interessado",
   "fechou",
   "perdida",
@@ -95,6 +104,9 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   dm_enviada: "DM Enviada",
   respondeu: "Respondeu",
   lead_coletado: "Lead Coletado",
+  fotos_enviadas: "Fotos Enviadas",
+  stand_by: "Stand By",
+  reuniao_agendada: "Reunião Agendada",
   interessado: "Interessado",
   fechou: "Fechou",
   perdida: "Perdida",
@@ -106,6 +118,9 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
   dm_enviada: { bg: "bg-cyan/10", text: "text-cyan", dot: "bg-cyan" },
   respondeu: { bg: "bg-amber/10", text: "text-amber", dot: "bg-amber" },
   lead_coletado: { bg: "bg-pink/10", text: "text-pink", dot: "bg-pink" },
+  fotos_enviadas: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
+  stand_by: { bg: "bg-muted/10", text: "text-muted", dot: "bg-muted" },
+  reuniao_agendada: { bg: "bg-emerald/10", text: "text-emerald", dot: "bg-emerald" },
   interessado: { bg: "bg-rose/10", text: "text-rose", dot: "bg-rose" },
   fechou: { bg: "bg-emerald/10", text: "text-emerald", dot: "bg-emerald" },
   perdida: { bg: "bg-orange/10", text: "text-orange", dot: "bg-orange" },
@@ -117,6 +132,9 @@ export const STATUS_HEX: Record<LeadStatus, string> = {
   dm_enviada: "#06b6d4",
   respondeu: "#f59e0b",
   lead_coletado: "#ec4899",
+  fotos_enviadas: "#3b82f6",
+  stand_by: "#94a3b8",
+  reuniao_agendada: "#14b8a6",
   interessado: "#f43f5e",
   fechou: "#10b981",
   perdida: "#f97316",
