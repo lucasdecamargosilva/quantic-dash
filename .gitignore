@@ -13,5 +13,6 @@ crm-app/.env.development.local
 crm-scraper/.env
 crm-scraper/.venv
 crm-scraper/__pycache__
+crm-scraper/instagram_session
 crm-scraper/data/*.json
 !crm-scraper/data/.gitkeep
