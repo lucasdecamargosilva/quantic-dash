@@ -355,7 +355,7 @@ export default function Pipeline() {
         </DragOverlay>
       </DndContext>
 
-      {/* Total de leads por etapa — barras horizontais */}
+      {/* Total de leads por etapa — colunas comparativas */}
       <div className="px-8 pt-8 pb-2">
         <div className="flex items-center gap-3 mb-4">
           <h3 className="text-[13px] font-bold text-bright tracking-tight uppercase">
@@ -366,7 +366,7 @@ export default function Pipeline() {
           </span>
         </div>
         <div
-          className="rounded-[14px] px-6 py-5"
+          className="rounded-[14px] px-6 py-6"
           style={{
             background: "var(--color-card-glass)",
             backdropFilter: "blur(12px)",
@@ -376,44 +376,48 @@ export default function Pipeline() {
         >
           {(() => {
             const max = Math.max(1, ...PIPELINE_STATUSES.map((s) => grouped[s]?.length ?? 0));
+            const CHART_H = 220;
             return (
-              <div className="space-y-2">
+              <div
+                className="grid items-end gap-3"
+                style={{
+                  gridTemplateColumns: `repeat(${PIPELINE_STATUSES.length}, minmax(0, 1fr))`,
+                  height: CHART_H + 70,
+                }}
+              >
                 {PIPELINE_STATUSES.map((s, i) => {
                   const n = grouped[s]?.length ?? 0;
                   const pct = totalActive > 0 ? ((n / totalActive) * 100).toFixed(0) : "0";
                   const hex = STATUS_HEX[s];
-                  const w = Math.max((n / max) * 100, n > 0 ? 4 : 0.5);
+                  const h = Math.round((n / max) * CHART_H);
                   return (
                     <div
                       key={s}
-                      className="stagger-in flex items-center gap-3"
-                      style={{ animationDelay: `${i * 30}ms` }}
+                      className="stagger-in flex flex-col items-center justify-end h-full"
+                      style={{ animationDelay: `${i * 35}ms` }}
                     >
                       <span
-                        className="text-[10px] font-semibold uppercase tracking-wider w-36 text-right shrink-0 truncate"
+                        className="text-[11px] font-bold tabular-nums mb-1"
                         style={{ color: hex }}
+                      >
+                        {n}
+                      </span>
+                      <div
+                        className="w-full rounded-t-md transition-all duration-700 ease-out"
+                        style={{
+                          height: `${h}px`,
+                          minHeight: n > 0 ? "4px" : "1px",
+                          background: `linear-gradient(180deg, ${hex}, ${hex}66)`,
+                          boxShadow: n > 0 ? `0 0 14px ${hex}33` : "none",
+                        }}
+                      />
+                      <span
+                        className="text-[9px] font-semibold uppercase tracking-wider mt-2 text-center leading-tight"
+                        style={{ color: "var(--color-text-dim, #6b7280)" }}
                       >
                         {STATUS_LABELS[s]}
                       </span>
-                      <div className="flex-1 h-7 bg-surface rounded overflow-hidden relative">
-                        <div
-                          className="h-full rounded flex items-center px-3 transition-all duration-700 ease-out"
-                          style={{
-                            width: `${w}%`,
-                            background: `linear-gradient(90deg, ${hex}55, ${hex})`,
-                          }}
-                        >
-                          {n > 0 && (
-                            <span className="text-[11px] font-bold text-white tabular-nums">{n}</span>
-                          )}
-                        </div>
-                      </div>
-                      <span
-                        className="text-[10px] tabular-nums w-16 shrink-0 text-right"
-                        style={{ color: hex }}
-                      >
-                        {pct}%
-                      </span>
+                      <span className="text-[9px] tabular-nums text-dim mt-0.5">{pct}%</span>
                     </div>
                   );
                 })}
