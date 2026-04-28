@@ -355,7 +355,7 @@ export default function Pipeline() {
         </DragOverlay>
       </DndContext>
 
-      {/* Total de leads por etapa (acima do Desempenho) */}
+      {/* Total de leads por etapa — barras horizontais */}
       <div className="px-8 pt-8 pb-2">
         <div className="flex items-center gap-3 mb-4">
           <h3 className="text-[13px] font-bold text-bright tracking-tight uppercase">
@@ -366,44 +366,60 @@ export default function Pipeline() {
           </span>
         </div>
         <div
-          className="grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${PIPELINE_STATUSES.length}, 1fr)` }}
+          className="rounded-[14px] px-6 py-5"
+          style={{
+            background: "var(--color-card-glass)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            border: "1px solid var(--color-card-border)",
+          }}
         >
-          {PIPELINE_STATUSES.map((s) => {
-            const n = grouped[s]?.length ?? 0;
-            const pct = totalActive > 0 ? ((n / totalActive) * 100).toFixed(0) : "0";
-            const hex = STATUS_HEX[s];
+          {(() => {
+            const max = Math.max(1, ...PIPELINE_STATUSES.map((s) => grouped[s]?.length ?? 0));
             return (
-              <div
-                key={s}
-                className="relative overflow-hidden rounded-[14px] px-5 py-4"
-                style={{
-                  background: "var(--color-card-glass)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  border: "1px solid var(--color-card-border)",
-                }}
-              >
-                <div
-                  aria-hidden="true"
-                  className="absolute top-0 left-0 right-0 h-px"
-                  style={{
-                    background: `linear-gradient(90deg, transparent, ${hex}55, transparent)`,
-                  }}
-                />
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full" style={{ background: hex }} />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-dim">
-                    {STATUS_LABELS[s]}
-                  </p>
-                </div>
-                <p className="text-3xl font-extrabold tabular-nums leading-none" style={{ color: hex }}>
-                  {n}
-                </p>
-                <p className="text-[11px] text-dim tabular-nums mt-1.5">{pct}% do total</p>
+              <div className="space-y-2">
+                {PIPELINE_STATUSES.map((s, i) => {
+                  const n = grouped[s]?.length ?? 0;
+                  const pct = totalActive > 0 ? ((n / totalActive) * 100).toFixed(0) : "0";
+                  const hex = STATUS_HEX[s];
+                  const w = Math.max((n / max) * 100, n > 0 ? 4 : 0.5);
+                  return (
+                    <div
+                      key={s}
+                      className="stagger-in flex items-center gap-3"
+                      style={{ animationDelay: `${i * 30}ms` }}
+                    >
+                      <span
+                        className="text-[10px] font-semibold uppercase tracking-wider w-36 text-right shrink-0 truncate"
+                        style={{ color: hex }}
+                      >
+                        {STATUS_LABELS[s]}
+                      </span>
+                      <div className="flex-1 h-7 bg-surface rounded overflow-hidden relative">
+                        <div
+                          className="h-full rounded flex items-center px-3 transition-all duration-700 ease-out"
+                          style={{
+                            width: `${w}%`,
+                            background: `linear-gradient(90deg, ${hex}55, ${hex})`,
+                          }}
+                        >
+                          {n > 0 && (
+                            <span className="text-[11px] font-bold text-white tabular-nums">{n}</span>
+                          )}
+                        </div>
+                      </div>
+                      <span
+                        className="text-[10px] tabular-nums w-16 shrink-0 text-right"
+                        style={{ color: hex }}
+                      >
+                        {pct}%
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             );
-          })}
+          })()}
         </div>
       </div>
 
