@@ -23,6 +23,15 @@ import os
 import time
 import random
 from datetime import datetime, timezone
+
+# Garante SSL bundle do certifi (Python 3.14 no macOS não acha certs do sistema sozinho)
+try:
+    import certifi
+    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+    os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
+except ImportError:
+    pass
+
 from playwright.sync_api import sync_playwright
 from supabase import create_client
 from config import SUPABASE_URL, SUPABASE_KEY
