@@ -5,6 +5,9 @@ import type { LeadStatus } from "../types";
 // Cada etapa mostra o COUNT CUMULATIVO (todos que passaram por essa etapa ou além).
 const FUNNEL_STEPS: LeadStatus[] = [
   "dm_enviada",
+  "mensagem_1",
+  "mensagem_2",
+  "mensagem_3",
   "respondeu",
   "fotos_enviadas",
   "interessado",
@@ -19,7 +22,10 @@ const STAGES_AFTER: Record<LeadStatus, LeadStatus[]> = {
   novo: [],
   lead_coletado: [],
   descartado: [],
-  dm_enviada: ["respondeu", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "perdida"],
+  dm_enviada: ["mensagem_1", "mensagem_2", "mensagem_3", "respondeu", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "perdida"],
+  mensagem_1: ["mensagem_2", "mensagem_3", "respondeu", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "perdida"],
+  mensagem_2: ["mensagem_3", "respondeu", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "perdida"],
+  mensagem_3: ["respondeu", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "perdida"],
   respondeu: ["fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "perdida"],
   fotos_enviadas: ["interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "perdida"],
   interessado: ["stand_by", "reuniao_agendada", "testando", "fechou", "perdida"],

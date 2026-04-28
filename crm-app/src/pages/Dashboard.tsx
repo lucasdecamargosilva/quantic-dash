@@ -22,7 +22,8 @@ function useTheme(): "light" | "dark" {
 
 const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "testando"];
 const ACTIVE_STATUSES: LeadStatus[] = [
-  "novo", "dm_enviada", "respondeu", "lead_coletado", "fotos_enviadas",
+  "novo", "dm_enviada", "mensagem_1", "mensagem_2", "mensagem_3",
+  "respondeu", "lead_coletado", "fotos_enviadas",
   "stand_by", "interessado", "reuniao_agendada", "testando",
 ];
 
@@ -63,7 +64,7 @@ export default function Dashboard() {
   const hot = HOT_STATUSES.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   // Funnel cumulativo: dms = todos que passaram por dm_enviada ou além
-  const dmsAlcancadas = ["dm_enviada","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","fechou","perdida"]
+  const dmsAlcancadas = ["dm_enviada","mensagem_1","mensagem_2","mensagem_3","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
   const responderam = ["respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
@@ -149,7 +150,7 @@ export default function Dashboard() {
       </div>
 
       {/* Status grid completo */}
-      <div className="grid grid-cols-6 lg:grid-cols-11 gap-2 mb-8">
+      <div className="grid grid-cols-5 md:grid-cols-8 lg:grid-cols-[repeat(15,minmax(0,1fr))] gap-2 mb-8">
         {LEAD_STATUSES.map((s, i) => (
           <div key={s} className="stagger-in bg-raised border border-edge-subtle rounded-lg p-3 text-center" style={{ animationDelay: `${240 + i * 25}ms` }}>
             <div className="w-2 h-2 rounded-full mx-auto mb-1.5" style={{ background: STATUS_HEX[s] }} />

@@ -45,6 +45,9 @@ export const FONTES_OPORTUNIDADE = [
 export type LeadStatus =
   | "novo"
   | "dm_enviada"
+  | "mensagem_1"
+  | "mensagem_2"
+  | "mensagem_3"
   | "respondeu"
   | "lead_coletado"
   | "fotos_enviadas"
@@ -59,6 +62,9 @@ export type LeadStatus =
 export const LEAD_STATUSES: LeadStatus[] = [
   "novo",
   "dm_enviada",
+  "mensagem_1",
+  "mensagem_2",
+  "mensagem_3",
   "respondeu",
   "lead_coletado",
   "fotos_enviadas",
@@ -74,6 +80,9 @@ export const LEAD_STATUSES: LeadStatus[] = [
 export const PIPELINE_STATUSES: LeadStatus[] = [
   "novo",
   "dm_enviada",
+  "mensagem_1",
+  "mensagem_2",
+  "mensagem_3",
   "respondeu",
   "lead_coletado",
   "fotos_enviadas",
@@ -105,6 +114,9 @@ export const INTERACAO_TIPOS: InteracaoTipo[] = [
 export const STATUS_LABELS: Record<LeadStatus, string> = {
   novo: "Novo",
   dm_enviada: "DM Enviada",
+  mensagem_1: "Mensagem 1",
+  mensagem_2: "Mensagem 2",
+  mensagem_3: "Mensagem 3",
   respondeu: "Respondeu",
   lead_coletado: "Lead Coletado",
   fotos_enviadas: "Fotos Enviadas",
@@ -120,6 +132,9 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
 export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: string }> = {
   novo: { bg: "bg-violet/10", text: "text-violet-light", dot: "bg-violet" },
   dm_enviada: { bg: "bg-cyan/10", text: "text-cyan", dot: "bg-cyan" },
+  mensagem_1: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
+  mensagem_2: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
+  mensagem_3: { bg: "bg-violet/10", text: "text-violet-light", dot: "bg-violet-light" },
   respondeu: { bg: "bg-amber/10", text: "text-amber", dot: "bg-amber" },
   lead_coletado: { bg: "bg-pink/10", text: "text-pink", dot: "bg-pink" },
   fotos_enviadas: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
@@ -135,6 +150,9 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
 export const STATUS_HEX: Record<LeadStatus, string> = {
   novo: "#8b5cf6",
   dm_enviada: "#06b6d4",
+  mensagem_1: "#38bdf8",
+  mensagem_2: "#818cf8",
+  mensagem_3: "#c084fc",
   respondeu: "#f59e0b",
   lead_coletado: "#ec4899",
   fotos_enviadas: "#3b82f6",
