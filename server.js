@@ -120,17 +120,19 @@ app.get('/api/chatwoot/sso', async (req, res) => {
 // 2a-bis. Photo Maker (Next.js) — servido sob /fotos/*
 // Roda em processo separado na PORT_PHOTO_MAKER (padrão 3001) dentro do mesmo container.
 // O Next foi buildado com NEXT_BASE_PATH=/fotos, então atende exatamente nesse prefixo.
-// Usamos pathFilter ao invés de app.use('/fotos', ...) porque o Express strip o
-// mount path antes de passar pro proxy, e o Next precisa ver /fotos na URL.
+// Filtramos por função pra preservar o /fotos na URL (Express strip mount path).
 const PHOTO_MAKER_PORT = process.env.PHOTO_MAKER_PORT || 3001;
-app.use(
-    createProxyMiddleware({
-        pathFilter: ['/fotos', '/fotos/**'],
-        target: `http://localhost:${PHOTO_MAKER_PORT}`,
-        changeOrigin: true,
-        ws: true,
-    })
-);
+const photoMakerProxy = createProxyMiddleware({
+    target: `http://localhost:${PHOTO_MAKER_PORT}`,
+    changeOrigin: true,
+    ws: true,
+});
+app.use((req, res, next) => {
+    if (req.url === '/fotos' || req.url.startsWith('/fotos/')) {
+        return photoMakerProxy(req, res, next);
+    }
+    next();
+});
 
 // 2a. CRM (React SPA) — servido sob /crm/*
 const CRM_DIST = path.join(__dirname, 'crm-app', 'dist');
