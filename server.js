@@ -120,14 +120,15 @@ app.get('/api/chatwoot/sso', async (req, res) => {
 // 2a-bis. Photo Maker (Next.js) — servido sob /fotos/*
 // Roda em processo separado na PORT_PHOTO_MAKER (padrão 3001) dentro do mesmo container.
 // O Next foi buildado com NEXT_BASE_PATH=/fotos, então atende exatamente nesse prefixo.
+// Usamos pathFilter ao invés de app.use('/fotos', ...) porque o Express strip o
+// mount path antes de passar pro proxy, e o Next precisa ver /fotos na URL.
 const PHOTO_MAKER_PORT = process.env.PHOTO_MAKER_PORT || 3001;
 app.use(
-    '/fotos',
     createProxyMiddleware({
+        pathFilter: ['/fotos', '/fotos/**'],
         target: `http://localhost:${PHOTO_MAKER_PORT}`,
         changeOrigin: true,
         ws: true,
-        // Não strip do prefix — o Next conhece o basePath e espera /fotos no path
     })
 );
 
