@@ -87,88 +87,122 @@ def cmd_login():
     print("\nSessao salva! Agora pode rodar: python enviar_dm.py --limite 5")
 
 
-def enviar_dm(page, username: str, mensagem: str) -> bool:
-    """Envia DM para um usuario."""
+def dispensar_popup(page):
+    """Fecha popups 'Agora não' / 'Not Now' se aparecerem."""
     try:
-        print(f"  Abrindo perfil @{username}...")
+        btn = page.locator("button:has-text('Agora não'), button:has-text('Not Now'), button:has-text('Not now')")
+        if btn.count() > 0:
+            btn.first.click()
+            time.sleep(1.5)
+    except:
+        pass
 
-        # Vai direto para o perfil
-        page.goto(f"https://www.instagram.com/{username}/", timeout=15000)
+
+def enviar_dm(page, username: str, mensagem: str) -> bool:
+    """Envia DM: inbox → clica lápis (force) → digita → clica 1º resultado → Conversa → envia."""
+    try:
+        # Garante inbox
+        if "instagram.com/direct" not in page.url:
+            page.goto("https://www.instagram.com/direct/inbox/", timeout=15000)
+            time.sleep(3)
+            dispensar_popup(page)
+
+        # Clica no lápis com force=True — abre modal com campo já focado
+        lapis = page.locator('svg[aria-label="Nova mensagem"], svg[aria-label="New message"]')
+        if lapis.count() == 0:
+            print(f"  Icone de lapis nao encontrado")
+            return False
+        lapis.first.click(force=True)
         time.sleep(2)
+        dispensar_popup(page)
 
-        # Dispensa popups
-        try:
-            not_now = page.locator("button:has-text('Agora não'), button:has-text('Not Now'), button:has-text('Not now')")
-            if not_now.count() > 0:
-                not_now.first.click()
-                time.sleep(2)
-        except:
-            pass
+        # Campo já está focado — digita diretamente
+        page.keyboard.type(username, delay=random.randint(30, 60))
+        time.sleep(3.5)
 
-        # Clica em "Enviar mensagem" / "Message"
-        msg_btn = page.locator("div[role='button']:has-text('Enviar mensagem'), div[role='button']:has-text('Message'), div[role='button']:has-text('Mensaje'), div[role='button']:has-text('Mandar mensagem'), button:has-text('Enviar mensagem'), button:has-text('Message'), button:has-text('Mensaje')")
-        if msg_btn.count() == 0:
-            print(f"  Botao 'Enviar mensagem' nao encontrado para @{username}")
+        # Clica no primeiro resultado via JS
+        clicked = page.evaluate(f"""() => {{
+            const opts = document.querySelectorAll('[role=option]');
+            for (const el of opts) {{
+                if ((el.innerText || '').toLowerCase().includes('{username.lower()}')) {{
+                    el.click();
+                    return el.innerText.trim().split('\\n')[0];
+                }}
+            }}
+            // Fallback: primeiro resultado (username pode estar em sub-elemento)
+            if (opts.length > 0) {{
+                opts[0].click();
+                return opts[0].innerText.trim().split('\\n')[0];
+            }}
+            return null;
+        }}""")
+
+        if not clicked:
+            print(f"  @{username} nao apareceu nos resultados")
+            page.keyboard.press("Escape")
             return False
 
-        try:
-            msg_btn.first.click(timeout=10000)
-        except:
-            print(f"  Nao conseguiu clicar no botao de mensagem")
-            return False
-        time.sleep(5)
+        print(f"  Perfil: {clicked.strip()[:40]}")
+        time.sleep(1.5)
 
-        # Dispensa popup de notificacoes se aparecer
-        try:
-            not_now = page.locator("button:has-text('Agora não'), button:has-text('Not Now'), button:has-text('Not now')")
-            if not_now.count() > 0:
-                not_now.first.click()
-                time.sleep(2)
-        except:
-            pass
+        # Clica em "Conversa" via JS
+        chat_clicked = page.evaluate("""() => {
+            for (const btn of document.querySelectorAll('button, [role=button]')) {
+                const t = (btn.innerText || btn.textContent || '').trim();
+                if (['Conversa','Chat','Próximo','Next'].includes(t) && btn.offsetParent) {
+                    btn.click(); return t;
+                }
+            }
+            return null;
+        }""")
+        if chat_clicked:
+            print(f"  '{chat_clicked}' clicado")
+        else:
+            page.keyboard.press("Enter")
+        time.sleep(2)
+        dispensar_popup(page)
 
-        # Espera explicita pelo campo de texto aparecer
-        textarea = page.locator("div[role='textbox'], textarea[placeholder]")
+        # Campo de texto
+        textarea = page.locator("div[role='textbox']")
         try:
             textarea.first.wait_for(state="visible", timeout=10000)
         except:
             print(f"  Campo de texto nao apareceu para @{username}")
-            return False
-
-        if textarea.count() == 0:
-            print(f"  Campo de texto nao encontrado para @{username}")
+            page.keyboard.press("Escape")
             return False
 
         textarea.first.click()
         time.sleep(0.5)
 
-        # Digita linha por linha para parecer humano
-        linhas = [l for l in mensagem.split("\n")]
+        linhas = mensagem.split("\n")
         for i, linha in enumerate(linhas):
             if linha.strip():
                 textarea.first.type(linha, delay=random.randint(20, 50))
-            # Shift+Enter para quebra de linha (exceto na ultima)
             if i < len(linhas) - 1:
                 page.keyboard.press("Shift+Enter")
                 time.sleep(0.2)
 
         time.sleep(1)
 
-        # Tenta clicar no botao de enviar
-        send_btn = page.locator("div[role='button'] svg[aria-label='Enviar'], div[role='button'] svg[aria-label='Send'], button svg[aria-label='Enviar'], button svg[aria-label='Send']")
+        send_btn = page.locator(
+            "div[role='button'] svg[aria-label='Enviar'], "
+            "div[role='button'] svg[aria-label='Send']"
+        )
         if send_btn.count() > 0:
             send_btn.first.click()
         else:
-            # Fallback: tenta Enter
             page.keyboard.press("Enter")
 
         time.sleep(3)
-
         print(f"  DM enviada para @{username}!")
         return True
 
     except Exception as e:
         print(f"  ERRO ao enviar DM para @{username}: {e}")
+        try:
+            page.keyboard.press("Escape")
+        except:
+            pass
         return False
 
 
@@ -193,8 +227,10 @@ def cmd_enviar(args):
         return
 
     sb = create_client(SUPABASE_URL, SUPABASE_KEY)
-    result = sb.table("leads").select("*").eq("status", "novo").order("created_at").execute()
-    all_leads = result.data or []
+    q = sb.table("leads").select("*").eq("status", "novo").order("created_at")
+    if args.categoria != "all":
+        q = q.eq("categoria", args.categoria)
+    all_leads = q.execute().data or []
 
     leads = [l for l in all_leads if l.get("site") and l["site"].strip()][:args.limite]
 
@@ -282,6 +318,7 @@ def main():
     parser.add_argument("--intervalo", type=int, default=1, help="Minutos entre cada DM (default: 1)")
     parser.add_argument("--headless", action="store_true", help="Rodar sem abrir navegador")
     parser.add_argument("--cdp", action="store_true", help="Conectar ao Chrome existente via CDP (porta 9222)")
+    parser.add_argument("--categoria", choices=["oculos", "roupa", "all"], default="all")
     args = parser.parse_args()
 
     if args.login:

@@ -1,15 +1,22 @@
 """
-Coleta leads via Google Shopping:
-1. Busca queries de oculos no Google Shopping
-2. Pega merchants (lojas) unicos
-3. Busca cada merchant no Instagram
-4. Filtra e salva
+Coleta leads via Google Shopping → site direto:
+1. Busca produtos no Google Shopping (queries por categoria/idioma)
+2. Extrai merchants + URL dos produtos
+3. Acessa o site (homepage do dominio do produto), valida e-commerce + extrai WhatsApp
+4. Salva leads que tem WhatsApp + sao e-commerce real
+
+Sem dependencia de Instagram Search — mais economico em creditos Apify.
 """
 import argparse
 import json
 import os
+from urllib.parse import urlparse
+
+import requests
 from apify_client import ApifyClient
+
 from config import APIFY_TOKEN, DATA_DIR, LEADS_BRUTOS_PATH
+from verificador import extrair_whatsapp, eh_ecommerce, eh_brasileiro
 
 SHOPPING_QUERIES = {
     ("oculos", "pt"): ["oculos de sol", "oculos de grau", "oculos polarizado", "armacao de oculos"],
@@ -22,66 +29,34 @@ SHOPPING_QUERIES = {
         "lingerie feminina", "pijama", "casaco feminino",
         "body feminino", "cropped feminino", "saia midi",
         "vestido longo", "vestido festa", "vestido curto",
-        "camiseta basica", "t-shirt feminina", "blusa tricot",
-        "calca alfaiataria", "legging fitness", "top fitness",
-        "tenis casual", "sandalia feminina", "bolsa feminina",
-        "oculos acessorio", "moda evangelica vestido",
-        "macacao feminino", "kimono", "vestido boho",
-        "cardiga", "blazer feminino", "blazer masculino",
-        "tactel moletom", "conjunto feminino", "conjunto masculino",
+        "camiseta basica", "blazer feminino", "macacao feminino",
+        "vestido boho", "kimono", "tactel moletom",
     ],
     ("roupa", "en"): ["women dress", "men t-shirt", "hoodie", "swimwear"],
     ("roupa", "es"): ["vestido mujer", "camiseta hombre", "sudadera"],
 }
 
-# Merchants genericos para ignorar (marketplaces)
+# Marketplaces a bloquear (queremos lojas autorais)
 BLOCKED_MERCHANTS = [
-    "amazon", "ebay", "mercado livre", "mercadolivre", "magalu",
-    "magazine luiza", "americanas", "submarino", "shoppe", "shopee",
-    "aliexpress", "wish", "shein", "dafiti", "walmart", "target",
-    "costco", "best buy", "ray-ban", "oakley", "persol",
-    "zara", "c&a", "renner", "riachuelo", "marisa", "hering",
-    "lojas torra", "nike", "adidas", "puma", "decathlon",
+    "amazon", "ebay", "mercado livre", "mercadolivre", "magalu", "magazine luiza",
+    "americanas", "submarino", "shoppe", "shopee", "aliexpress", "wish",
+    "shein", "dafiti", "walmart", "target", "costco", "best buy",
+    "ray-ban", "oakley", "persol", "zara", "c&a", "renner", "riachuelo",
+    "marisa", "hering", "lojas torra", "nike", "adidas", "puma", "decathlon",
+    "kanui", "netshoes", "centauro", "lupo", "youcom", "track e field",
+    "google", "bing",
 ]
 
-KEYWORDS_OCULOS = [
-    "eyewear", "glasses", "sunglasses", "oculos", "óculos",
-    "frames", "optical", "optica", "óptica", "gafas", "lentes",
-]
-
-KEYWORDS_ROUPA = [
-    "moda", "fashion", "loja", "boutique", "store", "brand",
-    "roupa", "wear", "apparel", "clothing", "feminina", "masculina",
-    "bikini", "biquini", "moletom", "vestido", "streetwear", "ropa",
-    "camiseta", "tshirt", "basicos", "atelier",
+BLOCKED_DOMAINS = [
+    "amazon.", "mercadolivre.", "shopee.", "americanas.", "submarino.",
+    "magalu.", "magazineluiza.", "aliexpress.", "shein.", "wish.",
+    "google.", "bing.", "youtube.",
 ]
 
 
-def detectar_idioma(bio: str, nome: str, site: str) -> str:
-    texto = f"{bio} {nome} {site}".lower()
-    if ".com.br" in site or site.endswith(".br"):
-        return "pt"
-    if any(x in site for x in [".mx", ".ar", ".cl", ".co", ".pe", ".es"]):
-        return "es"
-    if any(x in site for x in [".eu", ".co.uk", ".de", ".fr", ".it"]):
-        return "en"
-    pt_words = ["oculos", "otica", "brasileira", "loja", "atendimento"]
-    en_words = ["eyewear", "glasses", "sunglasses", "shop now", "worldwide"]
-    es_words = ["gafas", "lentes", "tienda", "mexico", "espana", "envío"]
-    pt = sum(1 for w in pt_words if w in texto)
-    en = sum(1 for w in en_words if w in texto)
-    es = sum(1 for w in es_words if w in texto)
-    mx = max(pt, en, es)
-    if mx == 0:
-        return "en"
-    if pt == mx: return "pt"
-    if es == mx: return "es"
-    return "en"
-
-
-def buscar_google_shopping(client: ApifyClient, queries: list[str], country: str, limit: int) -> list[str]:
-    """Busca produtos no Google Shopping e retorna merchants unicos."""
-    merchants = set()
+def buscar_google_shopping(client: ApifyClient, queries: list[str], country: str, limit: int) -> list[dict]:
+    """Busca produtos no Google Shopping. Retorna items brutos (com merchant + link)."""
+    todos = []
     for query in queries:
         print(f"\n  Google Shopping [{country}]: '{query}' (limite: {limit})")
         try:
@@ -98,62 +73,50 @@ def buscar_google_shopping(client: ApifyClient, queries: list[str], country: str
                 continue
             items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
             print(f"    {len(items)} produtos")
-            for item in items:
-                m = (item.get("merchant") or "").strip()
-                if m and not any(b in m.lower() for b in BLOCKED_MERCHANTS):
-                    merchants.add(m)
+            todos.extend(items)
         except Exception as e:
             print(f"    ERRO: {e}")
-
-    print(f"\n  Merchants unicos: {len(merchants)}")
-    return list(merchants)
+    return todos
 
 
-def buscar_no_instagram(client: ApifyClient, termo: str) -> list[dict]:
-    """Busca um termo no Instagram e retorna perfis."""
+def detectar_idioma_simples(html: str, site: str) -> str:
+    s = site.lower()
+    if ".com.br" in s or s.endswith(".br"):
+        return "pt"
+    if any(x in s for x in [".mx", ".ar", ".cl", ".co", ".pe", ".es"]):
+        return "es"
+    if 'lang="pt' in html.lower():
+        return "pt"
+    return "en"
+
+
+def extrair_dominio(url: str) -> str | None:
+    """Extrai dominio raiz limpo (ex: minhaloja.com.br)."""
     try:
-        run = client.actor("apify/instagram-search-scraper").call(
-            run_input={"search": termo, "searchType": "user", "resultsLimit": 5}
+        p = urlparse(url if "://" in url else f"https://{url}")
+        host = p.netloc.lower()
+        if host.startswith("www."):
+            host = host[4:]
+        return host or None
+    except:
+        return None
+
+
+def visitar_site(url: str) -> tuple[str, str] | None:
+    """Acessa a homepage e retorna (html, url_final). Retorna None em caso de falha."""
+    try:
+        r = requests.get(
+            url,
+            timeout=12,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            allow_redirects=True,
         )
-        if run["status"] != "SUCCEEDED":
-            return []
-        return list(client.dataset(run["defaultDatasetId"]).iterate_items())
-    except Exception as e:
-        print(f"    ERRO ao buscar '{termo}' no IG: {e}")
-        return []
-
-
-def extrair_lead(item: dict, categoria: str) -> dict | None:
-    username = item.get("username", "")
-    nome = (item.get("fullName") or "").lower()
-    bio = (item.get("biography") or "").lower()
-    seguidores = item.get("followersCount", 0) or 0
-
-    if seguidores < 1000:
+        r.raise_for_status()
+        return (r.text, str(r.url))
+    except Exception:
         return None
-
-    keywords = KEYWORDS_OCULOS if categoria == "oculos" else KEYWORDS_ROUPA
-    texto = f"{username} {nome} {bio}"
-    if not any(kw in texto for kw in keywords):
-        return None
-
-    urls = item.get("externalUrls") or []
-    site = urls[0].get("url", "") if urls else (item.get("externalUrl") or "")
-    if not site:
-        return None
-    if any(x in site.lower() for x in ["wa.me", "whatsapp", "api.whatsapp"]):
-        return None
-
-    return {
-        "instagram": username,
-        "nome_loja": item.get("fullName") or "",
-        "site": site,
-        "seguidores": seguidores,
-        "bio": item.get("biography") or "",
-        "is_business": item.get("isBusinessAccount", False),
-        "idioma": detectar_idioma(item.get("biography") or "", item.get("fullName") or "", site),
-        "categoria": categoria,
-    }
 
 
 def main():
@@ -181,34 +144,103 @@ def main():
             if queries:
                 configs.append((c, cat, queries))
 
-    # Mapeia merchant -> categoria (pra associar certo depois)
-    merchants_cat: dict[str, str] = {}
+    # Etapa 1: Coleta produtos do Google Shopping
+    todos_produtos: list[tuple[dict, str]] = []  # (item, categoria)
     for country, cat, queries in configs:
-        ms = buscar_google_shopping(client, queries, country, args.limit)
-        for m in ms:
-            if m not in merchants_cat:
-                merchants_cat[m] = cat
+        items = buscar_google_shopping(client, queries, country, args.limit)
+        for item in items:
+            todos_produtos.append((item, cat))
 
-    print(f"\n=== {len(merchants_cat)} merchants unicos totais ===")
-    for m, c in sorted(merchants_cat.items()):
-        print(f"  - [{c}] {m}")
+    print(f"\n=== {len(todos_produtos)} produtos coletados ===\n")
 
-    print(f"\n=== Buscando no Instagram ===")
+    # Etapa 2: Filtra por merchant e dominio, agrupa por dominio
+    sites_categoria: dict[str, str] = {}  # dominio -> categoria
+    sites_merchant: dict[str, str] = {}  # dominio -> merchant name
+
+    for item, cat in todos_produtos:
+        merchant = (item.get("merchant") or "").strip()
+        if not merchant or any(b in merchant.lower() for b in BLOCKED_MERCHANTS):
+            continue
+
+        # Tenta pegar URL do produto pra extrair dominio
+        link = item.get("link") or item.get("productLink") or item.get("merchantUrl") or ""
+        dominio = extrair_dominio(link) if link else None
+        if not dominio:
+            continue
+        if any(b in dominio for b in BLOCKED_DOMAINS):
+            continue
+
+        if dominio not in sites_categoria:
+            sites_categoria[dominio] = cat
+            sites_merchant[dominio] = merchant
+
+    print(f"=== {len(sites_categoria)} dominios unicos ===")
+    for d in sorted(sites_categoria.keys())[:20]:
+        print(f"  - [{sites_categoria[d]}] {d} ({sites_merchant[d]})")
+    if len(sites_categoria) > 20:
+        print(f"  ... +{len(sites_categoria) - 20} outros")
+
+    # Etapa 3: Acessa cada site e extrai whatsapp + valida
+    print(f"\n=== Validando sites ===\n")
     all_leads = []
     seen = set()
 
-    for merchant, cat in sorted(merchants_cat.items()):
-        print(f"\n  @ Buscando '{merchant}' ({cat})...")
-        items = buscar_no_instagram(client, merchant)
-        for item in items:
-            lead = extrair_lead(item, cat)
-            if lead and lead["instagram"] and lead["instagram"] not in seen:
-                seen.add(lead["instagram"])
-                all_leads.append(lead)
-                print(f"    + @{lead['instagram']} — {lead['nome_loja']} ({lead['seguidores']} seg.) [{lead['idioma']} / {cat}]")
+    for i, (dominio, cat) in enumerate(sorted(sites_categoria.items()), 1):
+        merchant_name = sites_merchant[dominio]
+        site = f"https://{dominio}"
+        print(f"  [{i}/{len(sites_categoria)}] {merchant_name} ({dominio})...", end=" ")
+
+        if dominio in seen:
+            print("ja processado")
+            continue
+        seen.add(dominio)
+
+        result = visitar_site(site)
+        if not result:
+            print("FALHA acesso")
+            continue
+
+        html, url_final = result
+
+        if not eh_brasileiro(html, url_final):
+            print("nao-BR")
+            continue
+
+        is_ecom, motivo = eh_ecommerce(html, url_final)
+        if not is_ecom:
+            print(f"nao-ecom ({motivo})")
+            continue
+
+        whatsapp = extrair_whatsapp(html)
+        if not whatsapp:
+            print("sem-WPP")
+            continue
+
+        # Cria lead — instagram pode ficar vazio (nao temos)
+        # Usa o dominio como instagram-fallback (pra manter unique)
+        lead = {
+            "instagram": f"site:{dominio}",  # fallback para nao colidir com unique
+            "nome_loja": merchant_name,
+            "site": site,
+            "seguidores": 0,
+            "bio": "",
+            "is_business": True,
+            "idioma": detectar_idioma_simples(html, url_final),
+            "categoria": cat,
+            "tem_provador": False,
+            "eh_ecommerce": True,
+            "whatsapp": whatsapp,
+        }
+        all_leads.append(lead)
+        print(f"OK WPP={whatsapp}")
 
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(LEADS_BRUTOS_PATH, "w", encoding="utf-8") as f:
+        json.dump(all_leads, f, ensure_ascii=False, indent=2)
+
+    # Salva direto em filtrados tambem (ja validado)
+    from config import LEADS_FILTRADOS_PATH
+    with open(LEADS_FILTRADOS_PATH, "w", encoding="utf-8") as f:
         json.dump(all_leads, f, ensure_ascii=False, indent=2)
 
     print(f"\n{len(all_leads)} leads salvos em {LEADS_BRUTOS_PATH}")
