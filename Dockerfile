@@ -21,8 +21,8 @@ COPY . .
 RUN cd crm-app && npm run build
 
 # Build do Photo Maker → photo-maker/.next (servido em /fotos/*)
-# basePath=/fotos garante que os assets do Next saiam com o prefix certo.
-ENV NEXT_BASE_PATH=/fotos
+# basePath=/fotos garante que os assets E as chamadas de API do client saiam com o prefix certo.
+ENV NEXT_PUBLIC_BASE_PATH=/fotos
 RUN cd photo-maker && npm run build
 
 EXPOSE 3000

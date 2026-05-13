@@ -3,6 +3,11 @@
 import JSZip from "jszip";
 import { useEffect, useRef, useState } from "react";
 
+// Prefixo das chamadas de API. Quando o app roda sob basePath=/fotos (proxy do
+// dashboard), o fetch precisa apontar pra /fotos/api/... senão cai no Express
+// principal (e bate na proxy catch-all do Chatwoot).
+const API_BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 type Shot = { id: string; label: string; prompt: string };
 
 type GeneratedShot = {
@@ -421,7 +426,7 @@ function UrlImporter({ onAdd }: { onAdd: (files: File[]) => void }) {
     setLoading(true);
     setLastCount(0);
     try {
-      const res = await fetch("/api/scrape", {
+      const res = await fetch(`${API_BASE}/api/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim() }),
@@ -587,7 +592,7 @@ function BatchView({
     const shots = shotsForGender(item.gender);
     updateItem(item.id, { status: "fetching", message: "Buscando imagens..." });
 
-    const scrapeRes = await fetch("/api/scrape", {
+    const scrapeRes = await fetch(`${API_BASE}/api/scrape`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: item.url }),
@@ -616,7 +621,7 @@ function BatchView({
     if (category === "glasses") fd.append("imageSize", "2K");
     if (extraInstructions.trim()) fd.append("extraInstructions", extraInstructions.trim());
 
-    const genRes = await fetch("/api/tryon", { method: "POST", body: fd });
+    const genRes = await fetch(`${API_BASE}/api/tryon`, { method: "POST", body: fd });
     const genData = await genRes.json();
     if (!genRes.ok) throw new Error(genData.error ?? "Falha na geração");
     const indexed: Record<string, GeneratedShot> = {};
@@ -646,7 +651,7 @@ function BatchView({
       }
       valFd.append("shotIds", JSON.stringify(ids));
       valFd.append("shotLabels", JSON.stringify(labels));
-      const valRes = await fetch("/api/validate", { method: "POST", body: valFd });
+      const valRes = await fetch(`${API_BASE}/api/validate`, { method: "POST", body: valFd });
       const valData = await valRes.json();
       const outliers = (valData.outliers ?? []) as string[];
 
@@ -669,7 +674,7 @@ function BatchView({
         regenFd.append("aspectRatio", aspectRatio);
         if (category === "glasses") regenFd.append("imageSize", "2K");
         if (extraInstructions.trim()) regenFd.append("extraInstructions", extraInstructions.trim());
-        const regRes = await fetch("/api/tryon", { method: "POST", body: regenFd });
+        const regRes = await fetch(`${API_BASE}/api/tryon`, { method: "POST", body: regenFd });
         const regData = await regRes.json();
         const rawFixed = ((regData.results as GeneratedShot[]) ?? [])[0];
         if (rawFixed?.imageBase64) {
@@ -714,7 +719,7 @@ function BatchView({
       if (category === "glasses") fd.append("imageSize", "2K");
       if (extraInstructions.trim()) fd.append("extraInstructions", extraInstructions.trim());
 
-      const res = await fetch("/api/tryon", { method: "POST", body: fd });
+      const res = await fetch(`${API_BASE}/api/tryon`, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao regerar");
       const rawFixed = ((data.results as GeneratedShot[]) ?? [])[0];
@@ -1605,7 +1610,7 @@ function HistoryPanel({
       fd.append("aspectRatio", entry.aspectRatio);
       if (entry.extraInstructions) fd.append("extraInstructions", entry.extraInstructions);
 
-      const res = await fetch("/api/tryon", { method: "POST", body: fd });
+      const res = await fetch(`${API_BASE}/api/tryon`, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao regerar");
       const raw = (data.results as GeneratedShot[])[0];
@@ -2137,7 +2142,7 @@ function TryonView({
     if (extraInstructions.trim()) fd.append("extraInstructions", extraInstructions.trim());
 
     try {
-      const res = await fetch("/api/tryon", { method: "POST", body: fd });
+      const res = await fetch(`${API_BASE}/api/tryon`, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar");
       const raw = (data.results as GeneratedShot[])[0];
@@ -2435,7 +2440,7 @@ export default function Home() {
     if (category === "glasses") fd.append("imageSize", "2K");
     if (extraInstructions.trim()) fd.append("extraInstructions", extraInstructions.trim());
 
-    const res = await fetch("/api/tryon", { method: "POST", body: fd });
+    const res = await fetch(`${API_BASE}/api/tryon`, { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) return null;
     const r = ((data.results as GeneratedShot[]) ?? [])[0];
@@ -2457,7 +2462,7 @@ export default function Home() {
     }
     fd.append("shotIds", JSON.stringify(ids));
     fd.append("shotLabels", JSON.stringify(labels));
-    const res = await fetch("/api/validate", { method: "POST", body: fd });
+    const res = await fetch(`${API_BASE}/api/validate`, { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) return [];
     return (data.outliers ?? []) as string[];
@@ -2489,7 +2494,7 @@ export default function Home() {
     if (extraInstructions.trim()) fd.append("extraInstructions", extraInstructions.trim());
 
     try {
-      const res = await fetch("/api/tryon", { method: "POST", body: fd });
+      const res = await fetch(`${API_BASE}/api/tryon`, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao gerar");
       const indexed: Record<string, GeneratedShot> = {};
@@ -2578,7 +2583,7 @@ export default function Home() {
     if (extraInstructions.trim()) fd.append("extraInstructions", extraInstructions.trim());
 
     try {
-      const res = await fetch("/api/tryon", { method: "POST", body: fd });
+      const res = await fetch(`${API_BASE}/api/tryon`, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao regerar");
       const raw = (data.results as GeneratedShot[])[0];
