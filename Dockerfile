@@ -27,6 +27,12 @@ RUN cd photo-maker && npm run build
 
 EXPOSE 3000
 
-# Sobe Next (3001) em background + Express (3000) em foreground.
-# `wait -n` propaga falha do primeiro processo que cair, derrubando o container.
-CMD ["sh", "-c", "(cd photo-maker && PORT=3001 HOSTNAME=0.0.0.0 npx next start -p 3001) & node server.js; wait -n"]
+# Supervisão dos dois processos via concurrently. Se um cair, derruba o outro
+# (e o EasyPanel reinicia o container inteiro), evitando estado zumbi onde
+# Express fica vivo proxyando 502 pra Next morto.
+CMD ["npx", "--no-install", "concurrently", \
+     "--kill-others-on-fail", \
+     "-n", "express,next", \
+     "-c", "blue,magenta", \
+     "node server.js", \
+     "sh -c 'cd photo-maker && PORT=3001 HOSTNAME=0.0.0.0 npx --no-install next start -p 3001'"]
