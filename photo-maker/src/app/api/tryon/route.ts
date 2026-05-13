@@ -267,6 +267,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ results });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // 400 em vez de 500 — Traefik (EasyPanel) intercepta 5xx e devolve HTML.
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

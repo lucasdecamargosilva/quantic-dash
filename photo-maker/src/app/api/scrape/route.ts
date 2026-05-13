@@ -328,9 +328,11 @@ export async function POST(req: NextRequest) {
       signal: AbortSignal.timeout(20000),
     });
     if (!pageRes.ok) {
+      // 4xx em vez de 502 — o Traefik do EasyPanel substitui 5xx pela página
+      // "Service is not reachable", quebrando JSON.parse no cliente.
       return NextResponse.json(
-        { error: `Falha ao acessar a página (${pageRes.status}).` },
-        { status: 502 }
+        { error: `Falha ao acessar a página (${pageRes.status}).`, images: [] },
+        { status: 400 }
       );
     }
     const html = await pageRes.text();
@@ -385,6 +387,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // 400 em vez de 500 — Traefik (EasyPanel) intercepta 5xx e devolve HTML.
+    return NextResponse.json({ error: message, images: [] }, { status: 400 });
   }
 }
