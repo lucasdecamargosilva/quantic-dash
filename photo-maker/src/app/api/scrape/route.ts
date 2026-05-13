@@ -4,7 +4,57 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36";
+
+// Headers que imitam um Chrome real navegando organicamente.
+// Cloudflare/anti-bot inspecionam essa combinação inteira — qualquer ausência
+// derruba a "browser fingerprint score".
+function humanLikeHeaders(pageUrl: URL): Record<string, string> {
+  return {
+    "User-Agent": USER_AGENT,
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Cache-Control": "max-age=0",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Ch-Ua":
+      '"Google Chrome";v="147", "Chromium";v="147", "Not.A/Brand";v="8"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"macOS"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    Referer: `https://www.google.com/`,
+    DNT: "1",
+    Priority: "u=0, i",
+    Connection: "keep-alive",
+  };
+}
+
+// Warm-up: faz um GET na home do domínio antes do produto, pra ganhar o
+// cookie __cf_bm (Cloudflare bot management). Sem isso, Cloudflare trata
+// a request seguinte como "navegação direta sem histórico", o que tem
+// score baixo no bot detection.
+async function warmUpCookies(pageUrl: URL): Promise<string> {
+  try {
+    const homeUrl = `${pageUrl.protocol}//${pageUrl.hostname}/`;
+    const res = await fetch(homeUrl, {
+      headers: humanLikeHeaders(pageUrl),
+      redirect: "follow",
+      signal: AbortSignal.timeout(10000),
+    });
+    const setCookies = res.headers.getSetCookie?.() ?? [];
+    if (setCookies.length === 0) {
+      const raw = res.headers.get("set-cookie");
+      if (raw) return raw.split(",").map((c) => c.split(";")[0].trim()).join("; ");
+    }
+    return setCookies.map((c) => c.split(";")[0].trim()).join("; ");
+  } catch {
+    return "";
+  }
+}
 
 const MAX_IMAGES = 5;
 const MIN_BYTES = 8 * 1024; // ignora ícones/sprites pequenos
@@ -312,17 +362,20 @@ export async function POST(req: NextRequest) {
 
     const isAli = isAliExpressUrl(pageUrl);
 
+    // Warm-up: pega cookie do home antes de pedir a página do produto.
+    // Necessário pra passar pelo Cloudflare bot detection em muitos sites.
+    const cookieHeader = await warmUpCookies(pageUrl);
+
+    const baseHeaders = humanLikeHeaders(pageUrl);
     const pageRes = await fetch(pageUrl.toString(), {
       headers: {
-        "User-Agent": USER_AGENT,
-        Accept: "text/html,application/xhtml+xml",
-        // AliExpress costuma exigir Accept-Language e bloquear sem Referer próprio
-        ...(isAli
-          ? {
-              "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-              Referer: `${pageUrl.protocol}//${pageUrl.hostname}/`,
-            }
-          : {}),
+        ...baseHeaders,
+        // Pra produto interno, o referer mais natural é o próprio domínio
+        Referer: `${pageUrl.protocol}//${pageUrl.hostname}/`,
+        "Sec-Fetch-Site": "same-origin",
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+        // AliExpress responde melhor com Referer próprio (já é o caso acima)
+        ...(isAli ? {} : {}),
       },
       redirect: "follow",
       signal: AbortSignal.timeout(20000),
