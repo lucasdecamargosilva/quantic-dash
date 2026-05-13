@@ -41,6 +41,7 @@ def main():
             "idioma": lead.get("idioma", "pt"),
             "categoria": lead.get("categoria", "oculos"),
             "responsavel": "Lucas de Camargo",
+            "whatsapp": lead.get("whatsapp"),
         }
 
         supabase.table("leads").insert(row).execute()
