@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Cards de quebra de objeção: cada um tem o gatilho (o que o cliente fala/sente)
 // e a resposta pronta pra copiar e colar no atendimento.
-// Pra adicionar: só empurrar mais um objeto no array OBJECOES.
+//
+// As respostas defaults vivem aqui no código (DEFAULTS abaixo). Edições do
+// usuário ficam persistidas em localStorage por id, então mudanças sobrevivem
+// recarregamento mas são locais ao browser. "Restaurar padrão" zera a edição
+// e volta pro texto original do código.
+//
+// Pra adicionar um card novo permanente: empurrar mais um objeto em DEFAULTS.
 
 interface Objecao {
   id: string;
@@ -11,7 +17,7 @@ interface Objecao {
   resposta: string;
 }
 
-const OBJECOES: Objecao[] = [
+const DEFAULTS: Objecao[] = [
   {
     id: "aquecimento",
     gatilho: "Aquecimento / Reabordagem",
@@ -47,6 +53,25 @@ E como eu sei que você só vai acreditar quando ver com os seus clientes, damos
   },
 ];
 
+const STORAGE_KEY = "quantic-crm-objecoes-edits";
+
+function loadEdits(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveEdits(edits: Record<string, string>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(edits));
+  } catch {
+    // localStorage cheio ou bloqueado — segue sem persistir
+  }
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const handle = async () => {
@@ -55,7 +80,6 @@ function CopyButton({ text }: { text: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Fallback se clipboard API não estiver disponível
       const ta = document.createElement("textarea");
       ta.value = text;
       ta.style.position = "fixed";
@@ -102,7 +126,219 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+interface CardProps {
+  objecao: Objecao;
+  isEdited: boolean;
+  onSave: (id: string, novaResposta: string) => void;
+  onReset: (id: string) => void;
+}
+
+function Card({ objecao, isEdited, onSave, onReset }: CardProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(objecao.resposta);
+
+  // Mantém draft sincronizado se a resposta externa mudar (ex: reset)
+  useEffect(() => {
+    if (!editing) setDraft(objecao.resposta);
+  }, [objecao.resposta, editing]);
+
+  const startEdit = () => {
+    setDraft(objecao.resposta);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setDraft(objecao.resposta);
+    setEditing(false);
+  };
+
+  const saveEdit = () => {
+    onSave(objecao.id, draft);
+    setEditing(false);
+  };
+
+  return (
+    <article
+      className="rounded-lg overflow-hidden"
+      style={{
+        background: "var(--color-panel)",
+        border: "1px solid var(--color-edge-subtle)",
+      }}
+    >
+      <header
+        className="px-5 py-3 flex items-start justify-between gap-3"
+        style={{ borderBottom: "1px solid var(--color-edge-subtle)" }}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className="text-[10px] font-bold tracking-widest uppercase"
+              style={{ color: "var(--color-violet)" }}
+            >
+              Objeção
+            </span>
+            {isEdited && (
+              <span
+                className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded"
+                style={{
+                  background: "rgba(245, 158, 11, 0.15)",
+                  color: "var(--color-amber)",
+                }}
+                title="Resposta foi editada (salva no seu browser)"
+              >
+                editado
+              </span>
+            )}
+          </div>
+          <h2 className="text-[15px] font-semibold text-bright leading-snug">
+            {objecao.gatilho}
+          </h2>
+          {objecao.contexto && (
+            <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
+              {objecao.contexto}
+            </p>
+          )}
+        </div>
+        {!editing && (
+          <button
+            onClick={startEdit}
+            title="Editar resposta"
+            className="flex items-center justify-center w-8 h-8 rounded-md transition-all flex-shrink-0"
+            style={{
+              background: "transparent",
+              border: "1px solid var(--color-edge-subtle)",
+              color: "var(--color-muted)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--color-active-bg)";
+              e.currentTarget.style.color = "var(--color-violet)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--color-muted)";
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 2l3 3-8 8H3v-3l8-8z" />
+              <path d="M9 4l3 3" />
+            </svg>
+          </button>
+        )}
+      </header>
+
+      <div className="p-5">
+        {editing ? (
+          <>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="w-full text-[13px] leading-relaxed font-sans"
+              style={{
+                color: "var(--color-text)",
+                background: "var(--color-surface)",
+                padding: "14px 16px",
+                borderRadius: "8px",
+                border: "1px solid var(--color-violet)",
+                fontFamily: "inherit",
+                minHeight: "180px",
+                resize: "vertical",
+                outline: "none",
+                boxShadow: "0 0 0 3px var(--color-violet-wash)",
+              }}
+              autoFocus
+            />
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <button
+                onClick={cancelEdit}
+                className="px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all"
+                style={{
+                  background: "transparent",
+                  color: "var(--color-muted)",
+                  border: "1px solid var(--color-edge-subtle)",
+                }}
+              >
+                Cancelar
+              </button>
+              <div className="flex items-center gap-2">
+                {isEdited && (
+                  <button
+                    onClick={() => {
+                      onReset(objecao.id);
+                      setEditing(false);
+                    }}
+                    className="px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all"
+                    style={{
+                      background: "transparent",
+                      color: "var(--color-amber)",
+                      border: "1px solid rgba(245, 158, 11, 0.3)",
+                    }}
+                    title="Volta pro texto original (descarta sua edição salva)"
+                  >
+                    Restaurar padrão
+                  </button>
+                )}
+                <button
+                  onClick={saveEdit}
+                  disabled={draft === objecao.resposta}
+                  className="px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all"
+                  style={{
+                    background: draft === objecao.resposta ? "var(--color-edge-subtle)" : "var(--color-violet)",
+                    color: draft === objecao.resposta ? "var(--color-muted)" : "white",
+                    border: "1px solid transparent",
+                    cursor: draft === objecao.resposta ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <pre
+              className="text-[13px] leading-relaxed whitespace-pre-wrap font-sans"
+              style={{
+                color: "var(--color-text)",
+                background: "var(--color-surface)",
+                padding: "14px 16px",
+                borderRadius: "8px",
+                border: "1px solid var(--color-edge-subtle)",
+                fontFamily: "inherit",
+              }}
+            >
+              {objecao.resposta}
+            </pre>
+            <div className="mt-3 flex justify-end">
+              <CopyButton text={objecao.resposta} />
+            </div>
+          </>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export default function Objecoes() {
+  const [edits, setEdits] = useState<Record<string, string>>(() => loadEdits());
+
+  const handleSave = (id: string, novaResposta: string) => {
+    const next = { ...edits, [id]: novaResposta };
+    setEdits(next);
+    saveEdits(next);
+  };
+
+  const handleReset = (id: string) => {
+    const next = { ...edits };
+    delete next[id];
+    setEdits(next);
+    saveEdits(next);
+  };
+
+  const objecoes = DEFAULTS.map((o) => ({
+    ...o,
+    resposta: edits[o.id] ?? o.resposta,
+  }));
+
   return (
     <div className="p-6 sm:p-8 max-w-[1100px] mx-auto">
       <header className="mb-6">
@@ -110,61 +346,19 @@ export default function Objecoes() {
           Quebra de Objeções
         </h1>
         <p className="text-[13px] text-muted mt-1">
-          Respostas prontas pras objeções mais comuns. Clica em copiar e cola direto no atendimento.
+          Respostas prontas pras objeções mais comuns. Clica no lápis pra editar, em copiar pra colar no atendimento. Edições ficam salvas no seu browser.
         </p>
       </header>
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        {OBJECOES.map((o) => (
-          <article
+        {objecoes.map((o) => (
+          <Card
             key={o.id}
-            className="rounded-lg overflow-hidden"
-            style={{
-              background: "var(--color-panel)",
-              border: "1px solid var(--color-edge-subtle)",
-            }}
-          >
-            <header
-              className="px-5 py-3"
-              style={{ borderBottom: "1px solid var(--color-edge-subtle)" }}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className="text-[10px] font-bold tracking-widest uppercase"
-                  style={{ color: "var(--color-violet)" }}
-                >
-                  Objeção
-                </span>
-              </div>
-              <h2 className="text-[15px] font-semibold text-bright leading-snug">
-                {o.gatilho}
-              </h2>
-              {o.contexto && (
-                <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
-                  {o.contexto}
-                </p>
-              )}
-            </header>
-
-            <div className="p-5">
-              <pre
-                className="text-[13px] leading-relaxed whitespace-pre-wrap font-sans"
-                style={{
-                  color: "var(--color-text)",
-                  background: "var(--color-surface)",
-                  padding: "14px 16px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--color-edge-subtle)",
-                  fontFamily: "inherit",
-                }}
-              >
-                {o.resposta}
-              </pre>
-              <div className="mt-3 flex justify-end">
-                <CopyButton text={o.resposta} />
-              </div>
-            </div>
-          </article>
+            objecao={o}
+            isEdited={edits[o.id] !== undefined}
+            onSave={handleSave}
+            onReset={handleReset}
+          />
         ))}
       </div>
     </div>
