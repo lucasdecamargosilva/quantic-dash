@@ -3,6 +3,7 @@ import Layout from "./components/Layout";
 import Pipeline from "./pages/Pipeline";
 import Leads from "./pages/Leads";
 import Dashboard from "./pages/Dashboard";
+import Objecoes from "./pages/Objecoes";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/leads" element={<Leads />} />
+          <Route path="/objecoes" element={<Objecoes />} />
           {/* Compat: rota antiga /dashboard ainda funciona */}
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>

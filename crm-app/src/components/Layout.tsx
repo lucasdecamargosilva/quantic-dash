@@ -35,6 +35,15 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    to: "/objecoes",
+    label: "Objeções",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 1l2.4 4.6L15 6.3l-3.5 3.4.8 4.8L8 12.2 3.7 14.5l.8-4.8L1 6.3l4.6-.7L8 1z" />
+      </svg>
+    ),
+  },
 ];
 
 type Theme = "dark" | "light";
