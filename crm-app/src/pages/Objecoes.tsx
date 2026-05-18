@@ -13,6 +13,26 @@ interface Objecao {
 
 const OBJECOES: Objecao[] = [
   {
+    id: "aquecimento",
+    gatilho: "Aquecimento / Reabordagem",
+    contexto:
+      "Mensagem curta pra reabrir conversa com lead morno (já provocado antes mas não respondeu). Direto ao ponto: oferta gratuita + CTA.",
+    resposta: `Boa noite, tudo bem? Bora instalar os 7 dias grátis de provador?`,
+  },
+  {
+    id: "sem-interesse",
+    gatilho: "Lead respondeu 'sem interesse no momento'",
+    contexto:
+      "Quando o lead recusa educadamente, não force reversão (queima ponte). Aceita, deixa 1 dado forte na cabeça (case Cacifé +22% YoY, +R$100k atribuídos) e reforça a barreira-zero (7 dias grátis, sem cartão). Lead morno hoje pode lembrar daqui 2-3 meses.",
+    resposta: `Boa noite, [nome]! Respeito totalmente. 🙏
+
+Antes de encerrar, queria só deixar um dado pra você ter como referência: a Cacifé Brand instalou nosso provador em março. Comparando o mesmo período do ano anterior (Abril vs Abril), o faturamento por dia cresceu +22%, e mais de R$ 100 mil em vendas vieram direto de clientes que usaram o provador antes de comprar.
+
+Quando fizer sentido pra sua loja, fica o convite: 7 dias grátis pra testar, sem cartão e com instalação em poucos minutos.
+
+Qualquer coisa estou por aqui. Obrigado pela atenção!`,
+  },
+  {
     id: "valor",
     gatilho: "Achei caro / Quanto custa?",
     contexto:
