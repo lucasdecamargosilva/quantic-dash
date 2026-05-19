@@ -2165,7 +2165,7 @@ function TryonView({
     }
   }
 
-  async function generateOne(slot: GlassesSlot): Promise<void> {
+  async function generateOne(slot: GlassesSlot, customPrompt?: string): Promise<void> {
     if (!personFile || slot.files.length === 0) return;
     const fd = new FormData();
     for (const f of slot.files) fd.append("product", f);
@@ -2173,7 +2173,7 @@ function TryonView({
     const shot: Shot = {
       id: slot.id,
       label: `Pessoa usando ${itemSingular}`,
-      prompt: PROMPT,
+      prompt: customPrompt && customPrompt.trim() ? customPrompt.trim() : PROMPT,
     };
     fd.append("shots", JSON.stringify([shot]));
     fd.append("targetShotId", slot.id);
@@ -2232,13 +2232,13 @@ function TryonView({
     }
   }
 
-  async function handleRegenerate(slotId: string) {
+  async function handleRegenerate(slotId: string, customPrompt?: string) {
     if (regeneratingSlots.has(slotId)) return;
     const slot = glassesSlots.find((s) => s.id === slotId);
     if (!slot || !personFile || slot.files.length === 0) return;
     setRegeneratingSlots((prev) => new Set(prev).add(slotId));
     try {
-      await generateOne(slot);
+      await generateOne(slot, customPrompt);
     } finally {
       setRegeneratingSlots((prev) => {
         const next = new Set(prev);
@@ -2405,7 +2405,7 @@ function TryonView({
                     canRegenerate={
                       !!personFile && slot.files.length > 0 && !generating && !isRegen
                     }
-                    onRegenerate={() => handleRegenerate(slot.id)}
+                    onRegenerate={(customPrompt) => handleRegenerate(slot.id, customPrompt)}
                     aspectRatio={aspectRatio}
                   />
                 );
