@@ -10,6 +10,7 @@ export interface Lead {
   ponto_positivo: boolean;
   responsavel: string | null;
   categoria: Categoria;
+  pais: Pais;
   fonte_oportunidade: string | null;
   telefone: string | null;
   email: string | null;
@@ -18,6 +19,20 @@ export interface Lead {
 }
 
 export type Categoria = "oculos" | "roupa";
+
+export type Pais = "BR" | "PT";
+
+export const PAISES: Pais[] = ["BR", "PT"];
+
+export const PAIS_LABELS: Record<Pais, string> = {
+  BR: "Brasil",
+  PT: "Portugal",
+};
+
+export const PAIS_FLAG: Record<Pais, string> = {
+  BR: "🇧🇷",
+  PT: "🇵🇹",
+};
 
 export const CATEGORIAS: Categoria[] = ["oculos", "roupa"];
 
