@@ -692,7 +692,7 @@ function BatchView({
   const [regeneratingKeys, setRegeneratingKeys] = useState<Set<string>>(new Set());
   const [regenError, setRegenError] = useState<string | null>(null);
 
-  async function regenerateBatchShot(item: BatchItem, shotId: string) {
+  async function regenerateBatchShot(item: BatchItem, shotId: string, customPrompt?: string) {
     if (!item.productImages?.length || !item.shots?.length || !item.results) {
       setRegenError("Imagens originais ou prompts não disponíveis para refazer.");
       return;
@@ -712,7 +712,12 @@ function BatchView({
           fd.append("peer", base64ToFile(r.imageBase64, r.mimeType, `${id}.png`));
         }
       }
-      fd.append("shots", JSON.stringify(item.shots));
+      // Quando o usuário forneceu um prompt customizado, sobrescreve só este shot
+      // antes de enviar pro backend (sem alterar item.shots em estado — é one-shot).
+      const shotsToSend = customPrompt
+        ? item.shots.map((s) => (s.id === shotId ? { ...s, prompt: customPrompt } : s))
+        : item.shots;
+      fd.append("shots", JSON.stringify(shotsToSend));
       fd.append("targetShotId", shotId);
       fd.append("anchorShotId", meta.anchorShotId);
       fd.append("aspectRatio", aspectRatio);
@@ -1110,10 +1115,11 @@ function ShotCard({
   result?: GeneratedShot;
   regenerating: boolean;
   canRegenerate: boolean;
-  onRegenerate: () => void;
+  onRegenerate: (customPrompt?: string) => void;
   aspectRatio: AspectRatio;
   aspectStyle?: React.CSSProperties;
 }) {
+  const [customPrompt, setCustomPrompt] = useState("");
   const isLoading = !result || regenerating;
   const aspectClass = aspectStyle
     ? ""
@@ -1167,31 +1173,61 @@ function ShotCard({
       </div>
 
       {result?.imageBase64 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() =>
-              downloadAsPng(result.imageBase64!, result.mimeType ?? "image/png", shot.id)
-            }
-            className="btn-ghost"
-            title="Baixar em PNG"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
-            </svg>
-            Baixar .png
-          </button>
-          <button
-            onClick={onRegenerate}
-            disabled={!canRegenerate || regenerating}
-            className="btn-ghost"
-            title="Gera apenas esta imagem usando as outras 3 como referência"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 0115.5-6.4L21 8m0-5v5h-5M21 12a9 9 0 01-15.5 6.4L3 16m0 5v-5h5" />
-            </svg>
-            Refazer
-          </button>
-        </div>
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() =>
+                downloadAsPng(result.imageBase64!, result.mimeType ?? "image/png", shot.id)
+              }
+              className="btn-ghost"
+              title="Baixar em PNG"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+              </svg>
+              Baixar .png
+            </button>
+            <button
+              onClick={() => onRegenerate()}
+              disabled={!canRegenerate || regenerating}
+              className="btn-ghost"
+              title="Gera apenas esta imagem usando as outras 3 como referência"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0115.5-6.4L21 8m0-5v5h-5M21 12a9 9 0 01-15.5 6.4L3 16m0 5v-5h5" />
+              </svg>
+              Refazer
+            </button>
+          </div>
+          {/* Prompt customizado pra refazer o shot. Quando preenchido, sobrescreve
+              o prompt original deste shot só pra esta regeração — útil pra ajustar
+              detalhes específicos (ex: "modelo de perfil", "foco no tecido"). */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]" htmlFor={`prompt-${shot.id}`}>
+              Prompt customizado (opcional)
+            </label>
+            <textarea
+              id={`prompt-${shot.id}`}
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              placeholder="Ex: foco no tecido da gola, mostrar a textura, fundo branco puro…"
+              rows={2}
+              className="w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface-warm)] px-3 py-2 text-xs text-[var(--text)] placeholder:text-[var(--text-soft)] focus:border-[var(--text-muted)] focus:outline-none"
+              disabled={regenerating}
+            />
+            <button
+              onClick={() => onRegenerate(customPrompt.trim() || undefined)}
+              disabled={!canRegenerate || regenerating || !customPrompt.trim()}
+              className="btn-ghost self-start"
+              title="Refazer este shot usando o prompt customizado acima"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0115.5-6.4L21 8m0-5v5h-5M21 12a9 9 0 01-15.5 6.4L3 16m0 5v-5h5" />
+              </svg>
+              Refazer com este prompt
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1576,7 +1612,7 @@ function HistoryPanel({
     setEntries(loadHistory(category));
   }
 
-  async function regenerateShotInEntry(entry: HistoryEntry, shotId: string) {
+  async function regenerateShotInEntry(entry: HistoryEntry, shotId: string, customPrompt?: string) {
     if (!entry.products || entry.products.length === 0) {
       setRegenError("Esta geração foi salva antes da feature de refazer — sem fotos do produto guardadas.");
       return;
@@ -1603,7 +1639,11 @@ function HistoryPanel({
       }
       const shotsForApi = entry.shots
         .filter((s) => s.prompt)
-        .map((s) => ({ id: s.id, label: s.label, prompt: s.prompt! }));
+        .map((s) => ({
+          id: s.id,
+          label: s.label,
+          prompt: s.id === shotId && customPrompt ? customPrompt : s.prompt!,
+        }));
       fd.append("shots", JSON.stringify(shotsForApi));
       fd.append("targetShotId", shotId);
       fd.append("anchorShotId", entry.anchorShotId);
@@ -2561,7 +2601,7 @@ export default function Home() {
     }
   }
 
-  async function handleRegenerate(shotId: string) {
+  async function handleRegenerate(shotId: string, customPrompt?: string) {
     if (productFiles.length === 0) return;
     if (regeneratingIds.has(shotId)) return;
     setError(null);
@@ -2575,7 +2615,11 @@ export default function Home() {
         fd.append("peer", base64ToFile(r.imageBase64, r.mimeType, `${id}.png`));
       }
     }
-    fd.append("shots", JSON.stringify(shots));
+    // Custom prompt sobrescreve só o shot alvo nesta requisição.
+    const shotsToSend = customPrompt
+      ? shots.map((s) => (s.id === shotId ? { ...s, prompt: customPrompt } : s))
+      : shots;
+    fd.append("shots", JSON.stringify(shotsToSend));
     fd.append("targetShotId", shotId);
     fd.append("anchorShotId", categoryMeta.anchorShotId);
     fd.append("aspectRatio", aspectRatio);
@@ -3014,7 +3058,7 @@ export default function Home() {
                         canRegenerate={
                           productFiles.length > 0 && !generating && !regeneratingIds.has(shot.id)
                         }
-                        onRegenerate={() => handleRegenerate(shot.id)}
+                        onRegenerate={(customPrompt) => handleRegenerate(shot.id, customPrompt)}
                         aspectRatio={aspectRatio}
                         aspectStyle={
                           isCustom ? { aspectRatio: `${finalW} / ${finalH}` } : undefined
