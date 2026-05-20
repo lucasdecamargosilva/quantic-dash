@@ -63,14 +63,17 @@
         .table-wrap { overflow-x:auto; }
 
         /* Painel de registro de movimentações */
-        .mov-panel { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:28px; }
+        .mov-panel { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:28px; }
+        @media (max-width:900px) { .mov-panel { grid-template-columns:1fr; } }
         .mov-btn { background:rgba(12,14,23,0.7); border:1px dashed rgba(255,255,255,0.12); border-radius:14px; padding:18px 22px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:all 0.2s; font-family:inherit; color:#fff; text-align:left; }
         .mov-btn:hover { transform:translateY(-1px); }
         .mov-btn.entrada:hover { border-color:rgba(52,211,153,0.4); background:rgba(52,211,153,0.04); }
         .mov-btn.saida:hover { border-color:rgba(248,113,113,0.4); background:rgba(248,113,113,0.04); }
+        .mov-btn.prolabore:hover { border-color:rgba(168,85,247,0.4); background:rgba(168,85,247,0.04); }
         .mov-btn-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
         .mov-btn.entrada .mov-btn-icon { background:rgba(52,211,153,0.12); color:#34d399; }
         .mov-btn.saida   .mov-btn-icon { background:rgba(248,113,113,0.12); color:#f87171; }
+        .mov-btn.prolabore .mov-btn-icon { background:rgba(168,85,247,0.12); color:#a855f7; }
         .mov-btn-text { display:flex; flex-direction:column; gap:2px; }
         .mov-btn-title { font-size:14px; font-weight:700; color:#fff; }
         .mov-btn-sub   { font-size:12px; color:var(--text-muted,#94a3b8); }
@@ -82,6 +85,7 @@
         .modal-title { font-size:18px; font-weight:700; color:#fff; margin-bottom:24px; display:flex; align-items:center; gap:10px; }
         .modal-title.entrada { color:#34d399; }
         .modal-title.saida   { color:#f87171; }
+        .modal-title.prolabore { color:#a855f7; }
         .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
         .form-label { font-size:12px; font-weight:600; color:var(--text-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; }
         .form-input, .form-select { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px 14px; color:#fff; font-size:14px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; }
@@ -94,6 +98,8 @@
         .btn-primary.entrada:hover { background:rgba(52,211,153,0.25); color:#fff; }
         .btn-primary.saida { background:rgba(248,113,113,0.15); color:#f87171; border-color:rgba(248,113,113,0.3); }
         .btn-primary.saida:hover { background:rgba(248,113,113,0.25); color:#fff; }
+        .btn-primary.prolabore { background:rgba(168,85,247,0.15); color:#a855f7; border-color:rgba(168,85,247,0.3); }
+        .btn-primary.prolabore:hover { background:rgba(168,85,247,0.25); color:#fff; }
         .btn-secondary { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:600; cursor:pointer; }
 
         /* Toast notifications */
@@ -127,13 +133,14 @@
         .devolver-card-sub { font-size:11px; color:var(--text-muted,#94a3b8); }
         .devolver-total-label { font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:4px; }
         .devolver-total-value { font-size:24px; font-weight:800; color:#fbbf24; letter-spacing:-0.5px; margin-bottom:14px; }
-        .dev-stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; padding:12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid rgba(255,255,255,0.04); }
-        .dev-stat { display:flex; flex-direction:column; gap:3px; }
-        .dev-stat-label { font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted,#94a3b8); }
-        .dev-stat-value { font-size:15px; font-weight:800; color:#fff; letter-spacing:-0.3px; }
+        .dev-stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; padding:12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid rgba(255,255,255,0.04); }
+        .dev-stat { display:flex; flex-direction:column; gap:3px; min-width:0; }
+        .dev-stat-label { font-size:9px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); }
+        .dev-stat-value { font-size:14px; font-weight:800; color:#fff; letter-spacing:-0.3px; }
         .dev-stat-value.red { color:#f87171; }
         .dev-stat-value.green { color:#34d399; }
         .dev-stat-value.amber { color:#fbbf24; }
+        .dev-stat-value.violet { color:#a855f7; }
         .dev-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
         .btn-socio { border-radius:8px; padding:9px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s; border:1px solid transparent; }
         .btn-socio.saque     { background:rgba(248,113,113,0.1); border-color:rgba(248,113,113,0.25); color:#f87171; }
@@ -241,6 +248,13 @@
                                     <span class="mov-btn-sub">Cria um custo pago</span>
                                 </div>
                             </button>
+                            <button class="mov-btn prolabore" id="btnNovoProLabore">
+                                <div class="mov-btn-icon"><i class="ph-fill ph-user-circle-gear"></i></div>
+                                <div class="mov-btn-text">
+                                    <span class="mov-btn-title">Registrar Pr&oacute;-Labore</span>
+                                    <span class="mov-btn-sub">Abate saldo devedor do s&oacute;cio (n&atilde;o entra no fluxo)</span>
+                                </div>
+                            </button>
                         </div>
 
                         <!-- Devolução de Caixa para os sócios -->
@@ -266,6 +280,10 @@
                                         <div class="dev-stat">
                                             <div class="dev-stat-label">J&aacute; Devolvido</div>
                                             <div class="dev-stat-value green" id="devDevolvidoLDC">R$ 0,00</div>
+                                        </div>
+                                        <div class="dev-stat">
+                                            <div class="dev-stat-label">Pr&oacute;-Labore</div>
+                                            <div class="dev-stat-value violet" id="devProLaboreLDC">R$ 0,00</div>
                                         </div>
                                         <div class="dev-stat">
                                             <div class="dev-stat-label">Saldo</div>
@@ -299,6 +317,10 @@
                                         <div class="dev-stat">
                                             <div class="dev-stat-label">J&aacute; Devolvido</div>
                                             <div class="dev-stat-value green" id="devDevolvidoLCI">R$ 0,00</div>
+                                        </div>
+                                        <div class="dev-stat">
+                                            <div class="dev-stat-label">Pr&oacute;-Labore</div>
+                                            <div class="dev-stat-value violet" id="devProLaboreLCI">R$ 0,00</div>
                                         </div>
                                         <div class="dev-stat">
                                             <div class="dev-stat-label">Saldo</div>
@@ -449,6 +471,8 @@
             if (dia && v) movs.push({ id: r.id, tabela: 'pj_receitas', dia: dia, tipo: 'entrada', valor: v, descricao: r.descricao || '', categoria: r.categoria || '' });
         });
         (cusResult.data || []).forEach(function(c) {
+            // Pró-Labore não entra no fluxo de caixa — só abate saldo devedor do sócio (ver loadDevolucoes)
+            if (c.categoria === 'Pró-Labore') return;
             if (c.data_pagamento) movs.push({ id: c.id, tabela: 'pj_custos_lancados', dia: c.data_pagamento, tipo: 'saida', valor: Number(c.valor), descricao: c.descricao || '', categoria: c.categoria || '' });
         });
         console.log('[fluxo-caixa] movimentações normalizadas:', movs);
@@ -668,14 +692,16 @@
     //  Saque           = saída em pj_custos_lancados (sócio retira → aumenta devido)
     //  Devolução Saque = entrada em pj_receitas      (sócio devolve → aumenta devolvido)
     var SOCIOS = [
-        { nome: 'Lucas de Camargo', devido: 'devDevidoLDC', devolvido: 'devDevolvidoLDC', saldo: 'devSaldoLDC' },
-        { nome: 'Lucas Cioni',      devido: 'devDevidoLCI', devolvido: 'devDevolvidoLCI', saldo: 'devSaldoLCI' }
+        { nome: 'Lucas de Camargo', devido: 'devDevidoLDC', devolvido: 'devDevolvidoLDC', prolabore: 'devProLaboreLDC', saldo: 'devSaldoLDC' },
+        { nome: 'Lucas Cioni',      devido: 'devDevidoLCI', devolvido: 'devDevolvidoLCI', prolabore: 'devProLaboreLCI', saldo: 'devSaldoLCI' }
     ];
 
     async function loadDevolucoes() {
         var sb = await getSB();
         // Saques: saídas em pj_custos_lancados com categoria = 'Saque'
         var saquesRes = await sb.from('pj_custos_lancados').select('descricao, valor, categoria').eq('categoria', 'Saque');
+        // Pró-Labore: saídas em pj_custos_lancados com categoria = 'Pró-Labore' (abate devido, não entra no fluxo)
+        var prolaboreRes = await sb.from('pj_custos_lancados').select('descricao, valor, categoria').eq('categoria', 'Pró-Labore');
         // Devoluções: entradas em pj_receitas com categoria = 'Devolução Saque'
         var devRes = await sb.from('pj_receitas').select('descricao, valor, valor_recebido, status, categoria').eq('categoria', 'Devolução Saque');
         // Fallback se a coluna categoria ainda não existir em pj_receitas
@@ -706,7 +732,13 @@
                 return acc + v;
             }, 0);
 
-            var saldo = devido - devolvido;
+            var prolabore = (prolaboreRes.data || []).reduce(function(acc, r) {
+                var desc = (r.descricao || '').toLowerCase();
+                return desc.indexOf(needle) >= 0 ? acc + Number(r.valor || 0) : acc;
+            }, 0);
+
+            // Pró-Labore abate o saldo devedor igual uma devolução (mas sem entrar no fluxo)
+            var saldo = devido - devolvido - prolabore;
             var setEl = function(id, value, colorCls) {
                 var el = document.getElementById(id);
                 if (!el) return;
@@ -715,6 +747,7 @@
             };
             setEl(s.devido, devido, 'red');
             setEl(s.devolvido, devolvido, 'green');
+            setEl(s.prolabore, prolabore, 'violet');
             setEl(s.saldo, saldo, saldo > 0 ? 'red' : (saldo < 0 ? 'green' : 'amber'));
         });
     }
@@ -920,8 +953,28 @@
         document.getElementById('modalMov').classList.remove('active');
     }
 
+    function abrirModalProLabore() {
+        // Pró-Labore = saída em pj_custos_lancados com categoria fixa 'Pró-Labore'.
+        // É excluído do fluxo de caixa (loadFluxo filtra) e abate o saldo devedor do sócio (loadDevolucoes soma).
+        abrirModalMov('saida');
+        setTimeout(function() {
+            document.getElementById('movCategoria').value = 'Pró-Labore';
+            atualizarCampoSocio();
+            var title = document.getElementById('modalMovTitle');
+            title.className = 'modal-title prolabore';
+            while (title.firstChild) title.removeChild(title.firstChild);
+            var icon = document.createElement('i');
+            icon.className = 'ph-fill ph-user-circle-gear';
+            title.appendChild(icon);
+            title.appendChild(document.createTextNode(' Registrar Pró-Labore'));
+            var saveBtn = document.getElementById('btnSalvarMov');
+            saveBtn.className = 'btn-primary prolabore';
+        }, 0);
+    }
+
     document.getElementById('btnNovaEntrada').addEventListener('click', function() { abrirModalMov('entrada'); });
     document.getElementById('btnNovaSaida').addEventListener('click', function() { abrirModalMov('saida'); });
+    document.getElementById('btnNovoProLabore').addEventListener('click', abrirModalProLabore);
     document.getElementById('btnCancelMov').addEventListener('click', fecharModalMov);
 
     // Estado da modal: create | edit
@@ -1008,7 +1061,9 @@
         btn.disabled = false;
         fecharModalMov();
         var verbo = movMode === 'edit' ? 'atualizada' : 'registrada';
-        showToast({ tipo:'success', titulo:(movTipo === 'entrada' ? 'Entrada' : 'Saída') + ' ' + verbo, msg:fmt(valor) + ' em ' + new Date(data+'T00:00:00').toLocaleDateString('pt-BR') });
+        var labelTipo = categoria === 'Pró-Labore' ? 'Pró-Labore' : (movTipo === 'entrada' ? 'Entrada' : 'Saída');
+        var verboFinal = categoria === 'Pró-Labore' ? (movMode === 'edit' ? 'atualizado' : 'registrado') : verbo;
+        showToast({ tipo:'success', titulo:labelTipo + ' ' + verboFinal, msg:fmt(valor) + ' em ' + new Date(data+'T00:00:00').toLocaleDateString('pt-BR') });
         movMode = 'create';
         movEditId = null;
         movEditTabela = null;
