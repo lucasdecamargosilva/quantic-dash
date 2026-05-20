@@ -340,6 +340,16 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Histórico de Pró-Labore (fora do fluxo, com botão de excluir) -->
+                        <div class="prolab-section" id="prolabSection" style="display:none;margin-bottom:28px;">
+                            <div class="devolver-header">
+                                <h3 class="devolver-title">Hist&oacute;rico de Pr&oacute;-Labore</h3>
+                                <span class="devolver-pill" style="background:rgba(168,85,247,0.12); color:#a855f7; border-color:rgba(168,85,247,0.25);">N&atilde;o entra no fluxo</span>
+                            </div>
+                            <div id="prolabList" style="background:rgba(12,14,23,0.6); border:1px solid rgba(255,255,255,0.06); border-radius:12px; overflow:hidden;"></div>
+                        </div>
+
                         <div class="table-wrap">
                             <table class="fc-table">
                                 <thead>
@@ -696,12 +706,77 @@
         { nome: 'Lucas Cioni',      devido: 'devDevidoLCI', devolvido: 'devDevolvidoLCI', prolabore: 'devProLaboreLCI', saldo: 'devSaldoLCI' }
     ];
 
+    // Renderiza histórico de pró-labore com botão de excluir.
+    // Pró-Labore não aparece na tabela principal de movimentações (filtrado pra não
+    // poluir o fluxo de caixa), então precisa de UI dedicada pra remover.
+    function renderProLaboreList(rows) {
+        var section = document.getElementById('prolabSection');
+        var list = document.getElementById('prolabList');
+        if (!section || !list) return;
+        while (list.firstChild) list.removeChild(list.firstChild);
+        if (!rows.length) { section.style.display = 'none'; return; }
+        section.style.display = '';
+        rows.forEach(function(r, idx) {
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex; align-items:center; gap:12px; padding:12px 16px;' + (idx>0 ? 'border-top:1px solid rgba(255,255,255,0.04);' : '');
+
+            var icon = document.createElement('div');
+            icon.style.cssText = 'width:32px; height:32px; border-radius:8px; background:rgba(168,85,247,0.12); color:#a855f7; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
+            var iEl = document.createElement('i'); iEl.className = 'ph-fill ph-user-circle-gear';
+            icon.appendChild(iEl);
+            row.appendChild(icon);
+
+            var body = document.createElement('div');
+            body.style.cssText = 'flex:1; min-width:0;';
+            var desc = document.createElement('div');
+            desc.style.cssText = 'font-size:13px; font-weight:600; color:#fff;';
+            desc.textContent = r.descricao || 'Pró-Labore';
+            var meta = document.createElement('div');
+            meta.style.cssText = 'font-size:11px; color:var(--text-muted,#94a3b8); margin-top:2px;';
+            meta.textContent = r.data_pagamento ? new Date(r.data_pagamento+'T00:00:00').toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+            body.appendChild(desc); body.appendChild(meta);
+            row.appendChild(body);
+
+            var val = document.createElement('div');
+            val.style.cssText = 'font-size:14px; font-weight:700; color:#a855f7; font-variant-numeric:tabular-nums; flex-shrink:0;';
+            val.textContent = fmt(r.valor);
+            row.appendChild(val);
+
+            var btnDel = document.createElement('button');
+            btnDel.className = 'del-btn';
+            btnDel.title = 'Excluir pró-labore';
+            var iconDel = document.createElement('i'); iconDel.className = 'ph-fill ph-trash';
+            btnDel.appendChild(iconDel);
+            btnDel.addEventListener('click', function() { excluirProLabore(r, btnDel); });
+            row.appendChild(btnDel);
+
+            list.appendChild(row);
+        });
+    }
+
+    async function excluirProLabore(r, btn) {
+        if (!r || !r.id) return;
+        var dataLabel = r.data_pagamento ? new Date(r.data_pagamento+'T00:00:00').toLocaleDateString('pt-BR') : '';
+        if (!confirm('Excluir pró-labore de ' + fmt(r.valor) + (dataLabel ? ' em ' + dataLabel : '') + '?\n\n' + (r.descricao || '') + '\n\nEssa ação não pode ser desfeita.')) return;
+        if (btn) btn.disabled = true;
+        var sb = await getSB();
+        var result = await sb.from('pj_custos_lancados').delete().eq('id', r.id).select();
+        if (result.error) {
+            showToast({ tipo:'error', titulo:'Erro ao excluir', msg:result.error.message });
+            if (btn) btn.disabled = false;
+            return;
+        }
+        showToast({ tipo:'success', titulo:'Pró-Labore excluído', msg:fmt(r.valor) + ' removido. Saldo devedor atualizado.' });
+        loadFluxo();
+    }
+
     async function loadDevolucoes() {
         var sb = await getSB();
         // Saques: saídas em pj_custos_lancados com categoria = 'Saque'
         var saquesRes = await sb.from('pj_custos_lancados').select('descricao, valor, categoria').eq('categoria', 'Saque');
         // Pró-Labore: saídas em pj_custos_lancados com categoria = 'Pró-Labore' (abate devido, não entra no fluxo)
-        var prolaboreRes = await sb.from('pj_custos_lancados').select('descricao, valor, categoria').eq('categoria', 'Pró-Labore');
+        var prolaboreRes = await sb.from('pj_custos_lancados').select('id, descricao, valor, data_pagamento, categoria').eq('categoria', 'Pró-Labore').order('data_pagamento', { ascending: false });
+        renderProLaboreList(prolaboreRes.data || []);
         // Devoluções: entradas em pj_receitas com categoria = 'Devolução Saque'
         var devRes = await sb.from('pj_receitas').select('descricao, valor, valor_recebido, status, categoria').eq('categoria', 'Devolução Saque');
         // Fallback se a coluna categoria ainda não existir em pj_receitas
