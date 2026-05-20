@@ -347,7 +347,7 @@
                                 <h3 class="devolver-title">Hist&oacute;rico de Pr&oacute;-Labore</h3>
                                 <span class="devolver-pill" style="background:rgba(168,85,247,0.12); color:#a855f7; border-color:rgba(168,85,247,0.25);">N&atilde;o entra no fluxo</span>
                             </div>
-                            <div id="prolabList" style="background:rgba(12,14,23,0.6); border:1px solid rgba(255,255,255,0.06); border-radius:12px; overflow:hidden;"></div>
+                            <div id="prolabList" style="background:rgba(12,14,23,0.6); border:1px solid rgba(255,255,255,0.06); border-radius:12px; max-height:240px; overflow-y:auto;"></div>
                         </div>
 
                         <div class="table-wrap">
@@ -718,27 +718,27 @@
         section.style.display = '';
         rows.forEach(function(r, idx) {
             var row = document.createElement('div');
-            row.style.cssText = 'display:flex; align-items:center; gap:12px; padding:12px 16px;' + (idx>0 ? 'border-top:1px solid rgba(255,255,255,0.04);' : '');
+            row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:7px 12px;' + (idx>0 ? 'border-top:1px solid rgba(255,255,255,0.04);' : '');
 
             var icon = document.createElement('div');
-            icon.style.cssText = 'width:32px; height:32px; border-radius:8px; background:rgba(168,85,247,0.12); color:#a855f7; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
+            icon.style.cssText = 'width:24px; height:24px; border-radius:6px; background:rgba(168,85,247,0.12); color:#a855f7; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px;';
             var iEl = document.createElement('i'); iEl.className = 'ph-fill ph-user-circle-gear';
             icon.appendChild(iEl);
             row.appendChild(icon);
 
             var body = document.createElement('div');
-            body.style.cssText = 'flex:1; min-width:0;';
+            body.style.cssText = 'flex:1; min-width:0; display:flex; align-items:center; gap:10px;';
             var desc = document.createElement('div');
-            desc.style.cssText = 'font-size:13px; font-weight:600; color:#fff;';
+            desc.style.cssText = 'font-size:12px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
             desc.textContent = r.descricao || 'Pró-Labore';
             var meta = document.createElement('div');
-            meta.style.cssText = 'font-size:11px; color:var(--text-muted,#94a3b8); margin-top:2px;';
-            meta.textContent = r.data_pagamento ? new Date(r.data_pagamento+'T00:00:00').toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+            meta.style.cssText = 'font-size:10px; color:var(--text-muted,#94a3b8); flex-shrink:0;';
+            meta.textContent = r.data_pagamento ? new Date(r.data_pagamento+'T00:00:00').toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '—';
             body.appendChild(desc); body.appendChild(meta);
             row.appendChild(body);
 
             var val = document.createElement('div');
-            val.style.cssText = 'font-size:14px; font-weight:700; color:#a855f7; font-variant-numeric:tabular-nums; flex-shrink:0;';
+            val.style.cssText = 'font-size:12px; font-weight:700; color:#a855f7; font-variant-numeric:tabular-nums; flex-shrink:0;';
             val.textContent = fmt(r.valor);
             row.appendChild(val);
 
