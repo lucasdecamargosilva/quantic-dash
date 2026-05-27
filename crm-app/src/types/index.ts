@@ -63,6 +63,7 @@ export type LeadStatus =
   | "mensagem_1"
   | "mensagem_2"
   | "mensagem_3"
+  | "meta"
   | "email_enviado"
   | "respondeu"
   | "atendimento_ia"
@@ -84,6 +85,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "mensagem_1",
   "mensagem_2",
   "mensagem_3",
+  "meta",
   "email_enviado",
   "respondeu",
   "atendimento_ia",
@@ -106,6 +108,7 @@ export const PIPELINE_STATUSES: LeadStatus[] = [
   "mensagem_1",
   "mensagem_2",
   "mensagem_3",
+  "meta",
   "email_enviado",
   "respondeu",
   "atendimento_ia",
@@ -144,6 +147,7 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   mensagem_1: "Mensagem 1",
   mensagem_2: "Mensagem 2",
   mensagem_3: "Mensagem 3",
+  meta: "Meta",
   email_enviado: "Email Enviado",
   respondeu: "Respondeu",
   atendimento_ia: "Atendimento com IA",
@@ -166,6 +170,7 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
   mensagem_1: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
   mensagem_2: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
   mensagem_3: { bg: "bg-violet/10", text: "text-violet-light", dot: "bg-violet-light" },
+  meta: { bg: "bg-cyan/10", text: "text-cyan", dot: "bg-cyan" },
   email_enviado: { bg: "bg-pink/10", text: "text-pink", dot: "bg-pink" },
   respondeu: { bg: "bg-amber/10", text: "text-amber", dot: "bg-amber" },
   atendimento_ia: { bg: "bg-violet/10", text: "text-violet-light", dot: "bg-violet" },
@@ -188,6 +193,7 @@ export const STATUS_HEX: Record<LeadStatus, string> = {
   mensagem_1: "#38bdf8",
   mensagem_2: "#818cf8",
   mensagem_3: "#c084fc",
+  meta: "#1877F2",
   email_enviado: "#d946ef",
   respondeu: "#f59e0b",
   atendimento_ia: "#a855f7",
