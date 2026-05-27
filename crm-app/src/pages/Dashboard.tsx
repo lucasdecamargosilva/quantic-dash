@@ -22,8 +22,9 @@ function useTheme(): "light" | "dark" {
 
 const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "testando"];
 const ACTIVE_STATUSES: LeadStatus[] = [
-  "novo", "dm_enviada", "mensagem_1", "mensagem_2", "mensagem_3", "email_enviado",
-  "respondeu", "lead_coletado", "fotos_enviadas",
+  "novo", "dm_enviada", "mensagem_1", "mensagem_2", "mensagem_3", "atendimento_ia",
+  "meta", "email_a_enviar", "email_enviado",
+  "respondeu", "fotos_enviadas",
   "stand_by", "interessado", "reuniao_agendada", "testando",
 ];
 
@@ -64,7 +65,7 @@ export default function Dashboard() {
   const hot = HOT_STATUSES.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   // Funnel cumulativo: dms = todos que passaram por dm_enviada ou além
-  const dmsAlcancadas = ["dm_enviada","mensagem_1","mensagem_2","mensagem_3","email_enviado","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","fechou","perdida"]
+  const dmsAlcancadas = ["dm_enviada","mensagem_1","mensagem_2","mensagem_3","atendimento_ia","meta","email_a_enviar","email_enviado","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
   const responderam = ["respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
