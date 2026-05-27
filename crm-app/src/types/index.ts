@@ -53,6 +53,7 @@ export const FONTES_OPORTUNIDADE = [
   "Site",
   "Prospecção Ativa",
   "WhatsApp",
+  "Meta",
   "Evento",
   "Outro",
 ] as const;

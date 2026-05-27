@@ -48,6 +48,17 @@ function FonteLogo({ fonte }: { fonte: string | null }) {
       </svg>
     );
   }
+  if (fonte === "Meta") {
+    return (
+      <span
+        className="w-3.5 h-3.5 shrink-0 flex items-center justify-center font-extrabold text-[12px] leading-none"
+        style={{ color: "#1877F2" }}
+        aria-label="Meta"
+      >
+        M
+      </span>
+    );
+  }
   return null;
 }
 
