@@ -1,19 +1,5 @@
 import { useState } from "react";
-import { INTERACAO_TIPOS } from "../types";
-import type { InteracaoTipo, LeadStatus } from "../types";
 import { supabase } from "../lib/supabase";
-
-const TIPO_LABELS: Record<InteracaoTipo, string> = {
-  dm_enviada: "DM Enviada",
-  resposta: "Resposta",
-  follow_up: "Follow-up",
-  nota: "Nota",
-};
-
-const AUTO_STATUS: Partial<Record<InteracaoTipo, LeadStatus>> = {
-  dm_enviada: "dm_enviada",
-  resposta: "respondeu",
-};
 
 interface Props {
   leadId: string;
@@ -21,7 +7,6 @@ interface Props {
 }
 
 export default function InteracaoForm({ leadId, onSaved }: Props) {
-  const [tipo, setTipo] = useState<InteracaoTipo>("dm_enviada");
   const [conteudo, setConteudo] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -30,12 +15,18 @@ export default function InteracaoForm({ leadId, onSaved }: Props) {
     if (!conteudo.trim()) return;
     setSaving(true);
 
-    await supabase.from("interacoes").insert({ lead_id: leadId, tipo, conteudo: conteudo.trim() });
+    const agora = new Date().toISOString();
 
-    const newStatus = AUTO_STATUS[tipo];
-    if (newStatus) {
-      await supabase.from("leads").update({ status: newStatus }).eq("id", leadId);
-    }
+    // Registra a interacao como nota, marcando data/hora do envio
+    await supabase.from("interacoes").insert({
+      lead_id: leadId,
+      tipo: "nota",
+      conteudo: conteudo.trim(),
+      created_at: agora,
+    });
+
+    // Marca a data/hora da atualizacao no proprio lead
+    await supabase.from("leads").update({ updated_at: agora }).eq("id", leadId);
 
     setConteudo("");
     setSaving(false);
@@ -44,13 +35,6 @@ export default function InteracaoForm({ leadId, onSaved }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 items-end">
-      <select
-        value={tipo}
-        onChange={(e) => setTipo(e.target.value as InteracaoTipo)}
-        className="bg-surface border border-edge-subtle rounded-lg px-2.5 py-2 text-xs text-sub focus:outline-none focus:border-violet/30 transition-all"
-      >
-        {INTERACAO_TIPOS.map((t) => <option key={t} value={t}>{TIPO_LABELS[t]}</option>)}
-      </select>
       <input
         type="text"
         value={conteudo}
