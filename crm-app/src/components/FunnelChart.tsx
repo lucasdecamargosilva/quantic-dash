@@ -24,6 +24,7 @@ const STAGES_AFTER: Record<LeadStatus, LeadStatus[]> = {
   lead_coletado: [],
   descartado: [],
   meta: [],
+  email_a_enviar: [],
   dm_enviada: ["mensagem_1", "mensagem_2", "mensagem_3", "email_enviado", "respondeu", "atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "sem_site", "parou_responder", "perdida"],
   mensagem_1: ["mensagem_2", "mensagem_3", "email_enviado", "respondeu", "atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "sem_site", "parou_responder", "perdida"],
   mensagem_2: ["mensagem_3", "email_enviado", "respondeu", "atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "testando", "fechou", "sem_site", "parou_responder", "perdida"],
