@@ -97,9 +97,10 @@ export default function Dashboard() {
   const responsaveisRanking = Object.entries(responsaveisMap)
     .map(([nome, v]) => ({
       nome, ...v,
-      taxa: v.total > 0 ? (v.fechou / v.total) * 100 : 0,
+      // Win rate: fechados sobre negócios já decididos (fechou + perdida)
+      taxa: (v.fechou + v.perdida) > 0 ? (v.fechou / (v.fechou + v.perdida)) * 100 : 0,
     }))
-    .sort((a, b) => b.fechou - a.fechou || b.hot - a.hot)
+    .sort((a, b) => b.taxa - a.taxa || b.fechou - a.fechou)
     .slice(0, 6);
 
   // === Fonte da oportunidade ===
@@ -238,7 +239,7 @@ export default function Dashboard() {
                 <span className="w-12 text-right">Total</span>
                 <span className="w-10 text-right">Quente</span>
                 <span className="w-10 text-right">Fechou</span>
-                <span className="w-12 text-right">Taxa</span>
+                <span className="w-12 text-right">Win %</span>
               </div>
             )}
           </div>
