@@ -26,7 +26,8 @@ function FonteLogo({ fonte }: { fonte: string | null }) {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="w-3.5 h-3.5 text-pink shrink-0"
+        className="w-3.5 h-3.5 shrink-0"
+        style={{ color: "#E1306C" }}
         aria-label="Instagram"
       >
         <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
