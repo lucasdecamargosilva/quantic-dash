@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { Lead, LeadStatus, Categoria, Pais } from "../types";
-import { PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIAS, CATEGORIA_LABELS, PAISES, PAIS_LABELS, PAIS_FLAG } from "../types";
+import type { Lead, LeadStatus, Categoria } from "../types";
+import { PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import LeadModal from "../components/LeadModal";
 import DesempenhoResponsaveis from "../components/DesempenhoResponsaveis";
 import {
@@ -192,7 +192,6 @@ export default function Pipeline() {
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [filtroResponsavel, setFiltroResponsavel] = useState<string>("__todos");
   const [filtroCategoria, setFiltroCategoria] = useState<Categoria | "todas">("todas");
-  const [filtroPais, setFiltroPais] = useState<Pais | "todos">("todos");
   const [filtroFonte, setFiltroFonte] = useState<string>("todas");
   const [busca, setBusca] = useState<string>("");
 
@@ -219,7 +218,6 @@ export default function Pipeline() {
   const buscaNorm = busca.trim().toLowerCase().replace(/^@/, "");
   const leadsFiltrados = leads.filter((l) => {
     if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
-    if (filtroPais !== "todos" && l.pais !== filtroPais) return false;
     if (filtroFonte !== "todas" && l.fonte_oportunidade !== filtroFonte) return false;
     if (filtroResponsavel === "__sem" && l.responsavel) return false;
     if (filtroResponsavel !== "__todos" && filtroResponsavel !== "__sem" && l.responsavel !== filtroResponsavel) return false;
@@ -331,35 +329,6 @@ export default function Pipeline() {
                   }`}
                 >
                   {CATEGORIA_LABELS[c]}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] font-bold text-dim uppercase tracking-widest">País</label>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setFiltroPais("todos")}
-                className={`text-[10px] uppercase tracking-[0.15em] px-2.5 py-1.5 rounded transition-all ${
-                  filtroPais === "todos"
-                    ? "bg-violet/20 text-violet-light border border-violet/30"
-                    : "text-dim border border-edge-subtle hover:text-sub"
-                }`}
-              >
-                Todos
-              </button>
-              {PAISES.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setFiltroPais(p)}
-                  className={`text-[10px] uppercase tracking-[0.15em] px-2.5 py-1.5 rounded transition-all ${
-                    filtroPais === p
-                      ? "bg-violet/20 text-violet-light border border-violet/30"
-                      : "text-dim border border-edge-subtle hover:text-sub"
-                  }`}
-                  title={PAIS_LABELS[p]}
-                >
-                  {PAIS_FLAG[p]} {p}
                 </button>
               ))}
             </div>
