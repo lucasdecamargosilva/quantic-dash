@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { LEAD_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIA_LABELS, CATEGORIA_HEX } from "../types";
+import { LEAD_STATUSES, PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIA_LABELS, CATEGORIA_HEX } from "../types";
 import type { Lead, LeadStatus, Categoria } from "../types";
 import FunnelChart from "../components/FunnelChart";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -55,6 +55,13 @@ export default function Dashboard() {
     acc[s] = leads.filter((l) => l.status === s).length;
     return acc;
   }, {} as Record<LeadStatus, number>);
+
+  // Dados do gráfico "Total de Leads por Etapa" (ordem do pipeline)
+  const etapaData = PIPELINE_STATUSES.map((s) => ({
+    etapa: STATUS_LABELS[s],
+    total: counts[s] || 0,
+    color: STATUS_HEX[s],
+  }));
 
   // === KPIs principais ===
   const total = leads.length;
@@ -160,6 +167,25 @@ export default function Dashboard() {
             <p className="text-base font-bold mt-1 tabular-nums" style={{ color: STATUS_HEX[s] }}>{counts[s] || 0}</p>
           </div>
         ))}
+      </div>
+
+      {/* Total de Leads por Etapa */}
+      <div className="bg-raised border border-edge-subtle rounded-xl p-6 mb-6">
+        <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Total de Leads por Etapa</p>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={etapaData} margin={{ top: 10, right: 10, bottom: 70, left: 0 }}>
+            <XAxis dataKey="etapa" tick={{ fill: tickColor, fontSize: 9, fontFamily: "Sora" }} axisLine={{ stroke: axisLineColor }} tickLine={false} interval={0} angle={-40} textAnchor="end" height={70} />
+            <YAxis tick={{ fill: tickColor, fontSize: 10, fontFamily: "Sora" }} axisLine={false} tickLine={false} allowDecimals={false} />
+            <Tooltip
+              contentStyle={{ backgroundColor: tooltipBg, backdropFilter: "blur(12px)", border: `1px solid ${tooltipBorder}`, borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
+              labelStyle={{ color: tooltipLabelColor }}
+              cursor={{ fill: cursorFill }}
+            />
+            <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+              {etapaData.map((d, i) => <Cell key={i} fill={d.color} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Funil + Categoria */}
