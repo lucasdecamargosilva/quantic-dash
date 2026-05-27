@@ -193,6 +193,7 @@ export default function Pipeline() {
   const [filtroResponsavel, setFiltroResponsavel] = useState<string>("__todos");
   const [filtroCategoria, setFiltroCategoria] = useState<Categoria | "todas">("todas");
   const [filtroPais, setFiltroPais] = useState<Pais | "todos">("todos");
+  const [filtroFonte, setFiltroFonte] = useState<string>("todas");
   const [busca, setBusca] = useState<string>("");
 
   const sensors = useSensors(
@@ -219,6 +220,7 @@ export default function Pipeline() {
   const leadsFiltrados = leads.filter((l) => {
     if (filtroCategoria !== "todas" && l.categoria !== filtroCategoria) return false;
     if (filtroPais !== "todos" && l.pais !== filtroPais) return false;
+    if (filtroFonte !== "todas" && l.fonte_oportunidade !== filtroFonte) return false;
     if (filtroResponsavel === "__sem" && l.responsavel) return false;
     if (filtroResponsavel !== "__todos" && filtroResponsavel !== "__sem" && l.responsavel !== filtroResponsavel) return false;
     if (buscaNorm) {
@@ -358,6 +360,24 @@ export default function Pipeline() {
                   title={PAIS_LABELS[p]}
                 >
                   {PAIS_FLAG[p]} {p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Fonte</label>
+            <div className="flex gap-1">
+              {(["todas", "Instagram", "WhatsApp"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFiltroFonte(f)}
+                  className={`text-[10px] uppercase tracking-[0.15em] px-2.5 py-1.5 rounded transition-all ${
+                    filtroFonte === f
+                      ? "bg-violet/20 text-violet-light border border-violet/30"
+                      : "text-dim border border-edge-subtle hover:text-sub"
+                  }`}
+                >
+                  {f === "todas" ? "Todos" : f}
                 </button>
               ))}
             </div>
