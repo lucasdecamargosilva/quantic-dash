@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { LEAD_STATUSES, PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIA_LABELS, CATEGORIA_HEX } from "../types";
+import { LEAD_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIA_LABELS, CATEGORIA_HEX } from "../types";
 import type { Lead, LeadStatus, Categoria } from "../types";
 import FunnelChart from "../components/FunnelChart";
+import FonteLogo from "../components/FonteLogo";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 // Hook que detecta o tema atual via data-theme no html, atualizando reativamente
@@ -28,9 +29,13 @@ const ACTIVE_STATUSES: LeadStatus[] = [
   "stand_by", "interessado", "reuniao_agendada", "testando",
 ];
 
+type LastInter = { conteudo: string; created_at: string };
+
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  // Mapa lead_id -> última interação registrada
+  const [interacoesMap, setInteracoesMap] = useState<Record<string, LastInter>>({});
   const theme = useTheme();
   const isLight = theme === "light";
 
@@ -48,6 +53,19 @@ export default function Dashboard() {
       setLeads(data ?? []);
       setLoading(false);
     });
+    // Busca as interações recentes e mantém só a última de cada lead
+    supabase
+      .from("interacoes")
+      .select("lead_id, conteudo, created_at")
+      .order("created_at", { ascending: false })
+      .limit(800)
+      .then(({ data }) => {
+        const map: Record<string, LastInter> = {};
+        (data ?? []).forEach((i: { lead_id: string; conteudo: string; created_at: string }) => {
+          if (!map[i.lead_id]) map[i.lead_id] = { conteudo: i.conteudo, created_at: i.created_at };
+        });
+        setInteracoesMap(map);
+      });
   }, []);
 
   // === Counts por status ===
@@ -55,13 +73,6 @@ export default function Dashboard() {
     acc[s] = leads.filter((l) => l.status === s).length;
     return acc;
   }, {} as Record<LeadStatus, number>);
-
-  // Dados do gráfico "Total de Leads por Etapa" (ordem do pipeline)
-  const etapaData = PIPELINE_STATUSES.map((s) => ({
-    etapa: STATUS_LABELS[s],
-    total: counts[s] || 0,
-    color: STATUS_HEX[s],
-  }));
 
   // === KPIs principais ===
   const total = leads.length;
@@ -144,22 +155,51 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <div className="mb-8">
         <h1 className="text-[22px] font-bold text-bright tracking-tight">Dashboard</h1>
         <p className="text-dim text-xs mt-1.5 tracking-wide">Visão geral da prospecção</p>
       </div>
 
       {/* KPIs principais */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPI label="Total de Leads" value={total} color="#8b5cf6" sub={`${ativos} ativos`} delay={0} />
         <KPI label="Em Fase Quente" value={hot} color="#f43f5e" sub="Interessado · Reunião · Testando" delay={60} />
         <KPI label="Fechados" value={fechados} color="#10b981" sub={`${perdidos} perdidos · ${descartados} descartados`} delay={120} />
         <KPI label="Conversão DM → Fechou" value={`${taxaFechamentoSobreDM.toFixed(1)}%`} color="#22d3ee" sub={`${taxaResposta.toFixed(0)}% taxa de resposta`} delay={180} />
       </div>
 
-      {/* Status grid completo */}
-      <div className="grid grid-cols-5 md:grid-cols-8 lg:grid-cols-[repeat(16,minmax(0,1fr))] gap-2 mb-8">
+      {/* Atividade recente — mobile-only (logo após os KPIs) */}
+      <div className="lg:hidden bg-raised border border-edge-subtle rounded-xl p-5 mb-6">
+        <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Atividade recente</p>
+        <div className="space-y-2.5">
+          {atividadeRecente.length === 0 && <p className="text-dim text-xs">Sem leads ainda.</p>}
+          {atividadeRecente.map((l) => {
+            const inter = interacoesMap[l.id];
+            return (
+              <div key={l.id} className="flex items-start gap-2 pb-2.5 border-b border-edge-subtle/50 last:border-b-0 last:pb-0">
+                <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: STATUS_HEX[l.status] }} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[12px] font-semibold text-bright truncate flex-1 min-w-0">{l.nome_loja || `@${l.instagram}`}</p>
+                    <FonteLogo fonte={l.fonte_oportunidade} />
+                    <span className="text-[9px] text-dim shrink-0 tabular-nums">
+                      {new Date(l.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-dim mt-0.5 truncate">
+                    {inter?.conteudo || STATUS_LABELS[l.status]}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Total de Leads por Etapa — quadrinhos */}
+      <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-3">Total de Leads por Etapa</p>
+      <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 lg:grid-cols-[repeat(16,minmax(0,1fr))] gap-2 mb-8">
         {LEAD_STATUSES.map((s, i) => (
           <div key={s} className="stagger-in bg-raised border border-edge-subtle rounded-lg p-3 text-center" style={{ animationDelay: `${240 + i * 25}ms` }}>
             <div className="w-2 h-2 rounded-full mx-auto mb-1.5" style={{ background: STATUS_HEX[s] }} />
@@ -169,28 +209,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Total de Leads por Etapa */}
-      <div className="bg-raised border border-edge-subtle rounded-xl p-6 mb-6">
-        <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Total de Leads por Etapa</p>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={etapaData} margin={{ top: 10, right: 10, bottom: 70, left: 0 }}>
-            <XAxis dataKey="etapa" tick={{ fill: tickColor, fontSize: 9, fontFamily: "Sora" }} axisLine={{ stroke: axisLineColor }} tickLine={false} interval={0} angle={-40} textAnchor="end" height={70} />
-            <YAxis tick={{ fill: tickColor, fontSize: 10, fontFamily: "Sora" }} axisLine={false} tickLine={false} allowDecimals={false} />
-            <Tooltip
-              contentStyle={{ backgroundColor: tooltipBg, backdropFilter: "blur(12px)", border: `1px solid ${tooltipBorder}`, borderRadius: "10px", fontSize: "11px", fontFamily: "Sora" }}
-              labelStyle={{ color: tooltipLabelColor }}
-              cursor={{ fill: cursorFill }}
-            />
-            <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-              {etapaData.map((d, i) => <Cell key={i} fill={d.color} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
       {/* Funil + Categoria */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="col-span-2 bg-raised border border-edge-subtle rounded-xl p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div className="lg:col-span-2 bg-raised border border-edge-subtle rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-[10px] font-semibold text-dim uppercase tracking-widest">Funil de conversão</p>
             <span className="text-[10px] text-dim">
@@ -241,7 +262,7 @@ export default function Dashboard() {
       </div>
 
       {/* Responsáveis + Fonte */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <div className="bg-raised border border-edge-subtle rounded-xl p-6">
           <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Top responsáveis</p>
           <div className="space-y-2">
@@ -299,8 +320,8 @@ export default function Dashboard() {
       </div>
 
       {/* Tendência semanal + Atividade recente */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 bg-raised border border-edge-subtle rounded-xl p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-raised border border-edge-subtle rounded-xl p-6">
           <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Leads novos por semana</p>
           {weeklyData.length === 0 ? (
             <p className="text-dim text-xs">Sem dados ainda.</p>
@@ -327,23 +348,30 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="bg-raised border border-edge-subtle rounded-xl p-6">
+        <div className="hidden lg:block bg-raised border border-edge-subtle rounded-xl p-6">
           <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Atividade recente</p>
           <div className="space-y-2.5">
             {atividadeRecente.length === 0 && <p className="text-dim text-xs">Sem leads ainda.</p>}
-            {atividadeRecente.map((l) => (
-              <div key={l.id} className="flex items-start gap-2 pb-2.5 border-b border-edge-subtle/50 last:border-b-0 last:pb-0">
-                <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: STATUS_HEX[l.status] }} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold text-bright truncate">{l.nome_loja || `@${l.instagram}`}</p>
-                  <p className="text-[10px] text-dim">
-                    <span style={{ color: STATUS_HEX[l.status] }}>{STATUS_LABELS[l.status]}</span>
-                    {" · "}
-                    {new Date(l.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                  </p>
+            {atividadeRecente.map((l) => {
+              const inter = interacoesMap[l.id];
+              return (
+                <div key={l.id} className="flex items-start gap-2 pb-2.5 border-b border-edge-subtle/50 last:border-b-0 last:pb-0">
+                  <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: STATUS_HEX[l.status] }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[12px] font-semibold text-bright truncate flex-1 min-w-0">{l.nome_loja || `@${l.instagram}`}</p>
+                      <FonteLogo fonte={l.fonte_oportunidade} />
+                      <span className="text-[9px] text-dim shrink-0 tabular-nums">
+                        {new Date(l.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-dim mt-0.5 truncate">
+                      {inter?.conteudo || STATUS_LABELS[l.status]}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

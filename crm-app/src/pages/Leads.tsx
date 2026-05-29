@@ -36,9 +36,9 @@ export default function Leads() {
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex items-start justify-between mb-8 gap-3">
         <div>
           <h1 className="text-[22px] font-bold text-bright tracking-tight">Leads</h1>
           <p className="text-dim text-xs mt-1.5 tracking-wide">{leads.length} coletados</p>
@@ -55,7 +55,7 @@ export default function Leads() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <div className="relative flex-1 max-w-xs">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -84,8 +84,8 @@ export default function Leads() {
           <div className="w-5 h-5 border-2 border-violet border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-raised border border-edge-subtle rounded-xl overflow-hidden">
-          <table className="w-full text-xs">
+        <div className="bg-raised border border-edge-subtle rounded-xl overflow-x-auto">
+          <table className="w-full text-xs min-w-[640px]">
             <thead>
               <tr className="border-b border-edge text-dim uppercase tracking-widest text-[10px]">
                 <th className="font-semibold text-left px-5 py-3">Loja</th>

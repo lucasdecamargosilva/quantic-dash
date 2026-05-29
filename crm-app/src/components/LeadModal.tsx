@@ -142,7 +142,7 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-raised border border-edge rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-raised border border-edge rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {loading ? (
@@ -229,7 +229,7 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
             </div>
 
             {/* Dados da oportunidade */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div>
                 <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">@ Instagram</label>
                 <input

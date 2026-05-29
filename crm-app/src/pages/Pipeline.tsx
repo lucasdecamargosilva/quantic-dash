@@ -4,63 +4,18 @@ import type { Lead, LeadStatus, Categoria } from "../types";
 import { PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import LeadModal from "../components/LeadModal";
 import DesempenhoResponsaveis from "../components/DesempenhoResponsaveis";
+import FonteLogo from "../components/FonteLogo";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-
-// ===== Logo da fonte da oportunidade (Instagram / WhatsApp) =====
-function FonteLogo({ fonte }: { fonte: string | null }) {
-  if (fonte === "Instagram") {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="w-3.5 h-3.5 shrink-0"
-        style={{ color: "#E1306C" }}
-        aria-label="Instagram"
-      >
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-      </svg>
-    );
-  }
-  if (fonte === "WhatsApp") {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        className="w-3.5 h-3.5 text-emerald shrink-0"
-        aria-label="WhatsApp"
-      >
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-      </svg>
-    );
-  }
-  if (fonte === "Meta") {
-    return (
-      <span
-        className="w-3.5 h-3.5 shrink-0 flex items-center justify-center font-extrabold text-[12px] leading-none"
-        style={{ color: "#1877F2" }}
-        aria-label="Meta"
-      >
-        M
-      </span>
-    );
-  }
-  return null;
-}
 
 // ===== Card (arrastável) =====
 function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
@@ -206,8 +161,11 @@ export default function Pipeline() {
   const [filtroFonte, setFiltroFonte] = useState<string>("todas");
   const [busca, setBusca] = useState<string>("");
 
+  // Sensores: desktop (mouse) ativa em 5px; mobile (touch) exige hold de 500ms
+  // — evita o card pegar drag quando o usuário só quer rolar a tela.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 8 } })
   );
 
   useEffect(() => {
@@ -296,7 +254,7 @@ export default function Pipeline() {
   return (
     <div className="min-h-full flex flex-col">
       {/* Header */}
-      <div className="px-8 pt-7 pb-5 flex items-end justify-between border-b border-edge-subtle gap-6">
+      <div className="px-4 lg:px-8 pt-4 lg:pt-7 pb-5 flex flex-col lg:flex-row lg:items-end lg:justify-between border-b border-edge-subtle gap-4 lg:gap-6">
         <div>
           <h1 className="text-[22px] font-bold text-bright tracking-tight">Pipeline</h1>
           <p className="text-dim text-xs mt-1.5 tracking-wide">
@@ -315,7 +273,7 @@ export default function Pipeline() {
           </p>
         </div>
         {/* Filtros (canto superior direito): categoria + responsavel */}
-        <div className="flex items-end gap-3">
+        <div className="flex flex-wrap items-end gap-2 lg:gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Categoria</label>
             <div className="flex gap-1">
@@ -428,8 +386,8 @@ export default function Pipeline() {
         </DragOverlay>
       </DndContext>
 
-      {/* Total de leads por etapa — colunas comparativas */}
-      <div className="px-8 pt-8 pb-2">
+      {/* Total de leads por etapa — colunas comparativas (desktop) / cards (mobile) */}
+      <div className="px-4 lg:px-8 pt-6 lg:pt-8 pb-2">
         <div className="flex items-center gap-3 mb-4">
           <h3 className="text-[13px] font-bold text-bright tracking-tight uppercase">
             Total de Leads por Etapa
@@ -438,8 +396,33 @@ export default function Pipeline() {
             {totalActive} ativo{totalActive !== 1 ? "s" : ""}
           </span>
         </div>
+
+        {/* Mobile: cards coloridos (igual ao Dashboard) */}
+        <div className="lg:hidden grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mb-2">
+          {PIPELINE_STATUSES.map((s, i) => {
+            const n = grouped[s]?.length ?? 0;
+            const hex = STATUS_HEX[s];
+            return (
+              <div
+                key={s}
+                className="stagger-in bg-raised border border-edge-subtle rounded-lg p-3 text-center"
+                style={{ animationDelay: `${i * 25}ms` }}
+              >
+                <div className="w-2 h-2 rounded-full mx-auto mb-1.5" style={{ background: hex }} />
+                <p className="text-[8px] text-dim uppercase tracking-widest leading-tight min-h-[18px]">
+                  {STATUS_LABELS[s]}
+                </p>
+                <p className="text-base font-bold mt-1 tabular-nums" style={{ color: hex }}>
+                  {n}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop: gráfico de colunas verticais (mantido como estava) */}
         <div
-          className="rounded-[14px] px-6 py-6"
+          className="hidden lg:block rounded-[14px] px-6 py-6"
           style={{
             background: "var(--color-card-glass)",
             backdropFilter: "blur(12px)",

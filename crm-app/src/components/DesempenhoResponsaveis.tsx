@@ -51,7 +51,7 @@ export default function DesempenhoResponsaveis({ leads }: Props) {
   if (stats.length === 0) return null;
 
   return (
-    <section className="bg-base border-t border-edge-subtle px-8 py-8">
+    <section className="bg-base border-t border-edge-subtle px-4 lg:px-8 py-6 lg:py-8">
       {/* Header compacto */}
       <header className="flex items-end justify-between mb-5 pb-3 border-b border-edge-subtle">
         <div>
@@ -74,7 +74,49 @@ export default function DesempenhoResponsaveis({ leads }: Props) {
 
 function CompactRow({ s, rank }: { s: Stats; rank: number }) {
   return (
-    <article className="bg-surface/40 border border-edge-subtle rounded-xl px-5 py-4 hover:bg-surface/70 transition-colors">
+    <>
+      {/* Mobile — card empilhado (oculto no desktop) */}
+      <article className="lg:hidden bg-surface/40 border border-edge-subtle rounded-xl p-4">
+        <div className="flex items-start gap-3 mb-3">
+          <span className="text-base font-bold text-dim tabular-nums leading-none mt-0.5">
+            {String(rank).padStart(2, "0")}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-bold text-bright leading-tight truncate">{s.nome}</p>
+            <p className="text-[10px] text-dim uppercase tracking-[0.2em] mt-0.5 font-medium tabular-nums">
+              {s.total} leads
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[22px] font-extrabold text-violet-light leading-none tabular-nums">{s.score}</p>
+            <p className="text-[9px] text-dim uppercase tracking-[0.2em] mt-0.5">Score</p>
+          </div>
+        </div>
+        {/* Barra de funil colorida (representa toda a distribuição) */}
+        <div className="flex h-[3px] w-full rounded-full overflow-hidden bg-edge-subtle/40 mb-3">
+          {PIPELINE_STATUSES.map((status) => {
+            const count = s.byStatus[status];
+            if (count === 0) return null;
+            const pct = (count / s.total) * 100;
+            return (
+              <div
+                key={status}
+                className="h-full first:rounded-l-full last:rounded-r-full"
+                style={{ width: `${pct}%`, background: STATUS_HEX[status] }}
+              />
+            );
+          })}
+        </div>
+        {/* Métricas — 3 colunas que cabem em qualquer celular */}
+        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-edge-subtle/60">
+          <MiniStat label="Resp" value={`${s.taxa_resposta.toFixed(0)}%`} />
+          <MiniStat label="Conv" value={`${s.taxa_conversao.toFixed(0)}%`} />
+          <MiniStat label="Fechou" value={s.fechou} highlight={s.fechou > 0} />
+        </div>
+      </article>
+
+      {/* Desktop — layout original (oculto no mobile) */}
+      <article className="hidden lg:block bg-surface/40 border border-edge-subtle rounded-xl px-5 py-4 hover:bg-surface/70 transition-colors">
       <div className="grid items-center gap-5" style={{ gridTemplateColumns: "auto minmax(140px, 1.2fr) minmax(220px, 2fr) auto" }}>
         {/* Rank */}
         <span className="text-lg font-bold text-dim tabular-nums w-7 text-right">
@@ -144,6 +186,7 @@ function CompactRow({ s, rank }: { s: Stats; rank: number }) {
         </div>
       </div>
     </article>
+    </>
   );
 }
 
