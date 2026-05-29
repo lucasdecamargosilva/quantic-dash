@@ -1841,150 +1841,453 @@ body.page-dashboard .nav-link.active i {
 }
 
 /* ============================================================
-   MOBILE — só aplica em telas < 768px. Desktop fica intocado.
+   MOBILE — só aplica em telas <=768px. Desktop fica intocado.
+   Inspirado no aspecto do CRM (drawer + topbar glass + cards CRM-like)
    ============================================================ */
 @media (max-width: 768px) {
-    /* Sidebar: força modo icone-only (72px) pra não comer a tela */
-    .sidebar {
-        width: 72px !important;
+    /* ---------- Topbar mobile (injetado pelo script.js) ---------- */
+    .mobile-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 90;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 16px;
+        height: 56px;
+        background: rgba(8, 10, 18, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .mobile-topbar .hamburger {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: transparent;
+        color: var(--text-gray);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
         flex-shrink: 0;
     }
+    .mobile-topbar .hamburger:active {
+        background: rgba(255, 255, 255, 0.04);
+    }
+    .mobile-topbar img.mobile-topbar-logo {
+        height: 24px;
+        width: auto;
+        object-fit: contain;
+    }
+
+    /* ---------- Sidebar vira drawer deslizante ---------- */
+    .sidebar {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        height: 100vh !important;
+        width: 260px !important;
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    body.sidebar-open .sidebar {
+        transform: translateX(0);
+    }
+    /* No drawer queremos textos visíveis (anula collapsed mode) */
+    .sidebar.collapsed {
+        width: 260px !important;
+    }
     .sidebar .link-text {
-        display: none !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
     }
     .sidebar-logo {
-        opacity: 0;
-        width: 0;
-        pointer-events: none;
+        opacity: 1 !important;
+        width: auto !important;
+        pointer-events: auto !important;
     }
     .sidebar .toggle-btn {
         display: none !important;
     }
     .sidebar-header {
-        padding: 12px;
-        justify-content: center;
+        padding: 16px 20px;
+        justify-content: flex-start;
+        height: 64px;
     }
     .nav-link {
-        justify-content: center;
-        padding: 12px;
+        justify-content: flex-start;
+        padding: 10px 14px;
     }
     .nav-link i {
         margin: 0 !important;
     }
 
-    /* Main content: padding menor, sem estouro lateral */
-    .main-content {
-        min-width: 0;
-        overflow-x: hidden;
+    /* ---------- Backdrop (injetado pelo script.js) ---------- */
+    .mobile-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        z-index: 150;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
     }
-    .app-container {
-        padding: 12px;
+    body.sidebar-open .mobile-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* ---------- Contenção global (nada escapa pra direita) ---------- */
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw;
+    }
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+    /* Liga min-width:0 nos containers principais pra que filhos possam encolher */
+    .main-content,
+    .app-container,
+    .dashboard-grid,
+    .dashboard-grid > *,
+    .top-sections-row,
+    .top-sections-row > *,
+    section,
+    section > *,
+    [class*="grid"],
+    [class*="grid"] > *,
+    [class*="row"],
+    [class*="row"] > * {
+        min-width: 0;
         max-width: 100%;
     }
 
-    /* Header empilha e tem fonte menor */
+    .main-content {
+        overflow-x: hidden;
+    }
+    .app-container {
+        padding: 16px 12px;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* ---------- Header empilha + fonte menor ---------- */
     .main-header {
         flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 20px;
+        gap: 10px;
+        margin-bottom: 16px;
     }
     .main-header h1,
     .main-header h2 {
-        font-size: 20px;
+        font-size: 18px;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
     }
     .header-left,
     .header-right {
         min-width: 0;
     }
 
-    /* Dashboard grid: 1 coluna no mobile (era 2+) */
-    .dashboard-grid {
+    /* ---------- TODA grid multi-coluna vira 1 coluna empilhada ---------- */
+    /* (regra do usuário: nada pode estourar à direita — empilha um abaixo do outro) */
+    .dashboard-grid,
+    .top-sections-row,
+    .costs-grid-fixed,
+    .mov-panel,
+    .devolver-grid,
+    [class*="-grid"],
+    [class*="-row"] {
         grid-template-columns: 1fr !important;
-        gap: 20px !important;
-    }
-    .top-sections-row {
-        grid-template-columns: 1fr !important;
+        gap: 12px !important;
     }
 
-    /* Linhas de KPIs: 2 colunas (em vez de 4) */
+    /* Linhas de KPIs: 2 colunas (cabem 2 cards bem compactos) */
     .costs-summary-row,
     [class*="summary-row"],
     [class*="kpi-row"] {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px !important;
-    }
-    .costs-grid-fixed {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
     }
 
-    /* KPI cards: padding interno menor */
-    .kpi {
-        padding: 14px;
+    /* ---------- Cards no estilo CRM (rounded, surface, border-subtle) ---------- */
+    section {
+        background: rgba(20, 22, 32, 0.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 14px !important;
+        padding: 14px !important;
+        margin-bottom: 14px !important;
     }
+    .kpi-card,
+    .kpi {
+        background: rgba(20, 22, 32, 0.5) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
+    }
+    .kpi-card .label,
+    .kpi .label {
+        font-size: 9px !important;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    .kpi-card .value,
     .kpi .value,
     .kpi h2,
     .kpi h3 {
-        font-size: 22px;
+        font-size: 20px !important;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+    .kpi-card .subtext,
+    .kpi .subtext {
+        font-size: 10px;
+        margin-top: 4px;
+    }
+    .kpi-card .icon-box {
+        width: 32px;
+        height: 32px;
     }
 
-    /* Tabelas: scroll horizontal quando estouram (não corta conteúdo) */
+    /* ---------- Section header ---------- */
+    .section-header {
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .section-header h2,
+    .section-header h3 {
+        font-size: 13px;
+        letter-spacing: 0.04em;
+    }
+
+    /* ---------- Tabelas: a SEÇÃO inteira vira a área de scroll horizontal,
+       assim a borda do card respeita a tela e quem rola é só o conteúdo dentro ---------- */
+    section:has(table),
+    .table-wrap,
+    .table-container,
+    [class*="-table-wrap"],
+    section > .panel {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* Fallback pra navegadores sem :has — força overflow no section quando tem table direto */
+    section > table,
+    section > div > table {
+        display: block;
+        overflow-x: auto;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
     .fc-table,
     .dre-table,
     .data-table,
     section table {
-        font-size: 12px;
-        min-width: 600px;
-    }
-    /* Wrappers comuns de tabela ganham overflow-x */
-    .table-wrap,
-    .table-container,
-    [class*="-table-wrap"],
-    section > .panel,
-    .devolver-grid {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        font-size: 11px;
+        min-width: 520px;
     }
 
-    /* Gráficos: garante que não estouram lateralmente */
+    /* ---------- Gráficos NUNCA passam da largura do card ---------- */
     .chart-wrap,
-    [class*="chart-"],
+    [class*="chart-"] {
+        max-width: 100% !important;
+        width: 100% !important;
+        overflow: hidden;
+    }
     canvas {
+        max-width: 100% !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    /* ---------- Imagens / SVGs também ---------- */
+    img, svg {
         max-width: 100%;
         height: auto;
     }
 
-    /* Painéis movimentação (fluxo-caixa) — empilham */
-    .mov-panel,
-    .devolver-grid {
-        grid-template-columns: 1fr !important;
-        gap: 16px;
-    }
-
-    /* Section spacing menor */
-    section {
-        padding: 14px !important;
-    }
-    .section-header {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    .section-header h2,
-    .section-header h3 {
-        font-size: 14px;
-    }
-
-    /* Botões e inputs no header — touch-friendly */
+    /* ---------- Inputs / botões touch-friendly ---------- */
     .main-header button,
     .main-header select,
     .main-header input[type="text"],
     .main-header input[type="date"] {
         min-height: 36px;
         font-size: 13px;
+        border-radius: 8px;
     }
 
-    /* Footer */
+    /* ---------- Footer ---------- */
     .main-footer {
-        padding: 16px 12px;
-        font-size: 12px;
+        padding: 18px 14px;
+        font-size: 11px;
+        margin-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* ============================================================
+       FONTES — Redução agressiva pra caber dentro dos quadros
+       Cobre as classes "value"/"label" definidas inline em cada
+       página financeira (custos, fluxo-caixa, dre, receitas, trafego)
+       ============================================================ */
+
+    /* Headings de página */
+    .main-header h1,
+    .main-header h2 {
+        font-size: 16px !important;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+    }
+    .section-header h2,
+    .section-header h3,
+    .panel-title,
+    .card-title {
+        font-size: 12px !important;
+        letter-spacing: 0.04em;
+    }
+
+    /* Valores grandes (KPIs, summary, totais) — máx 16px */
+    .summary-value,
+    .kpi-value,
+    .kpi-card .value,
+    .kpi .value,
+    .kpi h2,
+    .kpi h3,
+    .saldo-input,
+    .pl-rev-total-value,
+    .tp-kpi-value,
+    [class*="-value"]:not([class*="-sub"]):not([class*="-label"]):not([class*="-pill"]) {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.3px !important;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.2 !important;
+    }
+
+    /* Valores médios (totais secundários) — 14px */
+    .devolver-total-value,
+    .saldo-total-value {
+        font-size: 14px !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* Stats menores dentro de cards (mini-stats, badges) — 11-12px */
+    .dev-stat-value,
+    .mini-stat-value,
+    [class*="stat-value"] {
+        font-size: 12px !important;
+        overflow-wrap: anywhere;
+    }
+
+    /* Labels — 9px */
+    .summary-label,
+    .kpi-label,
+    .kpi-card .label,
+    .kpi .label,
+    .devolver-total-label,
+    .dev-stat-label,
+    .pl-rev-total-label,
+    .tp-kpi-label,
+    [class*="-label"]:not(.form-label) {
+        font-size: 9px !important;
+        letter-spacing: 0.18em !important;
+        line-height: 1.2 !important;
+    }
+
+    /* Subtextos / hints — 10px */
+    .kpi-card .subtext,
+    .kpi .subtext,
+    .saldo-hint,
+    .devolver-card-sub,
+    .mov-btn-sub,
+    [class*="-sub"]:not([class*="-subheader"]) {
+        font-size: 10px !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Nomes / títulos médios em cards — 12px */
+    .devolver-card-name,
+    .mov-btn-title,
+    .modal-title {
+        font-size: 13px !important;
+        line-height: 1.25;
+    }
+
+    /* Tabelas — 10-11px */
+    .fc-table th,
+    .dre-table th,
+    .data-table th,
+    section table th {
+        font-size: 9px !important;
+        padding: 8px 10px !important;
+        letter-spacing: 0.05em;
+    }
+    .fc-table td,
+    .dre-table td,
+    .data-table td,
+    section table td {
+        font-size: 11px !important;
+        padding: 8px 10px !important;
+    }
+
+    /* Inputs / botões / chips — touch-friendly mas compactos */
+    .form-label {
+        font-size: 10px !important;
+    }
+    .form-input,
+    .form-select,
+    .filter-input,
+    .date-input,
+    .date-input-fc,
+    .saldo-input {
+        font-size: 12px !important;
+    }
+    .btn-primary,
+    .btn-secondary,
+    .btn-sm,
+    .btn-socio,
+    .preset-btn,
+    .pl-rev-refresh,
+    .refresh-btn,
+    .status-badge,
+    .pl-plan-badge,
+    .tp-meta-chip,
+    .devolver-pill,
+    .pl-rev-pill {
+        font-size: 10px !important;
+        padding: 7px 10px !important;
+    }
+
+    /* Ícones / avatares dentro dos cards */
+    .mov-btn-icon,
+    .devolver-card-avatar,
+    .toast-icon {
+        font-size: 16px !important;
+        width: 32px !important;
+        height: 32px !important;
+    }
+    .empty-state i {
+        font-size: 32px !important;
+    }
+
+    /* Containers de label/value herdam tabular-nums automaticamente em qualquer span */
+    section span,
+    .kpi span {
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Garante que qualquer texto dentro de section quebra ao invés de estourar */
+    section,
+    section * {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 }
