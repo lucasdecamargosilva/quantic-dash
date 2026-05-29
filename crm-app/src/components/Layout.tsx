@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
-import logoProvouLevou from "../assets/provou-levou-logo.png";
+import logoProvouLevouClaro from "../assets/provou-levou-logo-claro.png";
+import logoProvouLevouEscuro from "../assets/provou-levou-logo-escuro.png";
 
 const NAV_ITEMS = [
   {
@@ -67,6 +68,13 @@ export default function Layout() {
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const closeNav = () => setNavOpen(false);
+  const logoProvouLevou = theme === "light" ? logoProvouLevouClaro : logoProvouLevouEscuro;
+  // Compensa diferença de aspect ratio entre os dois PNGs (claro 5.73:1, escuro 3.78:1)
+  // pra que o "provou levou." apareça do mesmo tamanho visual em ambos os temas.
+  const logoSize =
+    theme === "light"
+      ? { sidebar: "h-8", topBar: "h-6", footer: "h-5" }
+      : { sidebar: "h-11", topBar: "h-8", footer: "h-7" };
 
   return (
     <div className="flex h-screen text-text" style={{ background: "transparent" }}>
@@ -111,7 +119,7 @@ export default function Layout() {
           <img
             src={logoProvouLevou}
             alt="Provou Levou"
-            className="flex-1 min-w-0 h-8 object-contain object-left"
+            className={`flex-1 min-w-0 ${logoSize.sidebar} object-contain object-left`}
           />
           {/* Theme toggle */}
           <button
@@ -237,12 +245,12 @@ export default function Layout() {
               <path d="M3 6h18M3 12h18M3 18h18" />
             </svg>
           </button>
-          <img src={logoProvouLevou} alt="Provou Levou" className="h-6 object-contain" />
+          <img src={logoProvouLevou} alt="Provou Levou" className={`${logoSize.topBar} object-contain`} />
         </div>
         <Outlet />
         {/* Rodapé do sistema com o logo */}
         <footer className="py-6 px-4 lg:px-8 flex items-center justify-center">
-          <img src={logoProvouLevou} alt="Provou Levou" className="h-5 object-contain opacity-50" />
+          <img src={logoProvouLevou} alt="Provou Levou" className={`${logoSize.footer} object-contain opacity-50`} />
         </footer>
       </main>
     </div>

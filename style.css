@@ -1839,3 +1839,152 @@ body.page-dashboard .nav-link.active i {
     color: #D4AF37 !important;
     filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.4)) !important;
 }
+
+/* ============================================================
+   MOBILE — só aplica em telas < 768px. Desktop fica intocado.
+   ============================================================ */
+@media (max-width: 768px) {
+    /* Sidebar: força modo icone-only (72px) pra não comer a tela */
+    .sidebar {
+        width: 72px !important;
+        flex-shrink: 0;
+    }
+    .sidebar .link-text {
+        display: none !important;
+    }
+    .sidebar-logo {
+        opacity: 0;
+        width: 0;
+        pointer-events: none;
+    }
+    .sidebar .toggle-btn {
+        display: none !important;
+    }
+    .sidebar-header {
+        padding: 12px;
+        justify-content: center;
+    }
+    .nav-link {
+        justify-content: center;
+        padding: 12px;
+    }
+    .nav-link i {
+        margin: 0 !important;
+    }
+
+    /* Main content: padding menor, sem estouro lateral */
+    .main-content {
+        min-width: 0;
+        overflow-x: hidden;
+    }
+    .app-container {
+        padding: 12px;
+        max-width: 100%;
+    }
+
+    /* Header empilha e tem fonte menor */
+    .main-header {
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .main-header h1,
+    .main-header h2 {
+        font-size: 20px;
+    }
+    .header-left,
+    .header-right {
+        min-width: 0;
+    }
+
+    /* Dashboard grid: 1 coluna no mobile (era 2+) */
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    .top-sections-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Linhas de KPIs: 2 colunas (em vez de 4) */
+    .costs-summary-row,
+    [class*="summary-row"],
+    [class*="kpi-row"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+    .costs-grid-fixed {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* KPI cards: padding interno menor */
+    .kpi {
+        padding: 14px;
+    }
+    .kpi .value,
+    .kpi h2,
+    .kpi h3 {
+        font-size: 22px;
+    }
+
+    /* Tabelas: scroll horizontal quando estouram (não corta conteúdo) */
+    .fc-table,
+    .dre-table,
+    .data-table,
+    section table {
+        font-size: 12px;
+        min-width: 600px;
+    }
+    /* Wrappers comuns de tabela ganham overflow-x */
+    .table-wrap,
+    .table-container,
+    [class*="-table-wrap"],
+    section > .panel,
+    .devolver-grid {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Gráficos: garante que não estouram lateralmente */
+    .chart-wrap,
+    [class*="chart-"],
+    canvas {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Painéis movimentação (fluxo-caixa) — empilham */
+    .mov-panel,
+    .devolver-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+
+    /* Section spacing menor */
+    section {
+        padding: 14px !important;
+    }
+    .section-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .section-header h2,
+    .section-header h3 {
+        font-size: 14px;
+    }
+
+    /* Botões e inputs no header — touch-friendly */
+    .main-header button,
+    .main-header select,
+    .main-header input[type="text"],
+    .main-header input[type="date"] {
+        min-height: 36px;
+        font-size: 13px;
+    }
+
+    /* Footer */
+    .main-footer {
+        padding: 16px 12px;
+        font-size: 12px;
+    }
+}

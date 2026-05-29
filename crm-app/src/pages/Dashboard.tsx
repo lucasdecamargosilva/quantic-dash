@@ -223,7 +223,7 @@ export default function Dashboard() {
 
       {/* Total de Leads por Etapa — quadrinhos */}
       <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-3">Total de Leads por Etapa</p>
-      <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 lg:grid-cols-[repeat(16,minmax(0,1fr))] gap-2 mb-8">
+      <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 lg:grid-cols-10 gap-2 mb-8">
         {LEAD_STATUSES.map((s, i) => (
           <button
             key={s}
