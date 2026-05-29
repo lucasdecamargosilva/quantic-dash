@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
+import logoProvouLevou from "../assets/provou-levou-logo.png";
 
 const NAV_ITEMS = [
   {
@@ -107,23 +108,11 @@ export default function Layout() {
           className="flex items-center gap-3 px-5 h-[72px]"
           style={{ borderBottom: "1px solid var(--color-sidebar-border)" }}
         >
-          <div
-            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "linear-gradient(135deg, var(--color-violet), var(--color-violet-deep))",
-              boxShadow: "0 0 12px var(--color-active-glow)",
-            }}
-          >
-            <span className="text-white text-[11px] font-black tracking-tighter">PL</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-[13px] font-bold tracking-tight leading-none text-bright">
-              Prospector
-            </p>
-            <p className="text-[9px] mt-1 tracking-widest uppercase font-bold" style={{ color: "var(--color-cyan)", opacity: 0.8 }}>
-              Provou Levou
-            </p>
-          </div>
+          <img
+            src={logoProvouLevou}
+            alt="Provou Levou"
+            className="flex-1 min-w-0 h-8 object-contain object-left"
+          />
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
@@ -248,9 +237,13 @@ export default function Layout() {
               <path d="M3 6h18M3 12h18M3 18h18" />
             </svg>
           </button>
-          <span className="text-[13px] font-bold tracking-tight text-bright">Prospector</span>
+          <img src={logoProvouLevou} alt="Provou Levou" className="h-6 object-contain" />
         </div>
         <Outlet />
+        {/* Rodapé do sistema com o logo */}
+        <footer className="py-6 px-4 lg:px-8 flex items-center justify-center">
+          <img src={logoProvouLevou} alt="Provou Levou" className="h-5 object-contain opacity-50" />
+        </footer>
       </main>
     </div>
   );

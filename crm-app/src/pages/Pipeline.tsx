@@ -5,6 +5,7 @@ import { PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIAS, CATEGORIA_LAB
 import LeadModal from "../components/LeadModal";
 import DesempenhoResponsaveis from "../components/DesempenhoResponsaveis";
 import FonteLogo from "../components/FonteLogo";
+import LeadsPorEtapaModal from "../components/LeadsPorEtapaModal";
 import {
   DndContext,
   DragOverlay,
@@ -159,6 +160,8 @@ export default function Pipeline() {
   const [filtroResponsavel, setFiltroResponsavel] = useState<string>("__todos");
   const [filtroCategoria, setFiltroCategoria] = useState<Categoria | "todas">("todas");
   const [filtroFonte, setFiltroFonte] = useState<string>("todas");
+  // Etapa selecionada para o popup "leads por etapa"
+  const [etapaSelecionada, setEtapaSelecionada] = useState<LeadStatus | null>(null);
   const [busca, setBusca] = useState<string>("");
 
   // Sensores: desktop (mouse) ativa em 5px; mobile (touch) exige hold de 500ms
@@ -403,9 +406,11 @@ export default function Pipeline() {
             const n = grouped[s]?.length ?? 0;
             const hex = STATUS_HEX[s];
             return (
-              <div
+              <button
                 key={s}
-                className="stagger-in bg-raised border border-edge-subtle rounded-lg p-3 text-center"
+                type="button"
+                onClick={() => setEtapaSelecionada(s)}
+                className="stagger-in bg-raised border border-edge-subtle rounded-lg p-3 text-center hover:border-violet/40 transition-colors cursor-pointer"
                 style={{ animationDelay: `${i * 25}ms` }}
               >
                 <div className="w-2 h-2 rounded-full mx-auto mb-1.5" style={{ background: hex }} />
@@ -415,7 +420,7 @@ export default function Pipeline() {
                 <p className="text-base font-bold mt-1 tabular-nums" style={{ color: hex }}>
                   {n}
                 </p>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -447,9 +452,11 @@ export default function Pipeline() {
                   const hex = STATUS_HEX[s];
                   const h = Math.round((n / max) * CHART_H);
                   return (
-                    <div
+                    <button
                       key={s}
-                      className="stagger-in flex flex-col items-center justify-end h-full"
+                      type="button"
+                      onClick={() => setEtapaSelecionada(s)}
+                      className="stagger-in flex flex-col items-center justify-end h-full hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none p-0"
                       style={{ animationDelay: `${i * 35}ms` }}
                     >
                       <span
@@ -474,7 +481,7 @@ export default function Pipeline() {
                         {STATUS_LABELS[s]}
                       </span>
                       <span className="text-[9px] tabular-nums text-dim mt-0.5">{pct}%</span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -485,6 +492,15 @@ export default function Pipeline() {
 
       {/* Desempenho por responsavel */}
       <DesempenhoResponsaveis leads={leads} />
+
+      {/* Popup — leads de uma etapa */}
+      {etapaSelecionada && (
+        <LeadsPorEtapaModal
+          status={etapaSelecionada}
+          leads={leads}
+          onClose={() => setEtapaSelecionada(null)}
+        />
+      )}
 
       {selectedId && (
         <LeadModal leadId={selectedId} onClose={() => setSelectedId(null)} onUpdated={fetchLeads} />

@@ -4,6 +4,7 @@ import { LEAD_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIA_LABELS, CATEGORIA_H
 import type { Lead, LeadStatus, Categoria } from "../types";
 import FunnelChart from "../components/FunnelChart";
 import FonteLogo from "../components/FonteLogo";
+import LeadsPorEtapaModal from "../components/LeadsPorEtapaModal";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 // Hook que detecta o tema atual via data-theme no html, atualizando reativamente
@@ -30,12 +31,18 @@ const ACTIVE_STATUSES: LeadStatus[] = [
 ];
 
 type LastInter = { conteudo: string; created_at: string };
+type Atividade7d = { id: string; lead_id: string; conteudo: string; created_at: string; tipo: string };
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   // Mapa lead_id -> última interação registrada
   const [interacoesMap, setInteracoesMap] = useState<Record<string, LastInter>>({});
+  // Atividades dos últimos 7 dias (popup)
+  const [atividades7d, setAtividades7d] = useState<Atividade7d[]>([]);
+  const [modalAtividadesOpen, setModalAtividadesOpen] = useState(false);
+  // Etapa selecionada para o popup "leads por etapa"
+  const [etapaSelecionada, setEtapaSelecionada] = useState<LeadStatus | null>(null);
   const theme = useTheme();
   const isLight = theme === "light";
 
@@ -65,6 +72,16 @@ export default function Dashboard() {
           if (!map[i.lead_id]) map[i.lead_id] = { conteudo: i.conteudo, created_at: i.created_at };
         });
         setInteracoesMap(map);
+      });
+    // Atividades dos últimos 7 dias (para o popup)
+    const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    supabase
+      .from("interacoes")
+      .select("id, lead_id, conteudo, created_at, tipo")
+      .gte("created_at", seteDiasAtras)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setAtividades7d((data ?? []) as Atividade7d[]);
       });
   }, []);
 
@@ -169,9 +186,16 @@ export default function Dashboard() {
         <KPI label="Conversão DM → Fechou" value={`${taxaFechamentoSobreDM.toFixed(1)}%`} color="#22d3ee" sub={`${taxaResposta.toFixed(0)}% taxa de resposta`} delay={180} />
       </div>
 
-      {/* Atividade recente — mobile-only (logo após os KPIs) */}
-      <div className="lg:hidden bg-raised border border-edge-subtle rounded-xl p-5 mb-6">
-        <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Atividade recente</p>
+      {/* Atividade recente — logo após os KPIs (em ambos mobile e desktop). Clique abre popup com 7 dias */}
+      <button
+        type="button"
+        onClick={() => setModalAtividadesOpen(true)}
+        className="w-full text-left bg-raised border border-edge-subtle rounded-xl p-5 lg:p-6 mb-6 transition-colors hover:border-violet/40 cursor-pointer"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-[10px] font-semibold text-dim uppercase tracking-widest">Atividade recente</p>
+          <span className="text-[9px] text-violet-light uppercase tracking-widest">Ver últimos 7 dias →</span>
+        </div>
         <div className="space-y-2.5">
           {atividadeRecente.length === 0 && <p className="text-dim text-xs">Sem leads ainda.</p>}
           {atividadeRecente.map((l) => {
@@ -195,17 +219,23 @@ export default function Dashboard() {
             );
           })}
         </div>
-      </div>
+      </button>
 
       {/* Total de Leads por Etapa — quadrinhos */}
       <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-3">Total de Leads por Etapa</p>
       <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 lg:grid-cols-[repeat(16,minmax(0,1fr))] gap-2 mb-8">
         {LEAD_STATUSES.map((s, i) => (
-          <div key={s} className="stagger-in bg-raised border border-edge-subtle rounded-lg p-3 text-center" style={{ animationDelay: `${240 + i * 25}ms` }}>
+          <button
+            key={s}
+            type="button"
+            onClick={() => setEtapaSelecionada(s)}
+            className="stagger-in bg-raised border border-edge-subtle rounded-lg p-3 text-center hover:border-violet/40 transition-colors cursor-pointer"
+            style={{ animationDelay: `${240 + i * 25}ms` }}
+          >
             <div className="w-2 h-2 rounded-full mx-auto mb-1.5" style={{ background: STATUS_HEX[s] }} />
             <p className="text-[8px] text-dim uppercase tracking-widest leading-tight min-h-[18px]">{STATUS_LABELS[s]}</p>
             <p className="text-base font-bold mt-1 tabular-nums" style={{ color: STATUS_HEX[s] }}>{counts[s] || 0}</p>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -319,9 +349,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Tendência semanal + Atividade recente */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-raised border border-edge-subtle rounded-xl p-6">
+      {/* Tendência semanal — linha inteira */}
+      <div>
+        <div className="bg-raised border border-edge-subtle rounded-xl p-6">
           <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Leads novos por semana</p>
           {weeklyData.length === 0 ? (
             <p className="text-dim text-xs">Sem dados ainda.</p>
@@ -348,33 +378,69 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="hidden lg:block bg-raised border border-edge-subtle rounded-xl p-6">
-          <p className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-4">Atividade recente</p>
-          <div className="space-y-2.5">
-            {atividadeRecente.length === 0 && <p className="text-dim text-xs">Sem leads ainda.</p>}
-            {atividadeRecente.map((l) => {
-              const inter = interacoesMap[l.id];
-              return (
-                <div key={l.id} className="flex items-start gap-2 pb-2.5 border-b border-edge-subtle/50 last:border-b-0 last:pb-0">
-                  <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: STATUS_HEX[l.status] }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-[12px] font-semibold text-bright truncate flex-1 min-w-0">{l.nome_loja || `@${l.instagram}`}</p>
-                      <FonteLogo fonte={l.fonte_oportunidade} />
-                      <span className="text-[9px] text-dim shrink-0 tabular-nums">
-                        {new Date(l.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                      </span>
+      </div>
+
+      {/* Popup — leads de uma etapa */}
+      {etapaSelecionada && (
+        <LeadsPorEtapaModal
+          status={etapaSelecionada}
+          leads={leads}
+          onClose={() => setEtapaSelecionada(null)}
+        />
+      )}
+
+      {/* Popup — atividades dos últimos 7 dias */}
+      {modalAtividadesOpen && (
+        <div
+          className="fixed inset-0 bg-base/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setModalAtividadesOpen(false)}
+        >
+          <div
+            className="bg-raised border border-edge rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-raised border-b border-edge-subtle px-5 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-[15px] font-bold text-bright">Atividades dos últimos 7 dias</h2>
+                <p className="text-[10px] text-dim mt-0.5">{atividades7d.length} interaç{atividades7d.length === 1 ? "ão" : "ões"}</p>
+              </div>
+              <button
+                onClick={() => setModalAtividadesOpen(false)}
+                aria-label="Fechar"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-dim hover:text-bright hover:bg-surface/60 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              {atividades7d.length === 0 && (
+                <p className="text-dim text-xs text-center py-8">Sem atividades nos últimos 7 dias.</p>
+              )}
+              {atividades7d.map((a) => {
+                const lead = leads.find((l) => l.id === a.lead_id);
+                if (!lead) return null;
+                return (
+                  <div key={a.id} className="flex items-start gap-2 pb-3 border-b border-edge-subtle/50 last:border-b-0 last:pb-0">
+                    <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: STATUS_HEX[lead.status] }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[13px] font-semibold text-bright truncate flex-1 min-w-0">{lead.nome_loja || `@${lead.instagram}`}</p>
+                        <FonteLogo fonte={lead.fonte_oportunidade} />
+                        <span className="text-[10px] text-dim shrink-0 tabular-nums">
+                          {new Date(a.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-sub mt-1 leading-relaxed">{a.conteudo}</p>
                     </div>
-                    <p className="text-[10px] text-dim mt-0.5 truncate">
-                      {inter?.conteudo || STATUS_LABELS[l.status]}
-                    </p>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
