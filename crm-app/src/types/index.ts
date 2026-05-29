@@ -104,6 +104,9 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "descartado",
 ];
 
+// Status "quentes" — leads prontos pra avançar (usado em Top Responsáveis e Desempenho do Time)
+export const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "testando"];
+
 export const PIPELINE_STATUSES: LeadStatus[] = [
   "novo",
   "dm_enviada",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { LEAD_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIA_LABELS, CATEGORIA_HEX } from "../types";
+import { LEAD_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIA_LABELS, CATEGORIA_HEX, HOT_STATUSES } from "../types";
 import type { Lead, LeadStatus, Categoria } from "../types";
 import FunnelChart from "../components/FunnelChart";
 import FonteLogo from "../components/FonteLogo";
@@ -22,7 +22,6 @@ function useTheme(): "light" | "dark" {
   return theme;
 }
 
-const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "testando"];
 const ACTIVE_STATUSES: LeadStatus[] = [
   "novo", "dm_enviada", "mensagem_1", "mensagem_2", "mensagem_3", "atendimento_ia",
   "meta", "email_a_enviar", "email_enviado",

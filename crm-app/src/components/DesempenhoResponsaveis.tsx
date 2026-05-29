@@ -1,5 +1,5 @@
 import type { Lead, LeadStatus } from "../types";
-import { STATUS_HEX, STATUS_LABELS, PIPELINE_STATUSES } from "../types";
+import { STATUS_HEX, STATUS_LABELS, PIPELINE_STATUSES, HOT_STATUSES } from "../types";
 
 interface Props {
   leads: Lead[];
@@ -9,18 +9,18 @@ interface Stats {
   nome: string;
   total: number;
   byStatus: Record<LeadStatus, number>;
-  dm_enviada: number;
-  respondeu: number;
-  interessado: number;
+  hot: number;
   fechou: number;
-  taxa_resposta: number;
-  taxa_conversao: number;
-  score: number;
+  perdida: number;
+  taxa: number; // Win rate: fechou / (fechou + perdida) * 100
 }
 
 export default function DesempenhoResponsaveis({ leads }: Props) {
-  const byResp = leads.reduce((acc, l) => {
-    const key = l.responsavel?.trim() || "— Sem responsavel";
+  // Só leads com responsável preenchido entram no quadro
+  const leadsComResp = leads.filter((l) => (l.responsavel?.trim() || "").length > 0);
+
+  const byResp = leadsComResp.reduce((acc, l) => {
+    const key = l.responsavel!.trim();
     if (!acc[key]) acc[key] = [];
     acc[key].push(l);
     return acc;
@@ -33,20 +33,14 @@ export default function DesempenhoResponsaveis({ leads }: Props) {
         return acc;
       }, {} as Record<LeadStatus, number>);
 
-      const dm_enviada = items.filter((l) => ["dm_enviada", "respondeu", "lead_coletado", "interessado", "fechou"].includes(l.status)).length;
-      const respondeu = items.filter((l) => ["respondeu", "lead_coletado", "interessado", "fechou"].includes(l.status)).length;
-      const interessado = items.filter((l) => ["interessado", "fechou"].includes(l.status)).length;
+      const hot = items.filter((l) => HOT_STATUSES.includes(l.status)).length;
       const fechou = items.filter((l) => l.status === "fechou").length;
+      const perdida = items.filter((l) => l.status === "perdida").length;
+      const taxa = fechou + perdida > 0 ? (fechou / (fechou + perdida)) * 100 : 0;
 
-      const taxa_resposta = dm_enviada > 0 ? (respondeu / dm_enviada) * 100 : 0;
-      const taxa_fechamento = dm_enviada > 0 ? (fechou / dm_enviada) * 100 : 0;
-      const taxa_conversao = items.length > 0 ? (interessado / items.length) * 100 : 0;
-      const volumeScore = Math.min(items.length / 50, 1) * 100;
-      const score = Math.round(taxa_resposta * 0.4 + taxa_fechamento * 0.4 + volumeScore * 0.2);
-
-      return { nome, total: items.length, byStatus, dm_enviada, respondeu, interessado, fechou, taxa_resposta, taxa_conversao, score };
+      return { nome, total: items.length, byStatus, hot, fechou, perdida, taxa };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.taxa - a.taxa || b.fechou - a.fechou);
 
   if (stats.length === 0) return null;
 
@@ -88,8 +82,10 @@ function CompactRow({ s, rank }: { s: Stats; rank: number }) {
             </p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-[22px] font-extrabold text-violet-light leading-none tabular-nums">{s.score}</p>
-            <p className="text-[9px] text-dim uppercase tracking-[0.2em] mt-0.5">Score</p>
+            <p className="text-[22px] font-extrabold text-emerald leading-none tabular-nums">
+              {s.taxa.toFixed(0)}%
+            </p>
+            <p className="text-[9px] text-dim uppercase tracking-[0.2em] mt-0.5">Win</p>
           </div>
         </div>
         {/* Barra de funil colorida (representa toda a distribuição) */}
@@ -109,9 +105,9 @@ function CompactRow({ s, rank }: { s: Stats; rank: number }) {
         </div>
         {/* Métricas — 3 colunas que cabem em qualquer celular */}
         <div className="grid grid-cols-3 gap-2 pt-3 border-t border-edge-subtle/60">
-          <MiniStat label="Resp" value={`${s.taxa_resposta.toFixed(0)}%`} />
-          <MiniStat label="Conv" value={`${s.taxa_conversao.toFixed(0)}%`} />
-          <MiniStat label="Fechou" value={s.fechou} highlight={s.fechou > 0} />
+          <MiniStat label="Quente" value={`${s.hot}🔥`} tone="rose" />
+          <MiniStat label="Fechou" value={`${s.fechou}✓`} tone="emerald" highlight={s.fechou > 0} />
+          <MiniStat label="Perdida" value={s.perdida} tone="orange" />
         </div>
       </article>
 
@@ -168,20 +164,16 @@ function CompactRow({ s, rank }: { s: Stats; rank: number }) {
           </div>
         </div>
 
-        {/* Metricas + Score */}
+        {/* Métricas (mesmas do Top Responsáveis) + Win % grande */}
         <div className="flex items-baseline gap-5 shrink-0">
-          <MiniStat label="Resp" value={`${s.taxa_resposta.toFixed(0)}%`} />
-          <MiniStat label="Conv" value={`${s.taxa_conversao.toFixed(0)}%`} />
-          <MiniStat
-            label="Fechou"
-            value={s.fechou}
-            highlight={s.fechou > 0}
-          />
+          <MiniStat label="Quente" value={`${s.hot}🔥`} tone="rose" />
+          <MiniStat label="Fechou" value={`${s.fechou}✓`} tone="emerald" highlight={s.fechou > 0} />
+          <MiniStat label="Perdida" value={s.perdida} tone="orange" />
           <div className="pl-5 border-l border-edge-subtle ml-1">
-            <p className="text-[28px] font-extrabold text-violet-light leading-none tabular-nums">
-              {s.score}
+            <p className="text-[28px] font-extrabold text-emerald leading-none tabular-nums">
+              {s.taxa.toFixed(0)}%
             </p>
-            <p className="text-[9px] text-dim uppercase tracking-[0.2em] mt-1">Score</p>
+            <p className="text-[9px] text-dim uppercase tracking-[0.2em] mt-1">Win</p>
           </div>
         </div>
       </div>
@@ -193,15 +185,26 @@ function CompactRow({ s, rank }: { s: Stats; rank: number }) {
 function MiniStat({
   label,
   value,
+  tone,
   highlight,
 }: {
   label: string;
   value: number | string;
+  tone?: "rose" | "emerald" | "orange";
   highlight?: boolean;
 }) {
+  const colorClass = highlight
+    ? "text-emerald"
+    : tone === "rose"
+      ? "text-rose"
+      : tone === "emerald"
+        ? "text-emerald"
+        : tone === "orange"
+          ? "text-orange"
+          : "text-sub";
   return (
     <div className="text-center">
-      <p className={`font-display text-base font-black tabular-nums leading-none ${highlight ? "text-emerald" : "text-sub"}`}>
+      <p className={`font-display text-base font-black tabular-nums leading-none ${colorClass}`}>
         {value}
       </p>
       <p className="text-[9px] text-dim uppercase tracking-[0.2em] mt-1.5">{label}</p>
