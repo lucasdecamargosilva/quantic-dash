@@ -21,6 +21,7 @@ const FUNNEL_STEPS: LeadStatus[] = [
 // porque "perdida" também passou pela etapa
 const STAGES_AFTER: Record<LeadStatus, LeadStatus[]> = {
   novo: [],
+  novo_tiktok: [],
   lead_coletado: [],
   descartado: [],
   meta: [],
