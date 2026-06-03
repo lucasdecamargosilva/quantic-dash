@@ -1840,11 +1840,26 @@ body.page-dashboard .nav-link.active i {
     filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.4)) !important;
 }
 
+/* Topbar/backdrop mobile só renderizam no mobile — no desktop ficam ocultos
+   (eles são injetados pelo theme-handler.js em todas as telas) */
+.mobile-topbar,
+.mobile-backdrop {
+    display: none;
+}
+
 /* ============================================================
    MOBILE — só aplica em telas <=768px. Desktop fica intocado.
    Inspirado no aspecto do CRM (drawer + topbar glass + cards CRM-like)
    ============================================================ */
 @media (max-width: 768px) {
+    /* No mobile, restaura a topbar com flex (sobrescreve display:none acima) */
+    .mobile-topbar {
+        display: flex;
+    }
+    .mobile-backdrop {
+        display: block;
+    }
+
     /* ---------- Topbar mobile (injetado pelo script.js) ---------- */
     .mobile-topbar {
         position: sticky;
