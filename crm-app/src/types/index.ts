@@ -49,6 +49,7 @@ export const CATEGORIA_HEX: Record<Categoria, string> = {
 // Fontes de oportunidade (para dropdown)
 export const FONTES_OPORTUNIDADE = [
   "Instagram",
+  "TikTok",
   "Indicação",
   "Site",
   "Prospecção Ativa",
@@ -60,6 +61,7 @@ export const FONTES_OPORTUNIDADE = [
 
 export type LeadStatus =
   | "novo"
+  | "novo_tiktok"
   | "dm_enviada"
   | "mensagem_1"
   | "mensagem_2"
@@ -83,6 +85,7 @@ export type LeadStatus =
 
 export const LEAD_STATUSES: LeadStatus[] = [
   "novo",
+  "novo_tiktok",
   "dm_enviada",
   "mensagem_1",
   "mensagem_2",
@@ -109,6 +112,7 @@ export const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "t
 
 export const PIPELINE_STATUSES: LeadStatus[] = [
   "novo",
+  "novo_tiktok",
   "dm_enviada",
   "mensagem_1",
   "mensagem_2",
@@ -147,7 +151,8 @@ export const INTERACAO_TIPOS: InteracaoTipo[] = [
 ];
 
 export const STATUS_LABELS: Record<LeadStatus, string> = {
-  novo: "Novo",
+  novo: "Novo Instagram",
+  novo_tiktok: "Novo TikTok",
   dm_enviada: "DM Enviada",
   mensagem_1: "Mensagem 1",
   mensagem_2: "Mensagem 2",
@@ -172,6 +177,7 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
 
 export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: string }> = {
   novo: { bg: "bg-violet/10", text: "text-violet-light", dot: "bg-violet" },
+  novo_tiktok: { bg: "bg-rose/10", text: "text-rose", dot: "bg-rose" },
   dm_enviada: { bg: "bg-cyan/10", text: "text-cyan", dot: "bg-cyan" },
   mensagem_1: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
   mensagem_2: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
@@ -196,6 +202,7 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
 
 export const STATUS_HEX: Record<LeadStatus, string> = {
   novo: "#8b5cf6",
+  novo_tiktok: "#FE2C55",
   dm_enviada: "#06b6d4",
   mensagem_1: "#38bdf8",
   mensagem_2: "#818cf8",

@@ -30,12 +30,46 @@ INSTAGRAM_PASSWORD=<senha>
 | Script | Função |
 |---|---|
 | `coletar_seguidores.py` | Coleta seguidores de contas seed no Instagram |
-| `instagram.py`          | Helpers de login / sessão no Instagram |
+| `instagram.py`          | Coleta perfis no Instagram por keyword (Apify) |
+| `tiktok.py`             | Coleta perfis no TikTok por **keyword** (Apify) — `plataforma=tiktok` |
+| `coletar_seguidores_tiktok.py` | Coleta perfis no TikTok por **hashtag** (mais denso em lojas) |
 | `verificador.py`        | Filtra leads (tem provador? domínio válido?) |
-| `enviar_dm.py`          | Envia DMs automatizadas |
+| `enviar_dm.py`          | Envia DMs automatizadas no Instagram |
+| `enviar_dm_tiktok.py`   | Envia DMs no TikTok (sem botão Message → cai pro email) |
+| `coletar_emails.py`     | Raspa email de contato do site (qualquer plataforma) |
+| `enviar_email.py`       | Dispara email via SMTP (qualquer plataforma) |
 | `importar_conversas.py` | Sincroniza conversas para Supabase |
-| `exportar.py`           | Exporta dataset local |
+| `exportar.py`           | Exporta leads do **Instagram** (não tocar — fluxo que funciona) |
+| `exportar_tiktok.py`    | Exporta leads do **TikTok** (`plataforma=tiktok`) |
 | `google_shopping.py`    | Busca lojas via Google Shopping (APIFY) |
+
+## Fluxo TikTok (coleta + filtragem + CRM)
+
+> Totalmente **isolado** do Instagram: os arquivos `instagram.py`, `exportar.py` e
+> `enviar_dm.py` não são alterados. A migration só **adiciona** a coluna `plataforma`
+> (aditiva, sem mexer em constraints) — o fluxo do Instagram segue idêntico.
+
+```bash
+# 1. Migration (1x) — só adiciona a coluna plataforma
+#    rodar database/add_plataforma_tiktok.sql no Supabase
+
+# 2. Coleta + filtragem — dois métodos (o de hashtag é bem mais denso em lojas)
+python coletar_seguidores_tiktok.py --limit 30 --min-seg 1000   # por hashtag (recomendado)
+python tiktok.py --limit 30 --min-seg 1000                      # por keyword
+
+# 3. CRM — sobe os leads filtrados pro Supabase (marcados plataforma=tiktok)
+python exportar_tiktok.py
+```
+
+> **Diferenças do TikTok** (descobertas testando): a bio costuma vir vazia e não há
+> campo de site/link — por isso o filtro **não exige site** e guarda a URL do perfil
+> TikTok como contato. Sinais de loja usados: `ttSeller` (TikTok Shop) e `commerceUser`.
+>
+> **Custo:** os actors `clockworks/*` do TikTok são pagos por resultado no Apify.
+> Se aparecer `402 not-enough-usage-to-run-paid-actor`, é saldo de uso esgotado.
+>
+> Disparo de mensagem (DM/email) fica para depois. O `enviar_dm_tiktok.py` existe
+> mas não é executado neste fluxo.
 
 ## Conecta com qual banco?
 

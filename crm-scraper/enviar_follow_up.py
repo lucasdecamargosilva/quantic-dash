@@ -32,6 +32,13 @@ try:
 except ImportError:
     pass
 
+# Windows com antivirus/proxy fazendo SSL inspection: usa o cert store do sistema
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
 from playwright.sync_api import sync_playwright
 from supabase import create_client
 from config import SUPABASE_URL, SUPABASE_KEY
@@ -92,15 +99,28 @@ def teve_mensagem_hoje(sb, lead_id: str) -> bool:
     return bool(res.data)
 
 
+def _exec_retry(fn, tentativas=5, espera=3):
+    """Executa um write no Supabase com retry (resiliente a PGRST003 / pool timeout)."""
+    ult = None
+    for i in range(tentativas):
+        try:
+            return fn()
+        except Exception as e:
+            ult = e
+            print(f"           [retry {i+1}/{tentativas}] write falhou: {str(e)[:60]}")
+            time.sleep(espera * (i + 1))
+    raise ult
+
+
 def avancar_lead(sb, lead_id: str, status_atual: str, conteudo: str):
-    """Atualiza status e registra interação."""
+    """Atualiza status e registra interação (com retry resiliente a instabilidade do Supabase)."""
     novo_status = PROXIMO_STATUS[status_atual]
-    sb.table("leads").update({"status": novo_status}).eq("id", lead_id).execute()
-    sb.table("interacoes").insert({
+    _exec_retry(lambda: sb.table("leads").update({"status": novo_status}).eq("id", lead_id).execute())
+    _exec_retry(lambda: sb.table("interacoes").insert({
         "lead_id": lead_id,
         "tipo": "follow_up",
         "conteudo": conteudo,
-    }).execute()
+    }).execute())
     return novo_status
 
 

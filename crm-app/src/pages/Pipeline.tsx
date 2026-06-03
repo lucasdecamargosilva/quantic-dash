@@ -308,7 +308,7 @@ export default function Pipeline() {
           <div className="flex flex-col gap-1.5">
             <label className="text-[9px] font-bold text-dim uppercase tracking-widest">Fonte</label>
             <div className="flex gap-1">
-              {(["todas", "Instagram", "WhatsApp"] as const).map((f) => (
+              {(["todas", "Instagram", "TikTok", "WhatsApp"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFiltroFonte(f)}

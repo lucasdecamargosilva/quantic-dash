@@ -1,3 +1,15 @@
+"""
+Exporta os leads coletados pelo tiktok.py para o Supabase, marcando plataforma='tiktok'.
+
+Separado do exportar.py (Instagram) de proposito — para nao tocar no fluxo que ja funciona.
+Le o mesmo arquivo de leads filtrados (data/leads_filtrados.json) que o tiktok.py gera.
+
+Dedup: pula leads cujo @handle ja existe na tabela (UNIQUE(instagram) original mantido).
+
+Uso:
+    python tiktok.py --limit 30 --min-seg 5000
+    python exportar_tiktok.py
+"""
 import json
 from supabase import create_client
 from config import SUPABASE_URL, SUPABASE_KEY, LEADS_FILTRADOS_PATH
@@ -13,12 +25,12 @@ def main():
     with open(LEADS_FILTRADOS_PATH, "r", encoding="utf-8") as f:
         leads = json.load(f)
 
-    print(f"Exportando {len(leads)} leads para o Supabase...")
+    print(f"Exportando {len(leads)} leads do TikTok para o Supabase...")
     inseridos = 0
     duplicados = 0
 
     for lead in leads:
-        # Checa se ja existe pelo instagram (unique)
+        # Dedup pelo @handle (UNIQUE original). Se ja existe (IG ou TikTok), pula.
         existing = (
             supabase.table("leads")
             .select("id")
@@ -32,21 +44,22 @@ def main():
             continue
 
         row = {
-            "instagram": lead["instagram"],
+            "instagram": lead["instagram"],          # handle do TikTok
             "nome_loja": lead["nome_loja"],
             "site": lead["site"],
             "seguidores": lead["seguidores"],
             "tem_provador": lead.get("tem_provador", False),
-            "status": "novo",
+            "status": "novo_tiktok",   # cai na coluna "Novo TikTok" do pipeline
             "idioma": lead.get("idioma", "pt"),
             "categoria": lead.get("categoria", "oculos"),
+            "plataforma": "tiktok",
+            "fonte_oportunidade": "TikTok",  # mostra o logo do TikTok no CRM (FonteLogo)
             "responsavel": "Lucas de Camargo",
             "whatsapp": lead.get("whatsapp"),
-            "fonte_oportunidade": "Instagram",  # captura veio do Instagram (instagram.py / coletar_seguidores.py)
         }
 
         supabase.table("leads").insert(row).execute()
-        print(f"  @{lead['instagram']} — inserido")
+        print(f"  @{lead['instagram']} (tiktok) — inserido")
         inseridos += 1
 
     print(f"\nResultado: {inseridos} inseridos, {duplicados} duplicados ignorados")

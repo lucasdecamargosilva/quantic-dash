@@ -2,6 +2,14 @@ import argparse
 import os
 import time
 import random
+
+# Windows com antivirus/proxy fazendo SSL inspection: usa o cert store do sistema
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
 from playwright.sync_api import sync_playwright
 from supabase import create_client
 from config import SUPABASE_URL, SUPABASE_KEY
@@ -103,7 +111,7 @@ def enviar_dm(page, username: str, mensagem: str) -> bool:
     try:
         # Garante inbox
         if "instagram.com/direct" not in page.url:
-            page.goto("https://www.instagram.com/direct/inbox/", timeout=15000)
+            page.goto("https://www.instagram.com/direct/inbox/", timeout=30000)
             time.sleep(3)
             dispensar_popup(page)
 
