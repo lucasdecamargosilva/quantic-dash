@@ -108,6 +108,8 @@ def _gemini(mensagens, lead):
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
+            # Classificar/rascunhar não precisa de "thinking" — desligar corta ~3,4x o custo e acelera.
+            "thinkingConfig": {"thinkingBudget": 0},
             # Structured output: garante JSON válido e valores restritos (sem aspas soltas quebrando o parse).
             "responseSchema": {
                 "type": "object",
