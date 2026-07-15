@@ -88,7 +88,7 @@ def _gemini(mensagens, lead):
     if not key:
         return None
     import urllib.request, urllib.error
-    model = os.getenv("GEMINI_MODEL_TEXT", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL_TEXT", "gemini-flash-latest")
     convo = "\n".join(f"{'LEAD' if (m.get('de') or '').lower() in ('lead','cliente','them','in') else 'EU'}: {m.get('texto','')}" for m in (mensagens or []))
     prompt = (
         "Você é um SDR da Provou Levou (provador virtual de óculos/roupas para e-commerce). "
@@ -105,15 +105,36 @@ def _gemini(mensagens, lead):
     )
     body = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
+        "generationConfig": {
+            "temperature": 0.2,
+            "responseMimeType": "application/json",
+            # Structured output: garante JSON válido e valores restritos (sem aspas soltas quebrando o parse).
+            "responseSchema": {
+                "type": "object",
+                "properties": {
+                    "ponto": {"type": "string", "enum": PONTOS},
+                    "proxima_acao": {"type": "string", "enum": ACOES},
+                    "rascunho": {"type": "string"},
+                    "confianca": {"type": "number"},
+                    "motivo": {"type": "string"},
+                },
+                "required": ["ponto", "proxima_acao", "confianca", "motivo"],
+                "propertyOrdering": ["ponto", "proxima_acao", "rascunho", "confianca", "motivo"],
+            },
+        },
     }
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
     try:
         r = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                    headers={"Content-Type": "application/json"})
         resp = json.loads(urllib.request.urlopen(r, timeout=40).read())
-        txt = resp["candidates"][0]["content"]["parts"][0]["text"]
-        d = json.loads(txt)
+        txt = resp["candidates"][0]["content"]["parts"][0]["text"].strip()
+        if txt.startswith("```"):
+            txt = re.sub(r"^```[a-zA-Z]*\n?|\n?```$", "", txt).strip()
+        try:
+            d = json.loads(txt)
+        except json.JSONDecodeError:
+            d, _ = json.JSONDecoder().raw_decode(txt)  # ignora "Extra data" após o 1º objeto
         ponto = d.get("ponto") if d.get("ponto") in PONTOS else "respondeu_neutro"
         status_crm, acao_def = PONTO_MAP.get(ponto, ("respondeu", "escalar"))
         acao = d.get("proxima_acao") if d.get("proxima_acao") in ACOES else acao_def
