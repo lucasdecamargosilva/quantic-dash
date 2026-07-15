@@ -63,8 +63,8 @@ def _enviar_whatsapp(disp):
     except Exception:
         return False, "canal whatsapp ainda não ligado (enviar_uazapi indisponível)"
     try:
-        ok = enviar_uazapi(disp["destino"], disp["texto"])
-        return bool(ok), None if ok else "uazapi retornou falha"
+        ok, erro = enviar_uazapi(disp["destino"], disp["texto"])  # enviar_uazapi retorna (bool, str)
+        return ok, (None if ok else (erro or "uazapi retornou falha"))
     except Exception as e:
         return False, str(e)
 
