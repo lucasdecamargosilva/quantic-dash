@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fila de Aprovação — Prospecção</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root{--bg:#0f1115;--card:#171a21;--line:#252a34;--txt:#e6e8ec;--muted:#8a90a0;--green:#22c55e;--red:#ef4444;--accent:#7c3aed;}
+        *{box-sizing:border-box;}
+        body{margin:0;background:var(--bg);color:var(--txt);font-family:'DM Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+        .top{position:sticky;top:0;background:rgba(15,17,21,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;z-index:5;}
+        .top h1{font-size:18px;margin:0;font-weight:800;letter-spacing:-.01em;}
+        .top .sub{color:var(--muted);font-size:12.5px;}
+        .top .spacer{flex:1;}
+        .pill{background:rgba(124,58,237,.14);color:#c4b5fd;border:1px solid rgba(124,58,237,.3);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;}
+        .btn{border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:9px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;}
+        .btn:hover{border-color:#3a414f;}
+        .btn.green{background:linear-gradient(135deg,#16a34a,#22c55e);border:none;color:#fff;}
+        .btn.red{background:transparent;border-color:rgba(239,68,68,.4);color:#f87171;}
+        .btn.ghost{background:transparent;}
+        .wrap{max-width:1180px;margin:0 auto;padding:22px;}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
+        .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px;}
+        .card .head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+        .card .loja{font-weight:800;font-size:14.5px;letter-spacing:-.01em;}
+        .card .ig{color:var(--muted);font-size:12.5px;}
+        .badges{display:flex;gap:6px;flex-wrap:wrap;}
+        .badge{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:6px;}
+        .badge.ig{background:rgba(225,48,108,.16);color:#f472b6;}
+        .badge.wa{background:rgba(37,211,102,.16);color:#4ade80;}
+        .badge.tipo{background:rgba(255,255,255,.06);color:var(--muted);}
+        .motivo{font-size:12px;color:var(--muted);}
+        .msg{width:100%;min-height:96px;resize:vertical;background:#0f131a;border:1px solid var(--line);border-radius:10px;color:var(--txt);font-family:inherit;font-size:13px;line-height:1.5;padding:11px;}
+        .msg:focus{outline:none;border-color:var(--accent);}
+        .fotos{display:flex;gap:6px;flex-wrap:wrap;}
+        .fotos img{width:66px;height:66px;object-fit:cover;border-radius:8px;border:1px solid var(--line);}
+        .actions{display:flex;gap:8px;margin-top:2px;}
+        .actions .btn{flex:1;justify-content:center;}
+        .empty{text-align:center;color:var(--muted);padding:80px 20px;}
+        .empty i{font-size:44px;color:#2f3542;display:block;margin-bottom:10px;}
+        .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1c212b;border:1px solid var(--line);padding:11px 18px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;}
+        .toast.show{opacity:1;}
+    </style>
+</head>
+<body>
+    <div class="top">
+        <div>
+            <h1>📋 Fila de Aprovação</h1>
+            <div class="sub">Nada é enviado ao lead sem seu OK. Revise, edite se quiser, e aprove.</div>
+        </div>
+        <div class="spacer"></div>
+        <span class="pill" id="count">—</span>
+        <button class="btn ghost" onclick="load()"><i class="ph-bold ph-arrows-clockwise"></i> Atualizar</button>
+        <button class="btn green" id="approveAll" onclick="aprovarTodos()"><i class="ph-bold ph-check-circle"></i> Aprovar todos</button>
+    </div>
+    <div class="wrap"><div class="grid" id="grid"></div></div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let _sb = null;
+        async function getSB(){
+            if (window.CONFIG_LOADED) await window.CONFIG_LOADED;
+            if (_sb) return _sb;
+            _sb = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+            return _sb;
+        }
+        function toast(t){ const e=document.getElementById('toast'); e.textContent=t; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),1800); }
+        function el(tag, cls, txt){ const n=document.createElement(tag); if(cls)n.className=cls; if(txt!=null)n.textContent=txt; return n; }
+
+        let _rows = [];
+        async function load(){
+            const sb = await getSB();
+            const { data, error } = await sb.from('disparos_pendentes').select('*').eq('status','pendente').order('created_at',{ascending:true});
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            if (error){ grid.appendChild(el('div','empty','Erro ao carregar: '+error.message)); return; }
+            _rows = data || [];
+            document.getElementById('count').textContent = _rows.length + (_rows.length===1?' pendente':' pendentes');
+            document.getElementById('approveAll').style.display = _rows.length ? '' : 'none';
+            if (!_rows.length){
+                const e = el('div','empty'); e.innerHTML = '<i class="ph-bold ph-check-circle"></i>Nada pra aprovar agora. Rode <code>preparar_fila.py</code> pra enfileirar os próximos.';
+                grid.appendChild(e); return;
+            }
+            _rows.forEach(r => grid.appendChild(renderCard(r)));
+        }
+
+        function renderCard(r){
+            const card = el('div','card'); card.dataset.id = r.id;
+            const head = el('div','head');
+            const left = el('div');
+            left.appendChild(el('div','loja', r.nome_loja || r.instagram || '(sem nome)'));
+            left.appendChild(el('div','ig', r.destino || (r.instagram ? '@'+r.instagram : '')));
+            const badges = el('div','badges');
+            const cb = el('span','badge '+(r.canal==='whatsapp'?'wa':'ig'), r.canal==='whatsapp'?'WhatsApp':'Instagram');
+            const tb = el('span','badge tipo', r.tipo || '');
+            badges.append(cb, tb);
+            head.append(left, badges);
+            card.appendChild(head);
+            if (r.motivo) card.appendChild(el('div','motivo', r.motivo));
+
+            const ta = el('textarea','msg'); ta.value = r.texto || ''; ta.dataset.id = r.id;
+            card.appendChild(ta);
+
+            const fotos = (r.fotos && Array.isArray(r.fotos)) ? r.fotos : [];
+            if (fotos.length){
+                const fw = el('div','fotos');
+                fotos.slice(0,4).forEach(u => { const img=el('img'); img.src=u; img.loading='lazy'; fw.appendChild(img); });
+                card.appendChild(fw);
+            }
+
+            const act = el('div','actions');
+            const bAp = el('button','btn green'); bAp.innerHTML='<i class="ph-bold ph-check"></i> Aprovar'; bAp.onclick=()=>decidir(r.id,'aprovado');
+            const bRj = el('button','btn red'); bRj.innerHTML='<i class="ph-bold ph-x"></i> Rejeitar'; bRj.onclick=()=>decidir(r.id,'rejeitado');
+            act.append(bAp, bRj);
+            card.appendChild(act);
+            return card;
+        }
+
+        async function decidir(id, status){
+            const sb = await getSB();
+            const card = document.querySelector('.card[data-id="'+id+'"]');
+            const ta = card ? card.querySelector('textarea') : null;
+            const upd = { status, decidido_at: new Date().toISOString() };
+            if (status==='aprovado' && ta) upd.texto = ta.value.trim();
+            const { error } = await sb.from('disparos_pendentes').update(upd).eq('id', id);
+            if (error){ toast('Erro: '+error.message); return; }
+            if (card){ card.style.transition='opacity .18s'; card.style.opacity='0'; setTimeout(()=>{card.remove(); afterRemove();},180); }
+            toast(status==='aprovado'?'✓ Aprovado — vai no próximo envio':'Rejeitado');
+        }
+
+        function afterRemove(){
+            const left = document.querySelectorAll('.card').length;
+            document.getElementById('count').textContent = left + (left===1?' pendente':' pendentes');
+            if (!left) load();
+        }
+
+        async function aprovarTodos(){
+            if (!confirm('Aprovar TODOS os '+ _rows.length +' disparos da fila? (você ainda pode ter editado os textos)')) return;
+            const cards = [...document.querySelectorAll('.card')];
+            for (const c of cards){ await decidir(c.dataset.id, 'aprovado'); }
+        }
+
+        load();
+    </script>
+</body>
+</html>
