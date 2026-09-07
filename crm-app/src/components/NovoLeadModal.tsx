@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { persistLeadStatus } from "../lib/lead-status";
 import { LEAD_STATUSES, STATUS_LABELS, FONTES_OPORTUNIDADE, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import type { LeadStatus, Categoria } from "../types";
 
@@ -35,26 +36,35 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
 
     setSaving(true);
 
-    const { error } = await supabase.from("leads").insert({
+    const { data, error } = await supabase.from("leads").insert({
       instagram: handle,
       nome_loja: nomeLoja.trim() || handle,
       site: site.trim(),
       seguidores: parseInt(seguidores) || 0,
       idioma,
       notas: notas.trim(),
-      status,
+      status: status === "testou_e_saiu" ? "stand_by" : status,
       categoria,
       tem_provador: false,
       responsavel: responsavel.trim() || null,
       fonte_oportunidade: fonteOportunidade || null,
       telefone: telefone.trim() || null,
       email: email.trim() || null,
-    });
+    }).select("id").single();
+
+    let statusError: Error | null = null;
+    if (!error && data && status === "testou_e_saiu") {
+      try {
+        await persistLeadStatus(data.id, status);
+      } catch (caught) {
+        statusError = caught instanceof Error ? caught : new Error("Não foi possível salvar a etapa");
+      }
+    }
 
     setSaving(false);
 
-    if (error) {
-      setErro(error.code === "23505" ? "Esse @ já está no pipeline" : error.message);
+    if (error || statusError) {
+      setErro(error?.code === "23505" ? "Esse @ já está no pipeline" : (error?.message ?? statusError?.message ?? "Erro ao salvar"));
       return;
     }
 

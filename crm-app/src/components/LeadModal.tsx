@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { applyCustomLeadStatus, persistLeadStatus } from "../lib/lead-status";
 import type { Lead, Interacao, LeadStatus, Categoria } from "../types";
 import { FONTES_OPORTUNIDADE, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import StatusBadge from "./StatusBadge";
@@ -48,7 +49,7 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
 
   async function fetchLead() {
     const { data } = await supabase.from("leads").select("*").eq("id", leadId).single();
-    if (data) { setLead(data); setNotas(data.notas ?? ""); }
+    if (data) { setLead(await applyCustomLeadStatus(data)); setNotas(data.notas ?? ""); }
     setLoading(false);
   }
 
@@ -58,7 +59,7 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
   }
 
   async function updateStatus(status: LeadStatus) {
-    await supabase.from("leads").update({ status }).eq("id", leadId);
+    await persistLeadStatus(leadId, status);
     setLead((prev) => (prev ? { ...prev, status } : null));
     onUpdated?.();
   }

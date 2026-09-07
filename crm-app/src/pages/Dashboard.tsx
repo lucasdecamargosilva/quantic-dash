@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { applyCustomLeadStatuses } from "../lib/lead-status";
 import { LEAD_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIA_LABELS, CATEGORIA_HEX, HOT_STATUSES } from "../types";
 import type { Lead, LeadStatus, Categoria } from "../types";
 import FunnelChart from "../components/FunnelChart";
@@ -26,7 +27,7 @@ const ACTIVE_STATUSES: LeadStatus[] = [
   "novo", "dm_enviada", "mensagem_1", "mensagem_2", "mensagem_3", "atendimento_ia",
   "meta", "email_a_enviar", "email_enviado",
   "respondeu", "fotos_enviadas",
-  "stand_by", "interessado", "reuniao_agendada", "testando",
+  "stand_by", "interessado", "reuniao_agendada", "testando", "testou_e_saiu",
 ];
 
 type LastInter = { conteudo: string; created_at: string };
@@ -55,8 +56,8 @@ export default function Dashboard() {
   const cursorFill = isLight ? "rgba(124, 58, 237, 0.06)" : "rgba(139, 92, 246, 0.06)";
 
   useEffect(() => {
-    supabase.from("leads").select("*").then(({ data }) => {
-      setLeads(data ?? []);
+    supabase.from("leads").select("*").then(async ({ data }) => {
+      setLeads(await applyCustomLeadStatuses(data ?? []));
       setLoading(false);
     });
     // Busca as interações recentes e mantém só a última de cada lead
@@ -99,9 +100,9 @@ export default function Dashboard() {
   const hot = HOT_STATUSES.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   // Funnel cumulativo: dms = todos que passaram por dm_enviada ou além
-  const dmsAlcancadas = ["dm_enviada","mensagem_1","mensagem_2","mensagem_3","atendimento_ia","meta","email_a_enviar","email_enviado","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","fechou","perdida"]
+  const dmsAlcancadas = ["dm_enviada","mensagem_1","mensagem_2","mensagem_3","atendimento_ia","meta","email_a_enviar","email_enviado","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","testou_e_saiu","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
-  const responderam = ["respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","fechou","perdida"]
+  const responderam = ["respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","testou_e_saiu","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
   const taxaResposta = dmsAlcancadas > 0 ? ((responderam / dmsAlcancadas) * 100) : 0;
   const taxaFechamentoSobreDM = dmsAlcancadas > 0 ? ((fechados / dmsAlcancadas) * 100) : 0;

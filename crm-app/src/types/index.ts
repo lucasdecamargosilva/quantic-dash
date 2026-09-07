@@ -76,6 +76,7 @@ export type LeadStatus =
   | "stand_by"
   | "reuniao_agendada"
   | "testando"
+  | "testou_e_saiu"
   | "interessado"
   | "fechou"
   | "sem_site"
@@ -100,6 +101,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "stand_by",
   "reuniao_agendada",
   "testando",
+  "testou_e_saiu",
   "fechou",
   "sem_site",
   "parou_responder",
@@ -126,6 +128,7 @@ export const PIPELINE_STATUSES: LeadStatus[] = [
   "interessado",
   "reuniao_agendada",
   "testando",
+  "testou_e_saiu",
   "fechou",
   "stand_by",
   "sem_site",
@@ -167,6 +170,7 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   stand_by: "Stand By",
   reuniao_agendada: "Reunião Agendada",
   testando: "Testando",
+  testou_e_saiu: "Testou e Saiu",
   interessado: "Interessado",
   fechou: "Fechou",
   sem_site: "Sem Site",
@@ -192,6 +196,7 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
   stand_by: { bg: "bg-muted/10", text: "text-muted", dot: "bg-muted" },
   reuniao_agendada: { bg: "bg-emerald/10", text: "text-emerald", dot: "bg-emerald" },
   testando: { bg: "bg-amber/10", text: "text-amber", dot: "bg-amber" },
+  testou_e_saiu: { bg: "bg-orange/10", text: "text-orange", dot: "bg-orange" },
   interessado: { bg: "bg-rose/10", text: "text-rose", dot: "bg-rose" },
   fechou: { bg: "bg-emerald/10", text: "text-emerald", dot: "bg-emerald" },
   sem_site: { bg: "bg-yellow/10", text: "text-yellow", dot: "bg-yellow" },
@@ -217,6 +222,7 @@ export const STATUS_HEX: Record<LeadStatus, string> = {
   stand_by: "#94a3b8",
   reuniao_agendada: "#14b8a6",
   testando: "#84cc16",
+  testou_e_saiu: "#f97316",
   interessado: "#f43f5e",
   fechou: "#10b981",
   sem_site: "#eab308",

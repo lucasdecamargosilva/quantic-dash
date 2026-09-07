@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { applyCustomLeadStatuses, persistLeadStatus } from "../lib/lead-status";
 import type { Lead, LeadStatus, Categoria } from "../types";
 import { PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import LeadModal from "../components/LeadModal";
@@ -177,7 +178,7 @@ export default function Pipeline() {
 
   async function fetchLeads() {
     const { data } = await supabase.from("leads").select("*").order("updated_at", { ascending: false });
-    setLeads(data ?? []);
+    setLeads(await applyCustomLeadStatuses(data ?? []));
     setLoading(false);
   }
 
@@ -213,7 +214,7 @@ export default function Pipeline() {
   async function moveToStatus(leadId: string, newStatus: LeadStatus) {
     // Atualização otimista
     setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)));
-    await supabase.from("leads").update({ status: newStatus }).eq("id", leadId);
+    await persistLeadStatus(leadId, newStatus);
   }
 
   function handleDragStart(event: DragStartEvent) {

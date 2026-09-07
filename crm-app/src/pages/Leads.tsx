@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { applyCustomLeadStatuses, persistLeadStatus } from "../lib/lead-status";
 import { LEAD_STATUSES, STATUS_LABELS } from "../types";
 import type { Lead, LeadStatus } from "../types";
 import StatusBadge from "../components/StatusBadge";
@@ -18,15 +19,14 @@ export default function Leads() {
 
   async function fetchLeads() {
     setLoading(true);
-    let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
-    if (filtroStatus !== "todos") query = query.eq("status", filtroStatus);
-    const { data } = await query;
-    setLeads(data ?? []);
+    const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+    const normalized = await applyCustomLeadStatuses(data ?? []);
+    setLeads(filtroStatus === "todos" ? normalized : normalized.filter((lead) => lead.status === filtroStatus));
     setLoading(false);
   }
 
   async function updateStatus(id: string, status: LeadStatus) {
-    await supabase.from("leads").update({ status }).eq("id", id);
+    await persistLeadStatus(id, status);
     setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
   }
 

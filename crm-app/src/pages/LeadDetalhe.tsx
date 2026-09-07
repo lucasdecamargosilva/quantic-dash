@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { applyCustomLeadStatus, persistLeadStatus } from "../lib/lead-status";
 import type { Lead, Interacao, LeadStatus } from "../types";
 import StatusBadge from "../components/StatusBadge";
 import InteracaoForm from "../components/InteracaoForm";
@@ -32,7 +33,7 @@ export default function LeadDetalhe() {
   async function fetchLead() {
     setLoading(true);
     const { data } = await supabase.from("leads").select("*").eq("id", id).single();
-    if (data) { setLead(data); setNotas(data.notas ?? ""); }
+    if (data) { setLead(await applyCustomLeadStatus(data)); setNotas(data.notas ?? ""); }
     setLoading(false);
   }
 
@@ -42,7 +43,8 @@ export default function LeadDetalhe() {
   }
 
   async function updateStatus(status: LeadStatus) {
-    await supabase.from("leads").update({ status }).eq("id", id);
+    if (!id) return;
+    await persistLeadStatus(id, status);
     setLead((prev) => (prev ? { ...prev, status } : null));
   }
 
