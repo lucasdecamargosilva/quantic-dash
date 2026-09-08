@@ -755,10 +755,9 @@ async function abrir(i){
     <div class="acoes" style="margin:8px 0 14px">
       <button class="btn sec" id="btCatalogo" onclick="mandaCatalogo(this)"
         title="Envia a apresentação do Provou Catálogo em duas mensagens separadas">💬 Provou Catálogo</button>
-      ${prontos.combos.map(c=>`<button class="btn sec" onclick="mandaCombo('${c.id}',this)">🎧 Combo de áudios</button>`).join('')}
       <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
     </div>
-    <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
+    <textarea id="txt" placeholder="Digite sua mensagem…">Oi, tudo bem? Aqui é o Lucas da Provou Levou, hoje você vende por loja online, física, whatsapp ou instagram?</textarea>
     <div class="acoes">
       <button class="btn" id="ok" onclick="enviar()">Aprovar e enviar</button>
       <button class="btn sec" onclick="proxima()">Concluir</button>
@@ -774,10 +773,6 @@ async function abrir(i){
       <div class="obs">Cada prova feita por um cliente desconta uma do pacote.
         Sem custo de instalação · integração no mesmo dia · 7 dias grátis.<br>
         Acima de 2.000 provas o plano é sob medida.</div>
-      <h3 style="margin-top:14px">Sequência pronta</h3>
-      <div class="chips">${prontos.combos.map(c=>`
-        <button class="chip combo" onclick="mandaCombo('${c.id}',this)">${esc(c.rotulo)}
-          <small>os ${c.audios.length} áudios em ordem</small></button>`).join('')}</div>
       <h3 style="margin-top:14px">Áudios avulsos</h3>
       <div class="chips">${prontos.audios.map(a=>`
         <button class="chip aud" onclick="mandaAudio('${a.id}',this)">${esc(a.rotulo)} · ${a.seg}s
