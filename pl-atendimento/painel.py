@@ -542,8 +542,8 @@ animation:bat 2s infinite}@keyframes bat{50%{opacity:.25}}
 button{font:inherit;border:0;border-radius:9px;padding:9px 14px;cursor:pointer}
 .btn{background:var(--roxo);color:#fff;font-weight:600}.btn:hover{background:var(--roxo2)}
 .btn.sec{background:var(--chip);border:1px solid var(--linha);color:var(--txt);font-weight:500}
-.wrap{max-width:1500px;margin:0 auto;padding:16px 20px;display:grid;
-grid-template-columns:minmax(300px,380px) 1fr;gap:18px;align-items:start}
+.wrap{width:100%;margin:0;padding:0;display:grid;
+grid-template-columns:minmax(320px,400px) minmax(0,1fr);gap:0;align-items:start}
 @media(max-width:900px){.wrap{grid-template-columns:1fr}}
 .filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .fbtn{background:var(--chip);border:1px solid var(--linha);color:var(--fraco);
@@ -554,9 +554,11 @@ font-size:12.5px;padding:5px 11px;display:flex;gap:6px;align-items:center;white-
 padding:0 6px;border-radius:99px}
 .fbtn.on b{background:#ffffff2e;color:#fff}
 @media(max-width:900px){header{flex-wrap:wrap}.filtros{order:3;width:100%}}
-.lista{display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 120px);overflow:auto}
-.item{background:var(--card);border:1px solid var(--linha);border-radius:11px;padding:11px 13px;cursor:pointer}
-.item:hover{border-color:var(--roxo2)}.item.sel{border-color:var(--roxo);background:var(--hover)}
+.lista{display:flex;flex-direction:column;gap:0;height:calc(100vh - 57px);overflow:auto;
+background:var(--card);border-right:1px solid var(--linha)}
+.item{background:transparent;border:0;border-bottom:1px solid var(--linha);border-radius:0;
+padding:12px 16px;cursor:pointer}
+.item:hover{background:var(--hover)}.item.sel{background:var(--hover);box-shadow:inset 3px 0 0 var(--roxo)}
 .item .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .item .nome{font-weight:600;font-size:14px}
 .item .h{font-size:11.5px;color:var(--fraco);white-space:nowrap}
@@ -566,8 +568,8 @@ padding:0 6px;border-radius:99px}
 .pill.TESTE{color:var(--azul);border-color:#1e3a5f}
 .pill.CONVERTIDO{color:var(--ok);border-color:#1a4a2a}
 .pill.PERDIDO{color:var(--verm);border-color:#4a1a1a}
-.painel{background:var(--card);border:1px solid var(--linha);border-radius:13px;padding:16px 18px;
-position:sticky;top:70px}
+.painel{background:var(--card);border:0;border-radius:0;padding:18px 22px;
+min-height:calc(100vh - 57px);position:sticky;top:57px}
 .vazio{color:var(--fraco);text-align:center;padding:60px 20px}
 .chat{max-height:42vh;overflow:auto;display:flex;flex-direction:column;gap:7px;margin:12px 0;padding-right:4px}
 .bolha{max-width:82%;padding:7px 11px;border-radius:11px;font-size:13.5px;white-space:pre-wrap}
