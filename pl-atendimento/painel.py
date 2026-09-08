@@ -1115,7 +1115,6 @@ class H(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream; charset=utf-8")
                 self.send_header("Cache-Control", "no-cache, no-transform")
-                self.send_header("Connection", "keep-alive")
                 self.end_headers()
                 try:
                     self.wfile.write(b"retry: 1000\n\n")
