@@ -437,6 +437,33 @@ def fila(status=None):
     return out
 
 
+def recebidas_recentes(limite=50):
+    """Mensagens recebidas usadas pelos avisos discretos da interface."""
+    limite = max(1, min(int(limite or 50), 100))
+    c = con()
+    linhas = c.execute("""
+        SELECT mensagens.messageid, mensagens.chatid, mensagens.ts,
+               mensagens.tipo, mensagens.texto, mensagens.segundos,
+               leads.nome, leads.fone
+          FROM mensagens
+          JOIN leads ON leads.chatid = mensagens.chatid
+         WHERE mensagens.from_me = 0
+           AND COALESCE(leads.oculto, 0) = 0
+           AND NOT EXISTS (
+               SELECT 1 FROM mensagens suporte
+                WHERE suporte.chatid = leads.chatid
+                  AND suporte.from_me = 0
+                  AND suporte.texto LIKE 'Olá! Tive um problema ao usar o provador%'
+           )
+         ORDER BY mensagens.ts DESC, mensagens.messageid DESC
+         LIMIT ?
+    """, (limite,)).fetchall()
+    return [{"id": r["messageid"], "chatid": r["chatid"], "ts": r["ts"],
+             "nome": r["nome"] or r["fone"] or "Nova conversa",
+             "texto": (r["texto"] or rotulo(r["tipo"], r["segundos"]) or "Nova mensagem")}
+            for r in linhas]
+
+
 def contagem():
     c = con()
     d = {r["status"]: r["n"] for r in
@@ -584,10 +611,10 @@ html[data-tema="claro"]{
 --campo:#ffffff;--chip:#f7f7fa;--hover:#f1ecfd;--bolha-lead:#f0f0f4;--bolha-loja:#ede6fd;
 --previa:#55525e;
 --topo:#f4f4f7ee}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);
-font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--txt);
+font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column;overflow:hidden}
 header{position:sticky;top:0;background:var(--topo);backdrop-filter:blur(8px);
-border-bottom:1px solid var(--linha);padding:12px 20px;display:flex;gap:14px;align-items:center;z-index:9}
+border-bottom:1px solid var(--linha);padding:12px 20px;display:flex;gap:14px;align-items:center;z-index:9;flex:none}
 h1{font-size:17px;margin:0;font-weight:650}
 .tag{font-size:12px;color:var(--fraco)}
 .pulso{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;
@@ -595,8 +622,8 @@ animation:bat 2s infinite}@keyframes bat{50%{opacity:.25}}
 button{font:inherit;border:0;border-radius:9px;padding:9px 14px;cursor:pointer}
 .btn{background:var(--roxo);color:#fff;font-weight:600}.btn:hover{background:var(--roxo2)}
 .btn.sec{background:var(--chip);border:1px solid var(--linha);color:var(--txt);font-weight:500}
-.wrap{width:100%;margin:0;padding:0;display:grid;
-grid-template-columns:minmax(320px,400px) minmax(0,1fr);gap:0;align-items:start}
+.wrap{width:100%;margin:0;padding:0;display:grid;flex:1;min-height:0;overflow:hidden;
+grid-template-columns:minmax(320px,400px) minmax(0,1fr);gap:0;align-items:stretch}
 @media(max-width:900px){.wrap{grid-template-columns:1fr}}
 .filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .fbtn{background:var(--chip);border:1px solid var(--linha);color:var(--fraco);
@@ -607,8 +634,8 @@ font-size:12.5px;padding:5px 11px;display:flex;gap:6px;align-items:center;white-
 padding:0 6px;border-radius:99px}
 .fbtn.on b{background:#ffffff2e;color:#fff}
 @media(max-width:900px){header{flex-wrap:wrap}.filtros{order:3;width:100%}}
-.lista-col{height:calc(100vh - 57px);display:flex;flex-direction:column;background:var(--card);
-border-right:1px solid var(--linha)}
+.lista-col{height:100%;min-height:0;display:flex;flex-direction:column;background:var(--card);
+border-right:1px solid var(--linha);overflow:hidden}
 .bulkbar{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--linha);
 background:var(--card);position:sticky;top:0;z-index:3;min-height:49px}
 .bulkcheck{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--fraco);cursor:pointer;flex:1}
@@ -629,7 +656,9 @@ padding:12px 16px;cursor:pointer;display:grid;grid-template-columns:18px minmax(
 .pill.CONVERTIDO{color:var(--ok);border-color:#1a4a2a}
 .pill.PERDIDO{color:var(--verm);border-color:#4a1a1a}
 .painel{background:var(--card);border:0;border-radius:0;padding:18px 22px;
-min-height:calc(100vh - 57px);position:sticky;top:57px}
+min-height:0;height:100%;position:relative;overflow:auto}
+@media(max-width:900px){body{overflow:auto}.wrap{display:block;overflow:visible;flex:none}.lista-col{height:55vh}
+.painel{height:auto;min-height:55vh;overflow:visible}}
 .vazio{color:var(--fraco);text-align:center;padding:60px 20px}
 .chat{max-height:42vh;overflow:auto;display:flex;flex-direction:column;gap:7px;margin:12px 0;padding-right:4px}
 .bolha{max-width:82%;padding:7px 11px;border-radius:11px;font-size:13.5px;white-space:pre-wrap}
@@ -706,8 +735,19 @@ color:var(--txt);padding:0 10px;font:inherit}.massa textarea{min-height:135px}
 .massa-progress{font-size:12.5px;color:var(--fraco);margin-top:10px;min-height:20px}
 .massa-resultados{max-height:150px;overflow:auto;font-size:12px;margin-top:8px}
 .massa-falha{color:#f87171;padding:3px 0}
+.notificacoes{position:fixed;right:14px;top:14px;z-index:40;width:min(300px,calc(100vw - 28px));
+display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.notificacao{width:100%;padding:9px 11px;text-align:left;background:var(--card);color:var(--txt);
+border:1px solid var(--linha);border-left:3px solid var(--roxo);border-radius:10px;
+box-shadow:0 8px 28px #0004;pointer-events:auto;animation:notifica-in .18s ease-out}
+.notificacao:hover{background:var(--hover)}
+.notificacao-titulo{display:block;font-size:12px;font-weight:700;line-height:1.3}
+.notificacao-msg{display:-webkit-box;margin-top:2px;color:var(--previa);font-size:11.5px;line-height:1.35;
+overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}
+@keyframes notifica-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
 .ok{color:var(--ok)}.err{color:#f87171}
 </style></head><body>
+<div class="notificacoes" id="notificacoes" aria-live="polite"></div>
 <header>
   <h1>Atendimento</h1>
   <div class="filtros" id="filtros"></div>
@@ -757,6 +797,35 @@ aplicaTema(localStorage.getItem('pl_tema') || 'claro');   // padrao: claro
 
 function esc(s){return (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function cls(s){return (s||'').split(' ')[0]}
+
+let notificacoesProntas=false, avisosVistos=new Set();
+async function buscaNotificacoes(mostrar=true){
+  try{
+    const r=await fetch('/api/recebidas?limite=50&_='+Date.now(),{cache:'no-store'}); if(!r.ok) return;
+    const mensagens=await r.json();
+    if(!notificacoesProntas){ mensagens.forEach(m=>avisosVistos.add(m.id)); notificacoesProntas=true; return; }
+    const novas=mensagens.filter(m=>!avisosVistos.has(m.id)).sort((a,b)=>a.ts-b.ts);
+    mensagens.forEach(m=>avisosVistos.add(m.id));
+    if(mostrar) novas.forEach(m=>mostraNotificacao(m));
+    if(avisosVistos.size>300) avisosVistos=new Set(mensagens.map(m=>m.id));
+  }catch(e){}
+}
+function mostraNotificacao(m){
+  const caixa=document.getElementById('notificacoes'), aviso=document.createElement('button');
+  aviso.type='button'; aviso.className='notificacao';
+  const titulo=document.createElement('span'), texto=document.createElement('span');
+  titulo.className='notificacao-titulo'; titulo.textContent='Nova mensagem · '+(m.nome||'Nova conversa');
+  texto.className='notificacao-msg'; texto.textContent=m.texto||'Nova mensagem';
+  aviso.append(titulo,texto); aviso.onclick=()=>abreConversaNotificada(m.chatid,aviso);
+  caixa.appendChild(aviso);
+  while(caixa.children.length>3) caixa.firstElementChild.remove();
+  setTimeout(()=>aviso.remove(),5500);
+}
+async function abreConversaNotificada(chatid,aviso){
+  let i=pend.findIndex(p=>p.chatid===chatid);
+  if(i<0){ filtro=''; await filtros(); await carrega(); i=pend.findIndex(p=>p.chatid===chatid); }
+  if(i>=0) abrir(i); aviso.remove();
+}
 
 async function carrega(){
   const r=await fetch('/api/fila'+(filtro?('?status='+encodeURIComponent(filtro)):''));
@@ -1205,14 +1274,15 @@ async function atualiza(){
   setTimeout(()=>{ b.innerHTML=antes; b.disabled=false; atualizando=false; },2200);
 }
 
-(async()=>{ prontos=await (await fetch('/api/prontos')).json(); await filtros(); await carrega(); conectaEventos(); })();
+(async()=>{ prontos=await (await fetch('/api/prontos')).json(); await filtros(); await carrega();
+  await buscaNotificacoes(false); conectaEventos(); })();
 
 let eventosTelaAtivos=false, atualizacaoEvento=null;
 async function atualizaPorEvento(){
   if(atualizacaoEvento) return;
   atualizacaoEvento=setTimeout(async()=>{
     atualizacaoEvento=null;
-    await Promise.all([carrega(),filtros()]);
+    await Promise.all([carrega(),filtros(),buscaNotificacoes()]);
     if(!selId||!document.getElementById('chat')) return;
     const cid=selId;
     try{
@@ -1228,7 +1298,7 @@ function conectaEventos(){
   es.onerror=()=>{ eventosTelaAtivos=false; };
 }
 // Recuperacao para queda de conexao: com eventos ativos estas consultas nao rodam.
-setInterval(()=>{ if(!eventosTelaAtivos){ carrega(); filtros(); } },5000);
+setInterval(()=>{ if(!eventosTelaAtivos){ carrega(); filtros(); buscaNotificacoes(); } },5000);
 let chatAtualizando=false;
 setInterval(async()=>{
   if(eventosTelaAtivos||chatAtualizando||!selId||!document.getElementById('chat')||document.hidden) return;
@@ -1306,6 +1376,9 @@ class H(BaseHTTPRequestHandler):
             if p.path == "/api/fila":
                 return self._send(200, json.dumps(fila((q.get("status") or [None])[0]),
                                                   ensure_ascii=False))
+            if p.path == "/api/recebidas":
+                return self._send(200, json.dumps(
+                    recebidas_recentes((q.get("limite") or [50])[0]), ensure_ascii=False))
             if p.path == "/api/conversa":
                 return self._send(200, json.dumps(conversa(q["chatid"][0]), ensure_ascii=False))
             if p.path == "/api/sugestao":
