@@ -140,6 +140,8 @@ CATALOGO_MENSAGENS = [
 ]
 
 TEXTOS = [
+ {"id": "reaquecer", "rotulo": "Reaquecer",
+  "texto": "Oi, Conseguiu dar uma olhada no que te enviei sobre o Provador Virtual?"},
  {"id": "tabela", "rotulo": "Tabela de planos",
   "texto": "Nossos pacotes são mensais, por quantidade de provas:\n\n"
            "*25 provas* — R$ 39\n"
