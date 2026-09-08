@@ -514,6 +514,59 @@ def sugere(linhas, nome):
 
 COMBO_STATUS = {}
 ENVIOS = {}          # eid -> {"estado": enviando|ok|erro, "erro": ""}
+MAX_DISPARO_MASSA = 100
+
+
+def inicia_disparo_massa(chatids, texto):
+    """Valida os alvos no servidor e envia uma mensagem por vez em segundo plano."""
+    if not isinstance(chatids, list):
+        raise ValueError("Selecione pelo menos uma conversa.")
+    chatids = list(dict.fromkeys(str(x).strip() for x in chatids if str(x).strip()))
+    if not chatids:
+        raise ValueError("Selecione pelo menos uma conversa.")
+    if len(chatids) > MAX_DISPARO_MASSA:
+        raise ValueError("O limite por disparo é de %d conversas." % MAX_DISPARO_MASSA)
+    texto = str(texto or "").strip()
+    if not texto:
+        raise ValueError("Escolha ou escreva a mensagem do disparo.")
+    if len(texto) > 4096:
+        raise ValueError("A mensagem pode ter no máximo 4.096 caracteres.")
+
+    c = con()
+    marks = ",".join("?" for _ in chatids)
+    rows = c.execute("SELECT chatid,fone,nome FROM leads WHERE chatid IN (%s)" % marks,
+                     chatids).fetchall()
+    encontrados = {r["chatid"]: dict(r) for r in rows}
+    alvos = [encontrados[cid] for cid in chatids if cid in encontrados]
+    if len(alvos) != len(chatids):
+        raise ValueError("Uma ou mais conversas selecionadas não existem mais.")
+    if any(not re.sub(r"\D", "", a.get("fone") or "") for a in alvos):
+        raise ValueError("Uma das conversas selecionadas não possui telefone válido.")
+
+    eid = uuid.uuid4().hex[:12]
+    estado = ENVIOS[eid] = {
+        "estado": "enviando", "erro": "", "total": len(alvos),
+        "enviados": 0, "falhas": 0, "resultados": []
+    }
+
+    def roda():
+        for alvo in alvos:
+            resultado = {"chatid": alvo["chatid"], "nome": alvo["nome"] or alvo["fone"],
+                         "ok": False, "erro": ""}
+            try:
+                uz("/send/text", {"number": alvo["fone"], "text": texto})
+                resultado["ok"] = True
+                estado["enviados"] += 1
+            except Exception as e:
+                resultado["erro"] = str(e)[:150]
+                estado["falhas"] += 1
+            estado["resultados"].append(resultado)
+        estado["estado"] = "ok" if not estado["falhas"] else "erro"
+        if estado["falhas"]:
+            estado["erro"] = "%d de %d envios falharam." % (estado["falhas"], estado["total"])
+
+    threading.Thread(target=roda, daemon=True).start()
+    return eid
 
 
 # ─────────────────────────── pagina ───────────────────────────
@@ -554,10 +607,17 @@ font-size:12.5px;padding:5px 11px;display:flex;gap:6px;align-items:center;white-
 padding:0 6px;border-radius:99px}
 .fbtn.on b{background:#ffffff2e;color:#fff}
 @media(max-width:900px){header{flex-wrap:wrap}.filtros{order:3;width:100%}}
-.lista{display:flex;flex-direction:column;gap:0;height:calc(100vh - 57px);overflow:auto;
-background:var(--card);border-right:1px solid var(--linha)}
+.lista-col{height:calc(100vh - 57px);display:flex;flex-direction:column;background:var(--card);
+border-right:1px solid var(--linha)}
+.bulkbar{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--linha);
+background:var(--card);position:sticky;top:0;z-index:3;min-height:49px}
+.bulkcheck{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--fraco);cursor:pointer;flex:1}
+.bulkcheck input,.item-check{accent-color:var(--roxo);width:16px;height:16px;cursor:pointer}
+.bulk-send{padding:6px 10px;font-size:12px}.bulk-send:disabled{opacity:.45;cursor:default}
+.lista{display:flex;flex-direction:column;gap:0;min-height:0;flex:1;overflow:auto;background:var(--card)}
 .item{background:transparent;border:0;border-bottom:1px solid var(--linha);border-radius:0;
-padding:12px 16px;cursor:pointer}
+padding:12px 16px;cursor:pointer;display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px}
+.item-body{min-width:0}
 .item:hover{background:var(--hover)}.item.sel{background:var(--hover);box-shadow:inset 3px 0 0 var(--roxo)}
 .item .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .item .nome{font-weight:600;font-size:14px}
@@ -634,6 +694,18 @@ white-space:normal;line-height:1.35}
 .tempo{font-variant-numeric:tabular-nums;color:var(--fraco);font-size:13px;min-width:42px}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--linha);border-top-color:var(--roxo);
 border-radius:50%;animation:g .7s linear infinite;vertical-align:-2px}@keyframes g{to{transform:rotate(360deg)}}
+.massa{border:1px solid var(--linha);border-radius:14px;padding:0;background:var(--card);color:var(--txt);
+width:min(560px,calc(100vw - 28px));box-shadow:0 20px 70px #0008}
+.massa::backdrop{background:#0009;backdrop-filter:blur(2px)}
+.massa-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 12px}
+.massa-head h2{font-size:17px;margin:0}.massa-head p{font-size:12.5px;color:var(--fraco);margin:3px 0 0}
+.massa-body{padding:0 20px 18px}.massa label{display:block;font-size:12px;color:var(--fraco);margin:10px 0 5px}
+.massa select{width:100%;height:40px;border:1px solid var(--linha);border-radius:9px;background:var(--campo);
+color:var(--txt);padding:0 10px;font:inherit}.massa textarea{min-height:135px}
+.massa-foot{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:14px}
+.massa-progress{font-size:12.5px;color:var(--fraco);margin-top:10px;min-height:20px}
+.massa-resultados{max-height:150px;overflow:auto;font-size:12px;margin-top:8px}
+.massa-falha{color:#f87171;padding:3px 0}
 .ok{color:var(--ok)}.err{color:#f87171}
 </style></head><body>
 <header>
@@ -645,12 +717,35 @@ border-radius:50%;animation:g .7s linear infinite;vertical-align:-2px}@keyframes
   <span class="tag" id="sync"><span class="pulso"></span> ao vivo</span>
 </header>
 <div class="wrap">
-  <div class="lista" id="lista"></div>
+  <div class="lista-col">
+    <div class="bulkbar">
+      <label class="bulkcheck"><input type="checkbox" id="selTodos" onchange="marcaTodas(this.checked)">
+        <span id="bulkCount">Selecionar todas</span></label>
+      <button class="btn bulk-send" id="bulkOpen" onclick="abreDisparo()" disabled>Disparar</button>
+    </div>
+    <div class="lista" id="lista"></div>
+  </div>
   <div id="painel" class="painel"><div class="vazio">Escolha uma conversa.</div></div>
 </div>
+<dialog class="massa" id="massaDialog">
+  <div class="massa-head"><div><h2>Disparo em massa</h2><p id="massaResumo"></p></div>
+    <button class="btn sec" onclick="fechaDisparo()" aria-label="Fechar">✕</button></div>
+  <div class="massa-body">
+    <label for="massaModelo">Mensagem</label>
+    <select id="massaModelo" onchange="selecionaTextoMassa()"></select>
+    <label for="massaTexto">Revise antes de disparar</label>
+    <textarea id="massaTexto" placeholder="Digite a mensagem…"></textarea>
+    <div class="massa-progress" id="massaStatus"></div>
+    <div class="massa-resultados" id="massaResultados"></div>
+    <div class="massa-foot">
+      <button class="btn sec" id="massaCancelar" onclick="fechaDisparo()">Cancelar</button>
+      <button class="btn" id="massaEnviar" onclick="disparaMassa()">Disparar mensagens</button>
+    </div>
+  </div>
+</dialog>
 <script>
 let pend=[], sel=null, selId=null, prontos={audios:[],textos:[],combos:[],status:[]},
-    enviados=[], filtro='';
+    enviados=[], filtro='', selecionados=new Set(), disparoRodando=false;
 
 function aplicaTema(t){
   document.documentElement.dataset.tema=t;
@@ -671,15 +766,80 @@ async function carrega(){
     const d=document.createElement('div');
     d.className='item'+(p.chatid===selId?' sel':'');
     d.onclick=()=>abrir(i);
-    d.innerHTML=`<div class="top"><span class="nome">${esc(p.nome||p.fone)}</span>
+    d.innerHTML=`<input class="item-check" type="checkbox" aria-label="Selecionar ${esc(p.nome||p.fone)}"
+      ${selecionados.has(p.chatid)?'checked':''} onclick="event.stopPropagation()"
+      onchange="marca('${esc(p.chatid)}',this.checked)"><div class="item-body">
+      <div class="top"><span class="nome">${esc(p.nome||p.fone)}</span>
       <span class="h">${esc(p.ha)}</span></div>
       <div class="msg">${esc(p.ultima)}</div>
       <div style="margin-top:6px;display:flex;gap:5px">
         <span class="pill ${cls(p.status)}">${esc(p.status)}</span>
-        <span class="pill">${esc(p.quando)}</span></div>`;
+        <span class="pill">${esc(p.quando)}</span></div></div>`;
     L.appendChild(d);
   });
   if(selId){ const i=pend.findIndex(x=>x.chatid===selId); if(i>=0) sel=i; }
+  atualizaBulk();
+}
+
+function marca(chatid,on){ if(on) selecionados.add(chatid); else selecionados.delete(chatid); atualizaBulk(); }
+function marcaTodas(on){ pend.forEach(p=>on?selecionados.add(p.chatid):selecionados.delete(p.chatid)); carrega(); }
+function atualizaBulk(){
+  const n=selecionados.size, vis=pend.length, marcados=pend.filter(p=>selecionados.has(p.chatid)).length;
+  const cb=document.getElementById('selTodos');
+  cb.checked=vis>0&&marcados===vis; cb.indeterminate=marcados>0&&marcados<vis;
+  document.getElementById('bulkCount').textContent=n?n+' selecionada'+(n===1?'':'s'):'Selecionar todas';
+  document.getElementById('bulkOpen').disabled=!n||disparoRodando;
+}
+
+function abreDisparo(){
+  if(!selecionados.size||disparoRodando) return;
+  const select=document.getElementById('massaModelo');
+  select.innerHTML=prontos.textos.map(t=>`<option value="${esc(t.id)}">${esc(t.rotulo)}</option>`).join('')+
+    '<option value="">Mensagem personalizada</option>';
+  select.value=prontos.textos.some(t=>t.id==='reaquecer')?'reaquecer':(prontos.textos[0]?.id||'');
+  selecionaTextoMassa();
+  document.getElementById('massaResumo').textContent=selecionados.size+' conversa'+(selecionados.size===1?'':'s')+' selecionada'+(selecionados.size===1?'':'s');
+  document.getElementById('massaStatus').textContent=''; document.getElementById('massaResultados').innerHTML='';
+  document.getElementById('massaEnviar').disabled=false; document.getElementById('massaCancelar').textContent='Cancelar';
+  document.getElementById('massaDialog').showModal();
+}
+function fechaDisparo(){ if(!disparoRodando) document.getElementById('massaDialog').close(); }
+function selecionaTextoMassa(){
+  const id=document.getElementById('massaModelo').value, pronto=prontos.textos.find(t=>t.id===id);
+  if(pronto) document.getElementById('massaTexto').value=pronto.texto;
+  document.getElementById('massaTexto').focus();
+}
+async function disparaMassa(){
+  const texto=document.getElementById('massaTexto').value.trim(); if(!texto) return;
+  const ids=[...selecionados], bt=document.getElementById('massaEnviar'), st=document.getElementById('massaStatus');
+  disparoRodando=true; bt.disabled=true; document.getElementById('massaModelo').disabled=true;
+  document.getElementById('massaTexto').disabled=true; st.innerHTML='<span class="spin"></span> preparando disparo…'; atualizaBulk();
+  try{
+    const response=await fetch('/api/disparo',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chatids:ids,texto})});
+    const d=await response.json(); if(!response.ok||!d.eid) throw new Error(d.erro||'Não foi possível iniciar o disparo.');
+    let fim=null;
+    for(let i=0;i<600;i++){
+      await new Promise(r=>setTimeout(r,500));
+      fim=await (await fetch('/api/envio?eid='+encodeURIComponent(d.eid))).json();
+      st.innerHTML='<span class="spin"></span> '+(fim.enviados+fim.falhas)+'/'+fim.total+' processadas · '+fim.enviados+' enviadas';
+      if(fim.estado==='ok'||fim.estado==='erro') break;
+    }
+    if(!fim||!['ok','erro'].includes(fim.estado)) throw new Error('O disparo continua em segundo plano. Atualize a tela para conferir.');
+    (fim.resultados||[]).filter(x=>x.ok).forEach(x=>selecionados.delete(x.chatid));
+    const falhas=(fim.resultados||[]).filter(x=>!x.ok);
+    st.innerHTML=falhas.length
+      ? '<span class="err">'+fim.enviados+' enviadas · '+falhas.length+' falharam</span>'
+      : '<span class="ok">'+fim.enviados+' mensagens enviadas ✓</span>';
+    document.getElementById('massaResultados').innerHTML=falhas.map(x=>
+      `<div class="massa-falha">${esc(x.nome)} — ${esc(x.erro||'falhou')}</div>`).join('');
+    document.getElementById('massaCancelar').textContent='Fechar';
+    await carrega(); await filtros();
+  }catch(e){ st.innerHTML='<span class="err">'+esc(e.message)+'</span>'; bt.disabled=false; }
+  finally{
+    disparoRodando=false; document.getElementById('massaModelo').disabled=false;
+    document.getElementById('massaTexto').disabled=false; atualizaBulk();
+  }
 }
 
 async function filtros(){
@@ -1229,6 +1389,16 @@ class H(BaseHTTPRequestHandler):
             if self.path == "/api/enviar":
                 return self._fundo(lambda: uz("/send/text",
                                               {"number": d["fone"], "text": d["texto"]}))
+            if self.path == "/api/disparo":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    eid = inicia_disparo_massa(d.get("chatids"), d.get("texto"))
+                    return self._send(200, json.dumps({"ok": True, "eid": eid}))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/catalogo":
                 def envia_catalogo():
                     for texto in CATALOGO_MENSAGENS:
