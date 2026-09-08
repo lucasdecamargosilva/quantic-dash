@@ -1,7 +1,7 @@
 import io
 import sqlite3
 import unittest
-from live_events import events, ingest
+from live_events import EventHub, events, ingest
 
 class LiveEventsTest(unittest.TestCase):
     def setUp(self):
@@ -40,6 +40,12 @@ class LiveEventsTest(unittest.TestCase):
     def test_sse_multiline_and_keepalive(self):
         stream=io.BytesIO(b': ping\n\nid: 1\ndata: {"EventType":\ndata: "messages"}\n\n')
         self.assertEqual(list(events(stream)),[{'EventType':'messages'}])
+
+    def test_browser_event_hub_notifies_immediately(self):
+        hub = EventHub()
+        self.assertEqual(hub.wait(0, timeout=0.001), 0)
+        self.assertEqual(hub.publish(), 1)
+        self.assertEqual(hub.wait(0, timeout=0.001), 1)
 
 if __name__ == '__main__':
     unittest.main()

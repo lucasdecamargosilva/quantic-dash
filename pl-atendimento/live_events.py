@@ -5,6 +5,26 @@ import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+import threading
+
+
+class EventHub:
+    """Acorda os navegadores quando o banco local recebe uma mensagem."""
+
+    def __init__(self):
+        self._condition = threading.Condition()
+        self._revision = 0
+
+    def publish(self):
+        with self._condition:
+            self._revision += 1
+            self._condition.notify_all()
+            return self._revision
+
+    def wait(self, after, timeout=25):
+        with self._condition:
+            self._condition.wait_for(lambda: self._revision > after, timeout=timeout)
+            return self._revision
 
 
 def events(response):

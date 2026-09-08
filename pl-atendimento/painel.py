@@ -16,7 +16,7 @@ Como funciona por dentro:
 """
 import base64
 from crm_bridge import CRM, ETAPAS
-from live_events import LiveEvents
+from live_events import EventHub, LiveEvents
 import io
 import json
 import os
@@ -173,7 +173,15 @@ def con():
 
 
 CRM_CLIENT = CRM(con)
-LIVE_EVENTS = LiveEvents(UZ, UZ_TOKEN, con, CRM_CLIENT.notify_messages)
+UI_EVENTS = EventHub()
+
+
+def avisa_mensagem_nova():
+    UI_EVENTS.publish()
+    CRM_CLIENT.notify_messages()
+
+
+LIVE_EVENTS = LiveEvents(UZ, UZ_TOKEN, con, avisa_mensagem_nova)
 
 def cria_banco():
     c = con()
@@ -342,7 +350,7 @@ def sincroniza():
                  "nos" if ult.get("fromMe") else "lead", datetime.now(BRT).isoformat()))
     c.commit()
     if novas:
-        CRM_CLIENT.notify_messages()
+        avisa_mensagem_nova()
     return novas
 
 
@@ -1037,11 +1045,33 @@ async function atualiza(){
   setTimeout(()=>{ b.innerHTML=antes; b.disabled=false; atualizando=false; },2200);
 }
 
-(async()=>{ prontos=await (await fetch('/api/prontos')).json(); await filtros(); await carrega(); })();
-setInterval(()=>{ carrega(); filtros(); },2000);
+(async()=>{ prontos=await (await fetch('/api/prontos')).json(); await filtros(); await carrega(); conectaEventos(); })();
+
+let eventosTelaAtivos=false, atualizacaoEvento=null;
+async function atualizaPorEvento(){
+  if(atualizacaoEvento) return;
+  atualizacaoEvento=setTimeout(async()=>{
+    atualizacaoEvento=null;
+    await Promise.all([carrega(),filtros()]);
+    if(!selId||!document.getElementById('chat')) return;
+    const cid=selId;
+    try{
+      const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
+      if(r.ok&&selId===cid) desenhaChat((await r.json()).linhas);
+    }catch(e){}
+  },40);
+}
+function conectaEventos(){
+  const es=new EventSource('/api/events');
+  es.onopen=()=>{ eventosTelaAtivos=true; };
+  es.onmessage=()=>atualizaPorEvento();
+  es.onerror=()=>{ eventosTelaAtivos=false; };
+}
+// Recuperacao para queda de conexao: com eventos ativos estas consultas nao rodam.
+setInterval(()=>{ if(!eventosTelaAtivos){ carrega(); filtros(); } },5000);
 let chatAtualizando=false;
 setInterval(async()=>{
-  if(chatAtualizando||!selId||!document.getElementById('chat')||document.hidden) return;
+  if(eventosTelaAtivos||chatAtualizando||!selId||!document.getElementById('chat')||document.hidden) return;
   const cid=selId; chatAtualizando=true;
   try{
     const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
@@ -1049,7 +1079,7 @@ setInterval(async()=>{
     const d=await r.json();
     if(selId===cid) desenhaChat(d.linhas);
   }catch(e){}finally{chatAtualizando=false;}
-},500);
+},1500);
 setInterval(async()=>{ const s=await (await fetch('/api/sync')).json();
   document.getElementById('sync').innerHTML=s.erro
     ? '<span class="err">sync: '+esc(s.erro)+'</span>'
@@ -1077,6 +1107,30 @@ class H(BaseHTTPRequestHandler):
             q = urllib.parse.parse_qs(p.query)
             if p.path == "/":
                 return self._send(200, PAGINA, "text/html; charset=utf-8")
+            if p.path == "/api/events":
+                try:
+                    last = int(self.headers.get("Last-Event-ID") or (q.get("after") or [0])[0])
+                except (TypeError, ValueError):
+                    last = 0
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-transform")
+                self.send_header("Connection", "keep-alive")
+                self.end_headers()
+                try:
+                    self.wfile.write(b"retry: 1000\n\n")
+                    self.wfile.flush()
+                    while True:
+                        revision = UI_EVENTS.wait(last, timeout=20)
+                        if revision > last:
+                            self.wfile.write(("id: %d\ndata: refresh\n\n" % revision).encode("utf-8"))
+                            last = revision
+                        else:
+                            self.wfile.write(b": keepalive\n\n")
+                        self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                    pass
+                return
             if p.path == "/api/crm":
                 lead = CRM_CLIENT.ensure(q["chatid"][0])
                 return self._send(200, json.dumps({"lead": lead, "etapas": ETAPAS}, ensure_ascii=False))

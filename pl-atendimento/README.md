@@ -12,4 +12,6 @@ Painel local de atendimento comercial da Provou Levou, integrado ao WhatsApp e a
 
 O banco local, as conversas, os logs e as chaves ficam fora do Git.
 
-Eventos ao vivo: live_events.py mantém uma conexão SSE de saída com a UAZAPI. O token fica no servidor. Há reconexão automática, deduplicação e recuperação pelo polling. /api/sync informa events.connected e os contadores. Nenhuma porta pública ou alteração de webhook é necessária.
+## Atualização em tempo real
+
+`live_events.py` mantém uma conexão SSE de saída com a UAZAPI. Quando uma mensagem chega, o servidor grava no SQLite e publica imediatamente um evento local em `/api/events`; a tela atualiza sem esperar polling. O token fica no servidor. Há reconexão automática, deduplicação e polling apenas como recuperação. `/api/sync` informa o estado da conexão e os contadores.
