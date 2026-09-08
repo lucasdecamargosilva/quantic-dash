@@ -16,6 +16,7 @@ Como funciona por dentro:
 """
 import base64
 from crm_bridge import CRM, ETAPAS
+from live_events import LiveEvents
 import io
 import json
 import os
@@ -172,6 +173,7 @@ def con():
 
 
 CRM_CLIENT = CRM(con)
+LIVE_EVENTS = LiveEvents(UZ, UZ_TOKEN, con, CRM_CLIENT.notify_messages)
 
 def cria_banco():
     c = con()
@@ -335,7 +337,7 @@ def sincroniza():
                 " VALUES(?,?,?,'INTERESSADO',?,?,?)"
                 " ON CONFLICT(chatid) DO UPDATE SET nome=excluded.nome, fone=excluded.fone,"
                 " ultimo_ts=excluded.ultimo_ts, ultimo_de=excluded.ultimo_de,"
-                " atualizado=excluded.atualizado",
+                " atualizado=excluded.atualizado WHERE excluded.ultimo_ts >= COALESCE(leads.ultimo_ts,0)",
                 (cid, fone, nome, int(ult["messageTimestamp"]),
                  "nos" if ult.get("fromMe") else "lead", datetime.now(BRT).isoformat()))
     c.commit()
@@ -351,7 +353,7 @@ def loop_sync():
             SYNC.update({"ultimo": datetime.now(BRT).strftime("%H:%M:%S"), "novas": n, "erro": ""})
         except Exception as e:
             SYNC["erro"] = str(e)[:120]
-        time.sleep(INTERVALO_SYNC)
+        time.sleep(30 if LIVE_EVENTS.status["connected"] else INTERVALO_SYNC)
 
 
 # ─────────────────────────── transcricao ───────────────────────────
@@ -1037,15 +1039,21 @@ async function atualiza(){
 
 (async()=>{ prontos=await (await fetch('/api/prontos')).json(); await filtros(); await carrega(); })();
 setInterval(()=>{ carrega(); filtros(); },2000);
+let chatAtualizando=false;
 setInterval(async()=>{
-  if(!selId||!document.getElementById('chat')) return;
-  const d=await (await fetch('/api/conversa?chatid='+encodeURIComponent(selId))).json();
-  desenhaChat(d.linhas);
-},1500);
+  if(chatAtualizando||!selId||!document.getElementById('chat')||document.hidden) return;
+  const cid=selId; chatAtualizando=true;
+  try{
+    const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
+    if(!r.ok) return;
+    const d=await r.json();
+    if(selId===cid) desenhaChat(d.linhas);
+  }catch(e){}finally{chatAtualizando=false;}
+},500);
 setInterval(async()=>{ const s=await (await fetch('/api/sync')).json();
   document.getElementById('sync').innerHTML=s.erro
     ? '<span class="err">sync: '+esc(s.erro)+'</span>'
-    : '<span class="pulso"></span> ao vivo · '+esc(s.ultimo||'');
+    : '<span class="pulso"></span> '+(s.events?.connected?'eventos ao vivo':'sincronizando')+' · '+esc(s.ultimo||'');
   if(s.crm?.erro) document.getElementById('sync').innerHTML+=' · <span class="err">'+esc(s.crm.erro)+'</span>'; },5000);
 </script></body></html>"""
 
@@ -1079,7 +1087,7 @@ class H(BaseHTTPRequestHandler):
                      "planos": PLANOS},
                     ensure_ascii=False))
             if p.path == "/api/sync":
-                return self._send(200, json.dumps({**SYNC, "crm": CRM_CLIENT.sync_status}, ensure_ascii=False))
+                return self._send(200, json.dumps({**SYNC, "crm": CRM_CLIENT.sync_status, "events": dict(LIVE_EVENTS.status)}, ensure_ascii=False))
             if p.path == "/api/contagem":
                 return self._send(200, json.dumps(contagem(), ensure_ascii=False))
             if p.path == "/api/fila":
@@ -1209,6 +1217,7 @@ if __name__ == "__main__":
     migra_cache_antigo()
     if not GEMINI_KEY:
         print("AVISO: sem GEMINI_KEY — sem transcrição e sem sugestão de IA.\n")
+    threading.Thread(target=LIVE_EVENTS.loop, daemon=True).start()
     threading.Thread(target=loop_sync, daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)

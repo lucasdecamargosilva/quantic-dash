@@ -11,3 +11,5 @@ Painel local de atendimento comercial da Provou Levou, integrado ao WhatsApp e a
 5. Abra `http://localhost:8781`.
 
 O banco local, as conversas, os logs e as chaves ficam fora do Git.
+
+Eventos ao vivo: live_events.py mantém uma conexão SSE de saída com a UAZAPI. O token fica no servidor. Há reconexão automática, deduplicação e recuperação pelo polling. /api/sync informa events.connected e os contadores. Nenhuma porta pública ou alteração de webhook é necessária.
