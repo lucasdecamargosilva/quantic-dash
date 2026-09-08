@@ -27,7 +27,7 @@ const ACTIVE_STATUSES: LeadStatus[] = [
   "novo", "dm_enviada", "mensagem_1", "mensagem_2", "mensagem_3", "atendimento_ia",
   "meta", "email_a_enviar", "email_enviado",
   "respondeu", "fotos_enviadas",
-  "stand_by", "interessado", "reuniao_agendada", "testando", "testou_e_saiu",
+  "stand_by", "interessado", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu",
 ];
 
 type LastInter = { conteudo: string; created_at: string };
@@ -100,9 +100,9 @@ export default function Dashboard() {
   const hot = HOT_STATUSES.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   // Funnel cumulativo: dms = todos que passaram por dm_enviada ou além
-  const dmsAlcancadas = ["dm_enviada","mensagem_1","mensagem_2","mensagem_3","atendimento_ia","meta","email_a_enviar","email_enviado","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","testou_e_saiu","fechou","perdida"]
+  const dmsAlcancadas = ["dm_enviada","mensagem_1","mensagem_2","mensagem_3","atendimento_ia","meta","email_a_enviar","email_enviado","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","teste_catalogo_7_dias","testando","testou_e_saiu","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
-  const responderam = ["respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","testando","testou_e_saiu","fechou","perdida"]
+  const responderam = ["respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","teste_catalogo_7_dias","testando","testou_e_saiu","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
   const taxaResposta = dmsAlcancadas > 0 ? ((responderam / dmsAlcancadas) * 100) : 0;
   const taxaFechamentoSobreDM = dmsAlcancadas > 0 ? ((fechados / dmsAlcancadas) * 100) : 0;

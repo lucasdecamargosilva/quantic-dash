@@ -1,7 +1,18 @@
 import { supabase } from "./supabase";
 import type { Lead, LeadStatus } from "../types";
 
-const CUSTOM_STATUS: LeadStatus = "testou_e_saiu";
+const CUSTOM_STATUS_BASE: Partial<Record<LeadStatus, LeadStatus>> = {
+  testou_e_saiu: "stand_by",
+  teste_catalogo_7_dias: "testando",
+};
+
+export function isCustomLeadStatus(status: LeadStatus) {
+  return status in CUSTOM_STATUS_BASE;
+}
+
+export function leadStatusBase(status: LeadStatus) {
+  return CUSTOM_STATUS_BASE[status] ?? status;
+}
 
 export async function applyCustomLeadStatuses<T extends Lead>(leads: T[]): Promise<T[]> {
   if (leads.length === 0) return leads;
@@ -22,13 +33,13 @@ export async function applyCustomLeadStatus<T extends Lead>(lead: T): Promise<T>
 }
 
 export async function persistLeadStatus(leadId: string, status: LeadStatus) {
-  if (status === CUSTOM_STATUS) {
-    const { error: leadError } = await supabase.from("leads").update({ status: "stand_by" }).eq("id", leadId);
+  if (isCustomLeadStatus(status)) {
+    const { error: leadError } = await supabase.from("leads").update({ status: leadStatusBase(status) }).eq("id", leadId);
     if (leadError) throw leadError;
 
     const { error: customError } = await supabase
       .from("crm_lead_etapas")
-      .upsert({ lead_id: leadId, status: CUSTOM_STATUS }, { onConflict: "lead_id" });
+      .upsert({ lead_id: leadId, status }, { onConflict: "lead_id" });
     if (customError) throw customError;
     return;
   }

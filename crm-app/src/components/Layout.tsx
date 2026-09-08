@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import logoProvouLevouClaro from "../assets/provou-levou-logo-claro.png";
 import logoProvouLevouEscuro from "../assets/provou-levou-logo-escuro.png";
@@ -24,6 +24,16 @@ const NAV_ITEMS = [
         <rect x="1" y="2" width="4" height="12" rx="1" />
         <rect x="6" y="5" width="4" height="9" rx="1" />
         <rect x="11" y="8" width="4" height="6" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    to: "/atendimento",
+    label: "Atendimento",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 2.5h12v8H7l-3.5 3v-3H2z" />
+        <path d="M5 6.5h6M5 8.5h4" />
       </svg>
     ),
   },
@@ -69,6 +79,7 @@ function getInitialTheme(): Theme {
 }
 
 export default function Layout() {
+  const location = useLocation();
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [navOpen, setNavOpen] = useState(false);
 
@@ -259,10 +270,11 @@ export default function Layout() {
           <img src={logoProvouLevou} alt="Provou Levou" className={`${logoSize.topBar} object-contain`} />
         </div>
         <Outlet />
-        {/* Rodapé do sistema com o logo */}
-        <footer className="py-6 px-4 lg:px-8 flex items-center justify-center">
-          <img src={logoProvouLevou} alt="Provou Levou" className={`${logoSize.footer} object-contain opacity-50`} />
-        </footer>
+        {location.pathname !== "/atendimento" && (
+          <footer className="py-6 px-4 lg:px-8 flex items-center justify-center">
+            <img src={logoProvouLevou} alt="Provou Levou" className={`${logoSize.footer} object-contain opacity-50`} />
+          </footer>
+        )}
       </main>
     </div>
   );

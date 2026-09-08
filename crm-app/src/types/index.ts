@@ -76,6 +76,7 @@ export type LeadStatus =
   | "stand_by"
   | "reuniao_agendada"
   | "testando"
+  | "teste_catalogo_7_dias"
   | "testou_e_saiu"
   | "interessado"
   | "fechou"
@@ -101,6 +102,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "stand_by",
   "reuniao_agendada",
   "testando",
+  "teste_catalogo_7_dias",
   "testou_e_saiu",
   "fechou",
   "sem_site",
@@ -110,7 +112,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
 ];
 
 // Status "quentes" — leads prontos pra avançar (usado em Top Responsáveis e Desempenho do Time)
-export const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "testando"];
+export const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "testando", "teste_catalogo_7_dias"];
 
 export const PIPELINE_STATUSES: LeadStatus[] = [
   "novo",
@@ -127,6 +129,7 @@ export const PIPELINE_STATUSES: LeadStatus[] = [
   "fotos_enviadas",
   "interessado",
   "reuniao_agendada",
+  "teste_catalogo_7_dias",
   "testando",
   "testou_e_saiu",
   "fechou",
@@ -170,6 +173,7 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   stand_by: "Stand By",
   reuniao_agendada: "Reunião Agendada",
   testando: "Testando",
+  teste_catalogo_7_dias: "Teste Catálogo — 7 dias",
   testou_e_saiu: "Testou e Saiu",
   interessado: "Interessado",
   fechou: "Fechou",
@@ -196,6 +200,7 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
   stand_by: { bg: "bg-muted/10", text: "text-muted", dot: "bg-muted" },
   reuniao_agendada: { bg: "bg-emerald/10", text: "text-emerald", dot: "bg-emerald" },
   testando: { bg: "bg-amber/10", text: "text-amber", dot: "bg-amber" },
+  teste_catalogo_7_dias: { bg: "bg-cyan/10", text: "text-cyan", dot: "bg-cyan" },
   testou_e_saiu: { bg: "bg-orange/10", text: "text-orange", dot: "bg-orange" },
   interessado: { bg: "bg-rose/10", text: "text-rose", dot: "bg-rose" },
   fechou: { bg: "bg-emerald/10", text: "text-emerald", dot: "bg-emerald" },
@@ -222,6 +227,7 @@ export const STATUS_HEX: Record<LeadStatus, string> = {
   stand_by: "#94a3b8",
   reuniao_agendada: "#14b8a6",
   testando: "#84cc16",
+  teste_catalogo_7_dias: "#22d3ee",
   testou_e_saiu: "#f97316",
   interessado: "#f43f5e",
   fechou: "#10b981",

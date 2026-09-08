@@ -5,6 +5,7 @@ import Leads from "./pages/Leads";
 import Dashboard from "./pages/Dashboard";
 import Objecoes from "./pages/Objecoes";
 import Metas from "./pages/Metas";
+import Atendimento from "./pages/Atendimento";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/leads" element={<Leads />} />
           <Route path="/objecoes" element={<Objecoes />} />
           <Route path="/metas" element={<Metas />} />
+          <Route path="/atendimento" element={<Atendimento />} />
           {/* Compat: rota antiga /dashboard ainda funciona */}
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>

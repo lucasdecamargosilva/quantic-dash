@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { persistLeadStatus } from "../lib/lead-status";
+import { isCustomLeadStatus, leadStatusBase, persistLeadStatus } from "../lib/lead-status";
 import { LEAD_STATUSES, STATUS_LABELS, FONTES_OPORTUNIDADE, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import type { LeadStatus, Categoria } from "../types";
 
@@ -43,7 +43,7 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
       seguidores: parseInt(seguidores) || 0,
       idioma,
       notas: notas.trim(),
-      status: status === "testou_e_saiu" ? "stand_by" : status,
+      status: leadStatusBase(status),
       categoria,
       tem_provador: false,
       responsavel: responsavel.trim() || null,
@@ -53,7 +53,7 @@ export default function NovoLeadModal({ onClose, onCreated }: Props) {
     }).select("id").single();
 
     let statusError: Error | null = null;
-    if (!error && data && status === "testou_e_saiu") {
+    if (!error && data && isCustomLeadStatus(status)) {
       try {
         await persistLeadStatus(data.id, status);
       } catch (caught) {
