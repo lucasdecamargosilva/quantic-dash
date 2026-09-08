@@ -48,6 +48,9 @@ class CRM:
     def __init__(self, connect):
         self.connect = connect
         self.lock = threading.RLock()
+        self.chat_locks = {}
+        self.chat_locks_guard = threading.Lock()
+        self.wakeup = threading.Event()
         self.index = None
         self.index_at = 0
         self.sync_status = {'erro': '', 'registrados': 0}
@@ -61,6 +64,13 @@ class CRM:
                     env[key.strip()] = value.strip().strip('\"\'')
         self.url = os.environ.get('PL_CRM_URL') or env.get('VITE_SUPABASE_URL', '')
         self.key = os.environ.get('PL_CRM_KEY') or env.get('VITE_SUPABASE_ANON_KEY', '')
+
+    def chat_lock(self, chatid):
+        with self.chat_locks_guard:
+            return self.chat_locks.setdefault(chatid, threading.RLock())
+
+    def notify_messages(self):
+        self.wakeup.set()
 
     def setup(self):
         c = self.connect()
@@ -126,6 +136,15 @@ class CRM:
         return index
 
     def ensure(self, chatid, create=False):
+        # Already linked chats do not wait for the global phone-index scan.
+        with self.chat_lock(chatid):
+            c = self.connect()
+            linked = c.execute('SELECT lead_id FROM crm_links WHERE chatid=?', (chatid,)).fetchone()
+            if linked:
+                return self.reflect_local(chatid, self.remote_lead(linked['lead_id']))
+            return self.ensure_unlinked(chatid, create)
+
+    def ensure_unlinked(self, chatid, create=False):
         with self.lock:
             c = self.connect()
             local = c.execute('SELECT * FROM leads WHERE chatid=?', (chatid,)).fetchone()
@@ -170,7 +189,7 @@ class CRM:
     def change(self, chatid, status):
         if status not in ETAPAS:
             raise ValueError('Etapa inválida.')
-        with self.lock:
+        with self.chat_lock(chatid):
             lead = self.ensure(chatid, create=True)
             lead_id = lead['id']
             custom_bases = {'testou_e_saiu': 'stand_by', 'teste_catalogo_7_dias': 'testando'}
@@ -192,7 +211,7 @@ class CRM:
             raise ValueError('Digite uma observação antes de salvar.')
         if len(text) > 2000:
             raise ValueError('A observação pode ter no máximo 2.000 caracteres.')
-        with self.lock:
+        with self.chat_lock(chatid):
             lead = self.ensure(chatid, create=True)
             now = datetime.now(timezone.utc).isoformat()
             rows = self.request('interacoes', method='POST', body={
@@ -227,4 +246,5 @@ class CRM:
                 self.sync()
             except Exception:
                 self.sync_status['erro'] = 'Sincronização com CRM pendente; nova tentativa automática.'
-            time.sleep(60)
+            self.wakeup.wait(60)
+            self.wakeup.clear()

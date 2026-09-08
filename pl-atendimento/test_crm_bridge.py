@@ -1,5 +1,6 @@
 import sqlite3
 import unittest
+import threading
 from crm_bridge import CRM, anuncio, telefone
 
 
@@ -54,6 +55,23 @@ class BridgeTest(unittest.TestCase):
             for row in rows:
                 row.update(body)
         return [dict(r) for r in rows]
+
+    def test_chat_lock_does_not_wait_for_phone_scan(self):
+        completed = threading.Event()
+        def acquire_chat():
+            with self.crm.chat_lock(self.cid):
+                completed.set()
+        with self.crm.lock:
+            worker = threading.Thread(target=acquire_chat, daemon=True)
+            worker.start()
+            passed = completed.wait(1)
+        worker.join(2)
+        self.assertTrue(passed)
+
+    def test_message_notification_wakes_registration(self):
+        self.assertFalse(self.crm.wakeup.is_set())
+        self.crm.notify_messages()
+        self.assertTrue(self.crm.wakeup.wait(0))
 
     def test_detection_and_phone(self):
         self.assertTrue(anuncio('Olá! Quero saber mais sobre o Provador Virtual!'))

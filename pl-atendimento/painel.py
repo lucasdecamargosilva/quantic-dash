@@ -339,6 +339,8 @@ def sincroniza():
                 (cid, fone, nome, int(ult["messageTimestamp"]),
                  "nos" if ult.get("fromMe") else "lead", datetime.now(BRT).isoformat()))
     c.commit()
+    if novas:
+        CRM_CLIENT.notify_messages()
     return novas
 
 
@@ -1207,11 +1209,6 @@ if __name__ == "__main__":
     migra_cache_antigo()
     if not GEMINI_KEY:
         print("AVISO: sem GEMINI_KEY — sem transcrição e sem sugestão de IA.\n")
-    print("Sincronizando com a Uazapi pela primeira vez (pode levar ~1 min)…")
-    try:
-        print("  %d mensagens no banco" % sincroniza())
-    except Exception as e:
-        print("  falhou: %s" % str(e)[:120])
     threading.Thread(target=loop_sync, daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)
