@@ -756,6 +756,7 @@ async function abrir(i){
       <button class="btn sec" id="btCatalogo" onclick="mandaCatalogo(this)"
         title="Envia a apresentação do Provou Catálogo em duas mensagens separadas">💬 Provou Catálogo</button>
       ${prontos.combos.map(c=>`<button class="btn sec" onclick="mandaCombo('${c.id}',this)">🎧 Combo de áudios</button>`).join('')}
+      <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
     </div>
     <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
     <div class="acoes">
@@ -791,7 +792,7 @@ async function abrir(i){
         <button class="btn sec" id="descAud" style="display:none" onclick="descarta()">Descartar</button>
       </div>
       <h3 style="margin-top:14px">Textos prontos</h3>
-      <div class="chips">${prontos.textos.map(t=>`
+      <div class="chips">${prontos.textos.filter(t=>t.id!=='reaquecer').map(t=>`
         <button class="chip" onclick="poeTexto('${t.id}')">${esc(t.rotulo)}</button>`).join('')}</div>
     </div>`;
   document.getElementById('chat').scrollTop=9e9;
