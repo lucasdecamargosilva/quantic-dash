@@ -668,6 +668,7 @@ min-height:0;height:100%;position:relative;overflow:auto}
 .bolha .aud{color:var(--roxo2)}
 textarea{width:100%;background:var(--campo);color:var(--txt);border:1px solid var(--linha);
 border-radius:10px;padding:11px;font:inherit;min-height:96px;resize:vertical}
+.msg-sequencia{min-height:58px}.msg-sequencia+.msg-sequencia{margin-top:7px}
 .acoes{display:flex;gap:9px;margin-top:11px;flex-wrap:wrap;align-items:center}
 .aviso{font-size:12.5px;color:var(--fraco);margin-top:8px}
 .status{display:flex;gap:6px;margin:10px 0 2px;flex-wrap:wrap}
@@ -967,6 +968,12 @@ function bolhas(linhas){
   </div>`).join('');
 }
 
+function primeiroNome(nome){
+  const limpo=(nome||'').trim();
+  if(!limpo || /^\+?\d/.test(limpo)) return '';
+  return limpo.split(/\s+/)[0].replace(/[,:;]+$/,'');
+}
+
 async function abrir(i){
   sel=i; selId=pend[i].chatid; enviados=[]; ultimasLinhas=[];
   document.querySelectorAll('.item').forEach((e,j)=>e.classList.toggle('sel',j===i));
@@ -988,9 +995,11 @@ async function abrir(i){
         title="Envia a apresentação do Provou Catálogo em duas mensagens separadas">💬 Provou Catálogo</button>
       <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
     </div>
-    <textarea id="txt" placeholder="Digite sua mensagem…">Oi, tudo bem? Aqui é o Lucas da Provou Levou, hoje você vende por loja online, física, whatsapp ou instagram?</textarea>
+    <textarea id="txt" class="msg-sequencia" placeholder="Primeira mensagem…">${esc(
+      'Oi'+(primeiroNome(d.nome)?' '+primeiroNome(d.nome):'')+', aqui é o Lucas, da Provou Levou.')}</textarea>
+    <textarea id="txt2" class="msg-sequencia" placeholder="Segunda mensagem…">Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?</textarea>
     <div class="acoes">
-      <button class="btn" id="ok" onclick="enviar()">Aprovar e enviar</button>
+      <button class="btn" id="ok" onclick="enviar()">Aprovar e enviar 2 mensagens</button>
       <button class="btn sec" onclick="proxima()">Concluir</button>
       <button class="btn sec" id="btnOcultar" onclick="ocultar(${d.oculto?'false':'true'})"
         title="Some da fila mesmo que a pessoa mande mensagem nova">${
@@ -1141,17 +1150,29 @@ async function mudaStatus(s,b){
   carrega();
 }
 async function enviar(){
-  const cx=document.getElementById('txt'), t=cx.value.trim(); if(!t) return;
-  const st=document.getElementById('st');
-  cx.value='';                                  // ja libera pra digitar a proxima
-  const item={chatid:selId,tipo:'texto',texto:t,estado:'enviando',t:Date.now()};
-  pendentes.push(item); desenhaChat(ultimasLinhas);   // aparece na hora
-  st.textContent='';
-  const d=await (await fetch('/api/enviar',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({fone:pend[sel].fone,texto:t})})).json();
-  if(!d.eid){ item.estado='erro'; item.erro=d.erro||'falhou'; desenhaChat(ultimasLinhas); return; }
-  const r=await segue(d.eid,item);
-  if(r.estado==='erro') st.innerHTML='<span class="err">'+esc(r.erro||'')+'</span>';
+  const campos=[document.getElementById('txt'),document.getElementById('txt2')].filter(Boolean);
+  const textos=campos.map(c=>c.value.trim()).filter(Boolean); if(!textos.length) return;
+  const st=document.getElementById('st'), botao=document.getElementById('ok');
+  const conversa=selId, fone=pend[sel].fone;
+  campos.forEach(c=>c.value=''); botao.disabled=true; st.textContent='';
+  let enviadas=0, erro='';
+  try{
+    for(const t of textos){
+      const item={chatid:conversa,tipo:'texto',texto:t,estado:'enviando',t:Date.now()};
+      pendentes.push(item); desenhaChat(ultimasLinhas);   // aparece na hora
+      const d=await (await fetch('/api/enviar',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({fone,texto:t})})).json();
+      if(!d.eid){ item.estado='erro'; item.erro=d.erro||'falhou'; desenhaChat(ultimasLinhas); erro=item.erro; break; }
+      const r=await segue(d.eid,item);
+      if(r.estado==='erro'){ erro=r.erro||'falhou'; break; }
+      enviadas++;
+    }
+  }catch(e){ erro=e.message||'falhou';
+  }finally{
+    botao.disabled=false; botao.textContent='Aprovar e enviar';
+  }
+  st.innerHTML=erro ? '<span class="err">'+esc(erro)+'</span>'
+    : '<span class="ok">'+enviadas+' mensagem'+(enviadas===1?'':'s')+' enviada'+(enviadas===1?'':'s')+' ✓</span>';
 }
 async function mandaAudio(id,botao){
   const st=document.getElementById('st'), a=prontos.audios.find(x=>x.id===id);
@@ -1208,7 +1229,9 @@ async function mandaCatalogo(botao){
   botao.disabled=false;
 }
 function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
-  const c=document.getElementById('txt'); c.value=t.texto; c.focus(); }
+  const c=document.getElementById('txt'), c2=document.getElementById('txt2');
+  c.value=t.texto; if(c2)c2.value=''; c.focus();
+  const b=document.getElementById('ok'); if(b)b.textContent='Aprovar e enviar'; }
 function proxima(){ selId=null; sel=null; carrega();
   document.getElementById('painel').innerHTML='<div class="vazio">Escolha a próxima.</div>'; }
 
