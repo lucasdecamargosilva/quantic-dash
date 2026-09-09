@@ -129,7 +129,7 @@ CATALOGO_MENSAGENS = [
  "cadastrar as fotos, nomes, preços e informações dos produtos. Depois, é só compartilhar "
  "o link do catálogo pelo WhatsApp, Instagram ou onde preferir. O cliente acessa, escolhe "
  "um produto, envia uma foto e se vê usando a peça com o provador virtual por IA.\n\n"
- "A instalação não tem custo e os planos começam em R$ 39 por mês\n\n"
+ "A instalação não tem custo e os planos começam em R$ 39 por mês por 50 provas virtuais\n\n"
  "Nós disponibilizamos 7 dias grátis para você testar o catálogo, só precisamos que nos "
  "envie o logo da loja, e-mail e o WhatsApp da loja para criarmos o catálogo.",
 ]
