@@ -31,6 +31,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -441,9 +442,23 @@ SEM_SUPORTE = ("""
                  AND m.texto LIKE 'Olá! Tive um problema ao usar o provador%')""")
 
 
-def fila(status=None):
+def normaliza_busca(valor):
+    valor = unicodedata.normalize("NFKD", str(valor or ""))
+    return " ".join("".join(c for c in valor if not unicodedata.combining(c)).casefold().split())
+
+
+def fila(status=None, busca=None):
     c = con()
-    if status == "_ocultos":
+    busca = str(busca or "").strip()
+    if busca:
+        linhas = c.execute("SELECT * FROM leads WHERE COALESCE(oculto,0)=0"
+                           + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
+        termo = normaliza_busca(busca)
+        digitos = re.sub(r"\D", "", busca)
+        busca_telefone = bool(digitos) and not re.search(r"[^\d\s()+.\-]", busca)
+        linhas = [r for r in linhas if termo in normaliza_busca(r["nome"])
+                  or (busca_telefone and digitos in re.sub(r"\D", "", r["fone"] or ""))]
+    elif status == "_ocultos":
         linhas = c.execute("SELECT * FROM leads WHERE oculto=1 ORDER BY ultimo_ts DESC").fetchall()
     elif status == "_sem_resposta_hoje":
         agora = datetime.now(BRT)
@@ -680,6 +695,13 @@ background:var(--card);position:sticky;top:0;z-index:3;min-height:49px}
 .bulkcheck{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--fraco);cursor:pointer;flex:1}
 .bulkcheck input,.item-check{accent-color:var(--roxo);width:16px;height:16px;cursor:pointer}
 .bulk-send{padding:6px 10px;font-size:12px}.bulk-send:disabled{opacity:.45;cursor:default}
+.busca{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--linha);background:var(--card)}
+.busca-icone{color:var(--fraco);font-size:16px;line-height:1}
+.busca input{min-width:0;flex:1;height:36px;border:1px solid var(--linha);border-radius:9px;background:var(--campo);
+color:var(--txt);padding:0 10px;font:inherit;font-size:13px;outline:0}
+.busca input:focus{border-color:var(--roxo)}
+.busca-limpar{padding:4px 7px;background:transparent;color:var(--fraco);font-size:15px}
+.busca-limpar:hover{color:var(--txt);background:var(--hover)}
 .lista{display:flex;flex-direction:column;gap:0;min-height:0;flex:1;overflow:auto;background:var(--card)}
 .item{background:transparent;border:0;border-bottom:1px solid var(--linha);border-radius:0;
 padding:12px 16px;cursor:pointer;display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px}
@@ -808,6 +830,12 @@ overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:a
         <span id="bulkCount">Selecionar todas</span></label>
       <button class="btn bulk-send" id="bulkOpen" onclick="abreDisparo()" disabled>Disparar</button>
     </div>
+    <div class="busca">
+      <span class="busca-icone" aria-hidden="true">⌕</span>
+      <input id="busca" type="search" placeholder="Buscar por nome ou telefone…" autocomplete="off"
+        aria-label="Buscar por nome ou telefone" oninput="agendaBusca(this.value)" onkeydown="if(event.key==='Escape')limpaBusca()">
+      <button class="busca-limpar" id="buscaLimpar" onclick="limpaBusca()" aria-label="Limpar pesquisa" hidden>✕</button>
+    </div>
     <div class="lista" id="lista"></div>
   </div>
   <div id="painel" class="painel"><div class="vazio">Escolha uma conversa.</div></div>
@@ -830,7 +858,8 @@ overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:a
 </dialog>
 <script>
 let pend=[], sel=null, selId=null, prontos={audios:[],textos:[],combos:[],status:[]},
-    enviados=[], filtro='', selecionados=new Set(), disparoRodando=false;
+    enviados=[], filtro='', busca='', buscaTimer=null, buscaSeq=0,
+    selecionados=new Set(), disparoRodando=false;
 
 function aplicaTema(t){
   document.documentElement.dataset.tema=t;
@@ -868,13 +897,16 @@ function mostraNotificacao(m){
 }
 async function abreConversaNotificada(chatid,aviso){
   let i=pend.findIndex(p=>p.chatid===chatid);
-  if(i<0){ filtro=''; await filtros(); await carrega(); i=pend.findIndex(p=>p.chatid===chatid); }
+  if(i<0){ filtro=''; limpaBusca(false); await filtros(); await carrega(); i=pend.findIndex(p=>p.chatid===chatid); }
   if(i>=0) abrir(i); aviso.remove();
 }
 
 async function carrega(){
-  const r=await fetch('/api/fila'+(filtro?('?status='+encodeURIComponent(filtro)):''));
-  pend=await r.json();
+  const pedido=++buscaSeq, params=new URLSearchParams();
+  if(busca) params.set('busca',busca); else if(filtro) params.set('status',filtro);
+  const r=await fetch('/api/fila'+(params.size?'?'+params.toString():''));
+  const dados=await r.json(); if(pedido!==buscaSeq) return;
+  pend=dados;
   const L=document.getElementById('lista'); L.innerHTML='';
   pend.forEach((p,i)=>{
     const d=document.createElement('div');
@@ -891,8 +923,20 @@ async function carrega(){
         <span class="pill">${esc(p.quando)}</span></div></div>`;
     L.appendChild(d);
   });
+  if(!pend.length&&busca) L.innerHTML='<div class="vazio">Nenhuma conversa encontrada.</div>';
   if(selId){ const i=pend.findIndex(x=>x.chatid===selId); if(i>=0) sel=i; }
   atualizaBulk();
+}
+
+function agendaBusca(valor){
+  busca=valor.trim(); document.getElementById('buscaLimpar').hidden=!busca;
+  clearTimeout(buscaTimer); buscaTimer=setTimeout(carrega,220);
+}
+function limpaBusca(recarregar=true){
+  busca=''; clearTimeout(buscaTimer);
+  const campo=document.getElementById('busca'); if(campo){campo.value='';campo.focus()}
+  const limpar=document.getElementById('buscaLimpar'); if(limpar)limpar.hidden=true;
+  if(recarregar) carrega();
 }
 
 function marca(chatid,on){ if(on) selecionados.add(chatid); else selecionados.delete(chatid); atualizaBulk(); }
@@ -967,7 +1011,7 @@ async function filtros(){
     `<button class="fbtn${filtro===v?' on':''}" onclick="setFiltro('${v}')">${esc(r)}
        <b>${n[k]||0}</b></button>`).join('');
 }
-function setFiltro(v){ filtro=v; filtros(); carrega(); }
+function setFiltro(v){ filtro=v; limpaBusca(false); filtros(); carrega(); }
 
 // Mensagens que voce acabou de mandar e a Uazapi ainda esta processando. Elas
 // aparecem na hora, com um relogio, e somem quando a sincronizacao traz a real.
@@ -1493,7 +1537,8 @@ class H(BaseHTTPRequestHandler):
             if p.path == "/api/contagem":
                 return self._send(200, json.dumps(contagem(), ensure_ascii=False))
             if p.path == "/api/fila":
-                return self._send(200, json.dumps(fila((q.get("status") or [None])[0]),
+                return self._send(200, json.dumps(fila((q.get("status") or [None])[0],
+                                                       (q.get("busca") or [None])[0]),
                                                   ensure_ascii=False))
             if p.path == "/api/recebidas":
                 return self._send(200, json.dumps(
