@@ -15,6 +15,7 @@ Como funciona por dentro:
     PERDIDO nao gasta chamada de IA.
 """
 import base64
+import hashlib
 from crm_bridge import CRM, ETAPAS
 from live_events import EventHub, LiveEvents
 import io
@@ -243,6 +244,13 @@ def uz(path, body):
 # /send/media responde 500. Por isso os audios padrao ficam GRAVADOS AQUI, em
 # audios/<id>.mp3, e vao como base64. A URL so serve de reserva.
 DIR_AUDIOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audios")
+DIR_MIDIAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "midias")
+TIPOS_MIDIA = {"AudioMessage", "ImageMessage", "VideoMessage", "DocumentMessage", "StickerMessage"}
+MIME_PADRAO = {
+    "AudioMessage": "audio/mpeg", "ImageMessage": "image/jpeg",
+    "VideoMessage": "video/mp4", "DocumentMessage": "application/octet-stream",
+    "StickerMessage": "image/webp",
+}
 
 
 def fonte_audio(a):
@@ -256,6 +264,46 @@ def fonte_audio(a):
 
 def manda_audio(fone, a):
     return uz("/send/media", {"number": fone, "type": "ptt", "file": fonte_audio(a)})
+
+
+def carrega_midia(messageid):
+    """Baixa, decodifica e guarda localmente uma mídia recebida do WhatsApp."""
+    r = con().execute("SELECT tipo,file_url FROM mensagens WHERE messageid=?", (messageid,)).fetchone()
+    if not r or r["tipo"] not in TIPOS_MIDIA or not r["file_url"]:
+        raise ValueError("Mídia não encontrada.")
+    chave = hashlib.sha256(messageid.encode("utf-8")).hexdigest()
+    arquivo = os.path.join(DIR_MIDIAS, chave + ".bin")
+    meta = os.path.join(DIR_MIDIAS, chave + ".json")
+    if os.path.exists(arquivo) and os.path.exists(meta):
+        with open(meta, encoding="utf-8") as f:
+            mime = json.load(f).get("mimetype") or MIME_PADRAO[r["tipo"]]
+        with open(arquivo, "rb") as f:
+            return f.read(), mime
+
+    d = uz("/message/download", {
+        "id": messageid, "return_base64": True, "return_link": False,
+        "generate_mp3": True,
+    })
+    codificado = d.get("base64Data") or ""
+    if "," in codificado and codificado.lstrip().startswith("data:"):
+        codificado = codificado.split(",", 1)[1]
+    try:
+        corpo = base64.b64decode(codificado, validate=True)
+    except Exception as e:
+        raise RuntimeError("A API não devolveu uma mídia válida.") from e
+    if not corpo:
+        raise RuntimeError("A API devolveu a mídia vazia.")
+    if len(corpo) > 50 * 1024 * 1024:
+        raise RuntimeError("A mídia ultrapassa o limite de 50 MB do painel.")
+    mime = (d.get("mimetype") or MIME_PADRAO[r["tipo"]]).split(";", 1)[0]
+    os.makedirs(DIR_MIDIAS, exist_ok=True)
+    temporario = arquivo + "." + uuid.uuid4().hex + ".tmp"
+    with open(temporario, "wb") as f:
+        f.write(corpo)
+    os.replace(temporario, arquivo)
+    with open(meta, "w", encoding="utf-8") as f:
+        json.dump({"mimetype": mime}, f)
+    return corpo, mime
 
 
 def quando(ms):
@@ -503,9 +551,10 @@ def conversa(chatid):
         aud = False
         if m["tipo"] == "AudioMessage" and tr.get(m["file_url"]):
             t, aud = tr[m["file_url"]], True
-        linhas.append({"de": "loja" if m["from_me"] else "lead",
+        linhas.append({"id": m["messageid"], "de": "loja" if m["from_me"] else "lead",
                        "hora": quando(m["ts"]).strftime("%d/%m %H:%M"),
-                       "texto": t, "audio": aud})
+                       "texto": t, "audio": aud, "tipo": m["tipo"],
+                       "midia": bool(m["file_url"] and m["tipo"] in TIPOS_MIDIA)})
     return {"linhas": linhas, "status": lead["status"] if lead else "INTERESSADO",
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
             "nome": lead["nome"] if lead else "", "fone": lead["fone"] if lead else "",
@@ -666,6 +715,10 @@ min-height:0;height:100%;position:relative;overflow:auto}
 .bolha.loja{background:var(--bolha-loja);align-self:flex-end;border-bottom-right-radius:3px}
 .bolha .meta{font-size:10.5px;color:var(--fraco);margin-top:3px}
 .bolha .aud{color:var(--roxo2)}
+.midia-audio{display:block;width:min(310px,68vw);height:38px;margin:2px 0 5px}
+.midia-imagem{display:block;max-width:min(360px,68vw);max-height:330px;border-radius:8px;object-fit:contain;background:#0001}
+.midia-video{display:block;max-width:min(360px,68vw);max-height:330px;border-radius:8px;background:#000}
+.midia-legenda{margin-top:6px;white-space:pre-wrap}.midia-link{color:var(--roxo2);font-weight:700;text-decoration:none}
 textarea{width:100%;background:var(--campo);color:var(--txt);border:1px solid var(--linha);
 border-radius:10px;padding:11px;font:inherit;min-height:96px;resize:vertical}
 .acoes{display:flex;gap:9px;margin-top:11px;flex-wrap:wrap;align-items:center}
@@ -961,8 +1014,18 @@ async function segue(eid,item){
   return {estado:'erro',erro:'sem resposta'};
 }
 
+function conteudoBolha(l){
+  if(!l.midia) return esc(l.texto);
+  const url='/api/midia?id='+encodeURIComponent(l.id), rotulo=/^\[[^\]]+\]$/.test(l.texto||'');
+  const legenda=!rotulo&&l.texto ? `<div class="midia-legenda">${esc(l.texto)}</div>` : '';
+  if(l.tipo==='AudioMessage') return `<audio class="midia-audio" controls preload="metadata" src="${url}"></audio>${legenda}`;
+  if(l.tipo==='ImageMessage'||l.tipo==='StickerMessage')
+    return `<a href="${url}" target="_blank" title="Abrir imagem"><img class="midia-imagem" loading="lazy" src="${url}" alt="Imagem enviada"></a>${legenda}`;
+  if(l.tipo==='VideoMessage') return `<video class="midia-video" controls preload="metadata" src="${url}"></video>${legenda}`;
+  return `<a class="midia-link" href="${url}" target="_blank">📎 Abrir documento</a>${legenda}`;
+}
 function bolhas(linhas){
-  return linhas.map(l=>`<div class="bolha ${l.de==='lead'?'lead':'loja'}">${esc(l.texto)}
+  return linhas.map(l=>`<div class="bolha ${l.de==='lead'?'lead':'loja'}">${conteudoBolha(l)}
     <div class="meta">${esc(l.hora)}${l.audio?' · <span class="aud">áudio transcrito</span>':''}</div>
   </div>`).join('');
 }
@@ -1362,12 +1425,47 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    def _send_media(self, corpo, mime):
+        inicio, fim, codigo = 0, len(corpo) - 1, 200
+        intervalo = self.headers.get("Range", "")
+        m = re.fullmatch(r"bytes=(\d*)-(\d*)", intervalo)
+        if m and len(corpo):
+            if m.group(1):
+                inicio = int(m.group(1))
+                fim = min(int(m.group(2)), fim) if m.group(2) else fim
+            elif m.group(2):
+                inicio = max(0, len(corpo) - int(m.group(2)))
+            if inicio > fim or inicio >= len(corpo):
+                self.send_response(416)
+                self.send_header("Content-Range", "bytes */%d" % len(corpo))
+                self.end_headers()
+                return
+            codigo = 206
+        trecho = corpo[inicio:fim + 1]
+        self.send_response(codigo)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(len(trecho)))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Cache-Control", "private, max-age=86400")
+        if codigo == 206:
+            self.send_header("Content-Range", "bytes %d-%d/%d" % (inicio, fim, len(corpo)))
+        self.end_headers()
+        self.wfile.write(trecho)
+
     def do_GET(self):
         try:
             p = urllib.parse.urlparse(self.path)
             q = urllib.parse.parse_qs(p.query)
             if p.path == "/":
                 return self._send(200, PAGINA, "text/html; charset=utf-8")
+            if p.path == "/api/midia":
+                try:
+                    corpo, mime = carrega_midia((q.get("id") or [""])[0])
+                    return self._send_media(corpo, mime)
+                except ValueError as e:
+                    return self._send(404, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except Exception as e:
+                    return self._send(502, json.dumps({"erro": str(e)[:200]}, ensure_ascii=False))
             if p.path == "/api/events":
                 try:
                     last = int(self.headers.get("Last-Event-ID") or (q.get("after") or [0])[0])
