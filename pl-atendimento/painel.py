@@ -668,7 +668,6 @@ min-height:0;height:100%;position:relative;overflow:auto}
 .bolha .aud{color:var(--roxo2)}
 textarea{width:100%;background:var(--campo);color:var(--txt);border:1px solid var(--linha);
 border-radius:10px;padding:11px;font:inherit;min-height:96px;resize:vertical}
-.msg-sequencia{min-height:58px}.msg-sequencia+.msg-sequencia{margin-top:7px}
 .acoes{display:flex;gap:9px;margin-top:11px;flex-wrap:wrap;align-items:center}
 .aviso{font-size:12.5px;color:var(--fraco);margin-top:8px}
 .status{display:flex;gap:6px;margin:10px 0 2px;flex-wrap:wrap}
@@ -991,15 +990,15 @@ async function abrir(i){
     <section id="crm" class="crm-card" aria-live="polite"><div class="crm-head"><span class="crm-title">Carregando etapa do CRM…</span></div></section>
     <div class="chat" id="chat">${bolhas(d.linhas)}${bolhasPend(d.linhas)}</div>
     <div class="acoes" style="margin:8px 0 14px">
+      <button class="btn sec" id="btAbordagem" onclick="poeAbordagem()"
+        title="Prepara a abordagem inicial personalizada em duas mensagens">👋 Abordagem</button>
       <button class="btn sec" id="btCatalogo" onclick="mandaCatalogo(this)"
         title="Envia a apresentação do Provou Catálogo em duas mensagens separadas">💬 Provou Catálogo</button>
       <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
     </div>
-    <textarea id="txt" class="msg-sequencia" placeholder="Primeira mensagem…">${esc(
-      'Oi'+(primeiroNome(d.nome)?' '+primeiroNome(d.nome):'')+', aqui é o Lucas, da Provou Levou.')}</textarea>
-    <textarea id="txt2" class="msg-sequencia" placeholder="Segunda mensagem…">Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?</textarea>
+    <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
     <div class="acoes">
-      <button class="btn" id="ok" onclick="enviar()">Aprovar e enviar 2 mensagens</button>
+      <button class="btn" id="ok" onclick="enviar()">Aprovar e enviar</button>
       <button class="btn sec" onclick="proxima()">Concluir</button>
       <button class="btn sec" id="btnOcultar" onclick="ocultar(${d.oculto?'false':'true'})"
         title="Some da fila mesmo que a pessoa mande mensagem nova">${
@@ -1150,11 +1149,13 @@ async function mudaStatus(s,b){
   carrega();
 }
 async function enviar(){
-  const campos=[document.getElementById('txt'),document.getElementById('txt2')].filter(Boolean);
-  const textos=campos.map(c=>c.value.trim()).filter(Boolean); if(!textos.length) return;
+  const campo=document.getElementById('txt'), texto=campo.value.trim(); if(!texto) return;
+  const textos=campo.dataset.modo==='abordagem'
+    ? texto.split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean)
+    : [texto];
   const st=document.getElementById('st'), botao=document.getElementById('ok');
   const conversa=selId, fone=pend[sel].fone;
-  campos.forEach(c=>c.value=''); botao.disabled=true; st.textContent='';
+  campo.value=''; delete campo.dataset.modo; botao.disabled=true; st.textContent='';
   let enviadas=0, erro='';
   try{
     for(const t of textos){
@@ -1229,9 +1230,16 @@ async function mandaCatalogo(botao){
   botao.disabled=false;
 }
 function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
-  const c=document.getElementById('txt'), c2=document.getElementById('txt2');
-  c.value=t.texto; if(c2)c2.value=''; c.focus();
+  const c=document.getElementById('txt');
+  c.value=t.texto; delete c.dataset.modo; c.focus();
   const b=document.getElementById('ok'); if(b)b.textContent='Aprovar e enviar'; }
+function poeAbordagem(){
+  const nome=primeiroNome(pend[sel]?.nome), c=document.getElementById('txt');
+  c.value='Oi'+(nome?' '+nome:'')+', aqui é o Lucas, da Provou Levou.\n\n'
+    +'Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?';
+  c.dataset.modo='abordagem'; c.focus();
+  document.getElementById('ok').textContent='Aprovar e enviar 2 mensagens';
+}
 function proxima(){ selId=null; sel=null; carrega();
   document.getElementById('painel').innerHTML='<div class="vazio">Escolha a próxima.</div>'; }
 
