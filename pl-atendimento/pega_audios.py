@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Salva os 3 audios padrao em audios/<id>.mp3 a partir da sua conversa com voce mesmo.
+"""Salva os 2 audios padrao em audios/<id>.mp3 a partir da sua conversa com voce mesmo.
 
 Por que existe: a Uazapi apaga os arquivos depois de poucos dias. Quando isso
 acontece a URL fixa vira 404 e o combo morre com HTTP 500. Com o mp3 salvo aqui
 o painel manda em base64 e nunca mais depende da URL.
 
 Como usar:
-  1. Mande os 3 audios na SUA conversa com voce mesmo, nesta ordem:
+  1. Mande os 2 audios na SUA conversa com voce mesmo, nesta ordem:
         1) o de ~16s  "o ideal e o Catalogo"
-        2) o de ~29s  "valores / pacote de provas"
-        3) o de ~19s  "7 dias gratis"
+        2) o de ~19s  "7 dias gratis"
   2. Rode:  python pega_audios.py
 """
 import base64
@@ -23,7 +22,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 SP = os.path.dirname(os.path.abspath(__file__))
 TOKEN = os.environ.get("UAZAPI_TOKEN", "")
 EU = "5511938034714@s.whatsapp.net"
-ORDEM = ["indicacatalogo", "pacoteprovas", "setedias"]   # ordem em que voce manda
+ORDEM = ["indicacatalogo", "setedias"]   # ordem em que voce manda
 
 
 def api(rota, body):

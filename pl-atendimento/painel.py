@@ -80,12 +80,12 @@ O que a Provou Levou vende:
   dela. Ele cadastra os produtos num login próprio e manda o link pro cliente.
 - Em ambos, criamos um grupo no WhatsApp onde o lojista acompanha cada prova em tempo real.
 
-Planos (mensais, por quantidade de provas):
-  25 provas = R$ 39 · 60 = R$ 69 · 120 = R$ 119 · 300 = R$ 229
-  550 provas = R$ 399 · 1.100 = R$ 699 · 2.000 = R$ 1.190
-Cada prova feita por um cliente desconta uma do pacote. São 7 dias grátis para testar;
-no fim do teste recomendamos o pacote pelo volume real. Acima de 2.000 provas o plano
-é sob medida — nesse caso diga que vai verificar, não invente valor.
+Planos mensais do Provou Catálogo:
+  Essencial = R$ 39, com 50 fotos
+  Crescimento = R$ 79, com 120 fotos
+  Profissional = R$ 149, com 250 fotos
+  Escala = R$ 279, com 500 fotos
+São 7 dias grátis para testar; no fim do teste recomendamos o pacote adequado.
 
 Como você escreve no WhatsApp:
 - Português do Brasil, direto e cordial, sem formalidade de e-mail.
@@ -107,26 +107,20 @@ AUDIOS = [
  {"id": "setedias", "rotulo": "7 dias grátis", "seg": 19,
   "url": "https://quantic.uazapi.com/files/2e168b47f4886b341d2cdd06e5e24c8fcee8c828012f230a77848d59fe345737.mp3",
   "resumo": "7 dias grátis pra testar; no fim indicamos o pacote pelo volume real. Pede logo + e-mail pra montar o catálogo."},
- {"id": "pacoteprovas", "rotulo": "Valores + pacote de provas", "seg": 29,
-  "url": "https://quantic.uazapi.com/files/c518fef5682458bb53099c6842230407b9648ab99b0e9e449884ad5eb505eca5.mp3",
-  "resumo": "Explica o modelo de pacote e cita R$ 39/25 até R$ 229/300. NÃO menciona os pacotes de 550, 1.100 e 2.000 — pra esses, mande a tabela por escrito."},
 ]
 
 # Tabela pra CONSULTA na tela — o Lucas olha enquanto conversa.
 # (o texto de envio fica em TEXTOS['tabela'])
 PLANOS = [
- {"provas": "25",    "preco": "R$ 39"},
- {"provas": "60",    "preco": "R$ 69"},
- {"provas": "120",   "preco": "R$ 119"},
- {"provas": "300",   "preco": "R$ 229"},
- {"provas": "550",   "preco": "R$ 399"},
- {"provas": "1.100", "preco": "R$ 699"},
- {"provas": "2.000", "preco": "R$ 1.190"},
+ {"nome": "Essencial",     "preco": "R$ 39",  "fotos": "50"},
+ {"nome": "Crescimento",   "preco": "R$ 79",  "fotos": "120"},
+ {"nome": "Profissional",  "preco": "R$ 149", "fotos": "250"},
+ {"nome": "Escala",        "preco": "R$ 279", "fotos": "500"},
 ]
 
 COMBOS = [
- {"id": "combo_catalogo", "rotulo": "Combo: Catálogo → Valores → 7 dias",
-  "audios": ["indicacatalogo", "pacoteprovas", "setedias"]},
+ {"id": "combo_catalogo", "rotulo": "Combo: Catálogo → 7 dias",
+  "audios": ["indicacatalogo", "setedias"]},
 ]
 
 CATALOGO_MENSAGENS = [
@@ -144,17 +138,13 @@ TEXTOS = [
  {"id": "reaquecer", "rotulo": "Reaquecer",
   "texto": "Oi, Conseguiu dar uma olhada no que te enviei sobre o Provador Virtual?"},
  {"id": "tabela", "rotulo": "Tabela de planos",
-  "texto": "Nossos pacotes são mensais, por quantidade de provas:\n\n"
-           "*25 provas* — R$ 39\n"
-           "*60 provas* — R$ 69\n"
-           "*120 provas* — R$ 119\n"
-           "*300 provas* — R$ 229\n"
-           "*550 provas* — R$ 399\n"
-           "*1.100 provas* — R$ 699\n"
-           "*2.000 provas* — R$ 1.190\n\n"
-           "Cada prova que um cliente faz desconta uma do pacote. Não tem custo de "
-           "instalação, a integração a gente faz no mesmo dia e você testa 7 dias grátis "
-           "antes de escolher o pacote."},
+  "texto": "Nossos pacotes mensais do Provou Catálogo são:\n\n"
+           "*Essencial* — R$ 39 — 50 fotos\n"
+           "*Crescimento* — R$ 79 — 120 fotos\n"
+           "*Profissional* — R$ 149 — 250 fotos\n"
+           "*Escala* — R$ 279 — 500 fotos\n\n"
+           "Não tem custo de instalação, a integração a gente faz no mesmo dia e você "
+           "testa 7 dias grátis antes de escolher o pacote."},
  {"id": "dadoscatalogo", "rotulo": "Pedir logo + e-mail",
   "texto": "Pra eu montar o seu catálogo preciso só de duas coisas: o *logo da loja* "
            "(de preferência em arquivo, sem fundo) e um *e-mail* pro login. Pode mandar por aqui 😊"},
@@ -764,10 +754,12 @@ white-space:normal;line-height:1.35}
 .chip.enviado{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}
 .chip.enviado::after{content:' ✓';color:var(--ok);font-weight:700}
 .planos{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:2px}
-.planos td{padding:5px 8px;border-bottom:1px solid var(--linha)}
+.planos th,.planos td{padding:6px 8px;border-bottom:1px solid var(--linha);text-align:left}
+.planos th{font-size:11px;color:var(--fraco);font-weight:700;text-transform:uppercase;letter-spacing:.35px}
 .planos tr:last-child td{border-bottom:0}
 .planos td:first-child{color:var(--fraco)}
-.planos td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.planos th:nth-child(2),.planos td:nth-child(2){text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.planos th:last-child,.planos td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .planos tr:hover td{background:var(--hover)}
 .obs{font-size:12px;color:var(--fraco);margin-top:7px;line-height:1.45}
 .gravador{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
@@ -1070,11 +1062,9 @@ async function abrir(i){
     </div>
     <div class="rapidos">
       <h3>Planos — para consultar</h3>
-      <table class="planos">${prontos.planos.map(p=>
-        `<tr><td>${esc(p.provas)} provas/mês</td><td>${esc(p.preco)}</td></tr>`).join('')}</table>
-      <div class="obs">Cada prova feita por um cliente desconta uma do pacote.
-        Sem custo de instalação · integração no mesmo dia · 7 dias grátis.<br>
-        Acima de 2.000 provas o plano é sob medida.</div>
+      <table class="planos"><thead><tr><th>Plano</th><th>Mensalidade</th><th>Fotos</th></tr></thead><tbody>${prontos.planos.map(p=>
+        `<tr><td>${esc(p.nome)}</td><td>${esc(p.preco)}</td><td>${esc(p.fotos)}</td></tr>`).join('')}</tbody></table>
+      <div class="obs">Sem custo de instalação · integração no mesmo dia · 7 dias grátis.</div>
       <h3 style="margin-top:14px">Áudios avulsos</h3>
       <div class="chips">${prontos.audios.map(a=>`
         <button class="chip aud" onclick="mandaAudio('${a.id}',this)">${esc(a.rotulo)} · ${a.seg}s
