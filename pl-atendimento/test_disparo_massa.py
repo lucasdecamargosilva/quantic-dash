@@ -72,6 +72,21 @@ class DisparoMassaTest(unittest.TestCase):
                 ["%d@s.whatsapp.net" % i for i in range(painel.MAX_DISPARO_MASSA + 1)], "Olá"
             )
 
+    def test_catalogo_envia_duas_mensagens_e_video_por_ultimo(self):
+        chamadas = []
+
+        def envia(path, body):
+            chamadas.append((path, body))
+
+        with patch.object(painel, "uz", side_effect=envia), patch.object(
+            painel, "fonte_video_catalogo", return_value="data:video/mp4;base64,AAAA"
+        ):
+            painel.manda_catalogo("5511000000001")
+
+        self.assertEqual(["/send/text", "/send/text", "/send/media"], [c[0] for c in chamadas])
+        self.assertEqual("video", chamadas[-1][1]["type"])
+        self.assertEqual("data:video/mp4;base64,AAAA", chamadas[-1][1]["file"])
+
 
 if __name__ == "__main__":
     unittest.main()

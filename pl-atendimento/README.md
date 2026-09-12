@@ -12,6 +12,19 @@ Painel local de atendimento comercial da Provou Levou, integrado ao WhatsApp e a
 
 O banco local, as conversas, os logs e as chaves ficam fora do Git.
 
+## Publicação no Quantic Dash
+
+O Dockerfile inicia o painel junto com o servidor principal e o publica em
+`/prospeccao/`, protegido por login próprio. Configure `PROSPECCAO_USER` e
+`PROSPECCAO_PASSWORD_HASH` (SHA-256 hexadecimal da senha) no ambiente do serviço.
+Sem esses campos a rota permanece fechada. O serviço Python continua acessível
+apenas dentro do container. Configure `UAZAPI_TOKEN`, `GEMINI_KEY`, `PL_CRM_URL`
+e `PL_CRM_KEY` como variáveis do serviço no EasyPanel. Monte um volume persistente
+em `/data/prospeccao` e importe o `painel.db` local antes de liberar o acesso, para
+preservar histórico, estados dos leads e vínculos com o CRM. O arquivo de vídeo
+`midias/provou-catalogo.mp4` é incorporado à imagem; as mídias recebidas podem ser
+armazenadas novamente em cache.
+
 ## Atualização em tempo real
 
 `live_events.py` mantém uma conexão SSE de saída com a UAZAPI. Quando uma mensagem chega, o servidor grava no SQLite e publica imediatamente um evento local em `/api/events`; a tela atualiza sem esperar polling. O token fica no servidor. Há reconexão automática, deduplicação e polling apenas como recuperação. `/api/sync` informa o estado da conexão e os contadores.

@@ -2,6 +2,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# O painel de prospecção roda em Python no mesmo container e só é acessível
+# através do proxy autenticado do Express.
+RUN apk add --no-cache python3
+
 # Dependências do servidor Express
 COPY package*.json ./
 RUN npm install
@@ -25,14 +29,19 @@ RUN cd crm-app && npm run build
 ENV NEXT_PUBLIC_BASE_PATH=/fotos
 RUN cd photo-maker && npm run build
 
+RUN mkdir -p /data/prospeccao
+ENV PL_DB_PATH=/data/prospeccao/painel.db
+VOLUME ["/data/prospeccao"]
+
 EXPOSE 3000
 
-# Supervisão dos dois processos via concurrently. Se um cair, derruba o outro
+# Supervisão dos três processos via concurrently. Se um cair, derruba o restante
 # (e o EasyPanel reinicia o container inteiro), evitando estado zumbi onde
 # Express fica vivo proxyando 502 pra Next morto.
 CMD ["npx", "--no-install", "concurrently", \
      "--kill-others-on-fail", \
-     "-n", "express,next", \
-     "-c", "blue,magenta", \
+     "-n", "express,next,prospeccao", \
+     "-c", "blue,magenta,green", \
      "node server.js", \
-     "sh -c 'cd photo-maker && PORT=3001 HOSTNAME=0.0.0.0 npx --no-install next start -p 3001'"]
+     "sh -c 'cd photo-maker && PORT=3001 HOSTNAME=0.0.0.0 npx --no-install next start -p 3001'", \
+     "sh -c 'cd pl-atendimento && python3 painel.py'"]

@@ -153,7 +153,7 @@ TEXTOS = [
 
 
 # ─────────────────────────── banco ───────────────────────────
-DB = os.path.join(AQUI, "painel.db")
+DB = os.environ.get("PL_DB_PATH") or os.path.join(AQUI, "painel.db")
 _local = threading.local()
 
 
@@ -236,6 +236,7 @@ def uz(path, body):
 # audios/<id>.mp3, e vao como base64. A URL so serve de reserva.
 DIR_AUDIOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audios")
 DIR_MIDIAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "midias")
+CATALOGO_VIDEO = os.path.join(DIR_MIDIAS, "provou-catalogo.mp4")
 TIPOS_MIDIA = {"AudioMessage", "ImageMessage", "VideoMessage", "DocumentMessage", "StickerMessage"}
 MIME_PADRAO = {
     "AudioMessage": "audio/mpeg", "ImageMessage": "image/jpeg",
@@ -255,6 +256,23 @@ def fonte_audio(a):
 
 def manda_audio(fone, a):
     return uz("/send/media", {"number": fone, "type": "ptt", "file": fonte_audio(a)})
+
+
+def fonte_video_catalogo():
+    if not os.path.exists(CATALOGO_VIDEO):
+        raise RuntimeError("Vídeo do Provou Catálogo não encontrado.")
+    with open(CATALOGO_VIDEO, "rb") as f:
+        return "data:video/mp4;base64," + base64.b64encode(f.read()).decode()
+
+
+def manda_catalogo(fone):
+    for texto in CATALOGO_MENSAGENS:
+        uz("/send/text", {"number": fone, "text": texto})
+    return uz("/send/media", {
+        "number": fone,
+        "type": "video",
+        "file": fonte_video_catalogo(),
+    })
 
 
 def carrega_midia(messageid):
@@ -460,14 +478,11 @@ def fila(status=None, busca=None):
                   or (busca_telefone and digitos in re.sub(r"\D", "", r["fone"] or ""))]
     elif status == "_ocultos":
         linhas = c.execute("SELECT * FROM leads WHERE oculto=1 ORDER BY ultimo_ts DESC").fetchall()
-    elif status == "_sem_resposta_hoje":
-        agora = datetime.now(BRT)
-        inicio = int(agora.replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
-        fim = inicio + 86400000
+    elif status == "_sem_resposta":
         linhas = c.execute(
-            "SELECT * FROM leads WHERE ultimo_de='nos' AND ultimo_ts>=? AND ultimo_ts<?"
+            "SELECT * FROM leads WHERE ultimo_de='nos'"
             " AND COALESCE(oculto,0)=0 AND status NOT IN ('CONVERTIDO','PERDIDO')"
-            + SEM_SUPORTE + " ORDER BY ultimo_ts DESC", (inicio, fim)).fetchall()
+            + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
     elif status:
         linhas = c.execute("SELECT * FROM leads WHERE status=? AND COALESCE(oculto,0)=0"
                            + SEM_SUPORTE +
@@ -525,13 +540,10 @@ def contagem():
     d["_esperando"] = c.execute(
         "SELECT COUNT(*) n FROM leads WHERE ultimo_de='lead' AND COALESCE(oculto,0)=0"
         " AND status NOT IN ('CONVERTIDO','PERDIDO')" + SEM_SUPORTE).fetchone()["n"]
-    agora = datetime.now(BRT)
-    inicio = int(agora.replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
-    fim = inicio + 86400000
-    d["_sem_resposta_hoje"] = c.execute(
-        "SELECT COUNT(*) n FROM leads WHERE ultimo_de='nos' AND ultimo_ts>=? AND ultimo_ts<?"
+    d["_sem_resposta"] = c.execute(
+        "SELECT COUNT(*) n FROM leads WHERE ultimo_de='nos'"
         " AND COALESCE(oculto,0)=0 AND status NOT IN ('CONVERTIDO','PERDIDO')"
-        + SEM_SUPORTE, (inicio, fim)).fetchone()["n"]
+        + SEM_SUPORTE).fetchone()["n"]
     d["_ocultos"] = c.execute(
         "SELECT COUNT(*) n FROM leads WHERE oculto=1").fetchone()["n"]
     return d
@@ -1004,7 +1016,7 @@ async function filtros(){
   let n={};
   try{ n=await (await fetch('/api/contagem')).json(); }catch(e){}
   const rot=[['','Esperando','_esperando'],
-             ['_sem_resposta_hoje','Sem resposta hoje','_sem_resposta_hoje'],
+             ['_sem_resposta','Sem resposta','_sem_resposta'],
              ...prontos.status.map(s=>[s,s,s]),
              ['_ocultos','Removidos','_ocultos']];
   document.getElementById('filtros').innerHTML=rot.map(([v,r,k])=>
@@ -1092,7 +1104,7 @@ async function abrir(i){
       <button class="btn sec" id="btAbordagem" onclick="poeAbordagem()"
         title="Prepara a abordagem inicial personalizada em duas mensagens">👋 Abordagem</button>
       <button class="btn sec" id="btCatalogo" onclick="mandaCatalogo(this)"
-        title="Envia a apresentação do Provou Catálogo em duas mensagens separadas">💬 Provou Catálogo</button>
+        title="Envia a apresentação do Provou Catálogo em duas mensagens e um vídeo">💬 Provou Catálogo</button>
       <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
     </div>
     <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
@@ -1309,7 +1321,7 @@ async function mandaCombo(id,botao){
 async function mandaCatalogo(botao){
   const st=document.getElementById('st'), textos=prontos.catalogo||[];
   if(textos.length!==2) return;
-  botao.disabled=true; st.innerHTML='<span class="spin"></span> enviando 2 mensagens…';
+  botao.disabled=true; st.innerHTML='<span class="spin"></span> enviando 2 mensagens + vídeo…';
   const items=textos.map(t=>({chatid:selId,tipo:'texto',texto:t,estado:'enviando',t:Date.now()}));
   pendentes.push(...items); desenhaChat(ultimasLinhas);
   const d=await (await fetch('/api/catalogo',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1322,7 +1334,7 @@ async function mandaCatalogo(botao){
   const r=await segue(d.eid,items[1]);
   items.forEach(x=>{x.estado=r.estado;x.erro=r.erro||''}); desenhaChat(ultimasLinhas);
   if(r.estado==='ok'){
-    botao.classList.add('enviado'); st.innerHTML='<span class="ok">2 mensagens enviadas ✓</span>';
+    botao.classList.add('enviado'); st.innerHTML='<span class="ok">2 mensagens + vídeo enviados ✓</span>';
   } else st.innerHTML='<span class="err">'+esc(r.erro||'falhou')+'</span>';
   botao.disabled=false;
 }
@@ -1637,10 +1649,7 @@ class H(BaseHTTPRequestHandler):
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/catalogo":
-                def envia_catalogo():
-                    for texto in CATALOGO_MENSAGENS:
-                        uz("/send/text", {"number": d["fone"], "text": texto})
-                return self._fundo(envia_catalogo)
+                return self._fundo(lambda: manda_catalogo(d["fone"]))
             if self.path == "/api/audio":
                 a = next((x for x in AUDIOS if x["id"] == d["id"]), None)
                 return self._fundo(lambda: manda_audio(d["fone"], a))

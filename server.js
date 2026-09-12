@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const crypto = require('crypto');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
@@ -134,6 +135,73 @@ app.use((req, res, next) => {
     next();
 });
 
+// 2a-ter. Painel de prospecção — processo Python interno protegido por acesso próprio.
+// Configure usuário e SHA-256 da senha no ambiente do serviço, nunca no Git.
+const PROSPECCAO_USER = process.env.PROSPECCAO_USER || '';
+const PROSPECCAO_PASSWORD_HASH = process.env.PROSPECCAO_PASSWORD_HASH || '';
+const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|midia|conversa|crm(?:\/.*)?|ocultar|status|enviar|audio|combo|combo_status|catalogo|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
+
+function comparaSeguro(recebido, esperado) {
+    const a = Buffer.from(recebido);
+    const b = Buffer.from(esperado);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function autenticaProspeccao(req, res, next) {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        const origem = req.headers.origin;
+        const site = req.headers['sec-fetch-site'];
+        let origemValida = true;
+        try { if (origem) origemValida = new URL(origem).host === req.headers.host; }
+        catch (_) { origemValida = false; }
+        if (!origemValida || site === 'cross-site') {
+            return res.sendStatus(403);
+        }
+    }
+    const cabecalho = req.headers.authorization || '';
+    const codificado = cabecalho.startsWith('Basic ') ? cabecalho.slice(6) : '';
+    let usuario = '';
+    let senha = '';
+    try {
+        [usuario, senha] = Buffer.from(codificado, 'base64').toString('utf8').split(/:(.*)/s, 2);
+    } catch (_) {}
+    const senhaHash = crypto.createHash('sha256').update(senha || '', 'utf8').digest('hex');
+    if (PROSPECCAO_USER && /^[a-f0-9]{64}$/.test(PROSPECCAO_PASSWORD_HASH) &&
+        comparaSeguro(usuario || '', PROSPECCAO_USER) && comparaSeguro(senhaHash, PROSPECCAO_PASSWORD_HASH)) {
+        res.setHeader('Cache-Control', 'no-store');
+        return next();
+    }
+    res.setHeader('WWW-Authenticate', 'Basic realm="Painel de prospecção", charset="UTF-8"');
+    return res.status(401).send('Acesso restrito.');
+}
+
+const prospeccaoProxy = createProxyMiddleware({
+    target: 'http://127.0.0.1:8781',
+    changeOrigin: true,
+    proxyTimeout: 0,
+    timeout: 0,
+});
+
+app.get(/^\/prospeccao$/, autenticaProspeccao, (_req, res) => res.redirect('/prospeccao/'));
+const prospeccaoPageProxy = createProxyMiddleware({
+    target: 'http://127.0.0.1:8781',
+    changeOrigin: true,
+    proxyTimeout: 0,
+    timeout: 0,
+    pathRewrite: { '^/prospeccao': '' },
+});
+app.use((req, res, next) => {
+    if (req.url !== '/prospeccao/' && !req.url.startsWith('/prospeccao/?')) return next();
+    return autenticaProspeccao(req, res, () => prospeccaoPageProxy(req, res, next));
+});
+
+// A tela usa caminhos absolutos /api/*. Encaminhamos somente os endpoints do
+// painel, preservando as APIs já existentes do Quantic Dash.
+app.use((req, res, next) => {
+    if (!PROSPECCAO_API.test(req.originalUrl)) return next();
+    return autenticaProspeccao(req, res, () => prospeccaoProxy(req, res, next));
+});
+
 // 2a. CRM (React SPA) — servido sob /crm/*
 const CRM_DIST = path.join(__dirname, 'crm-app', 'dist');
 app.use('/crm', express.static(CRM_DIST));
@@ -147,6 +215,7 @@ app.get(/^\/crm(\/.*)?$/, (req, res, next) => {
 
 // 2b. Servir arquivos estáticos do Dashboard (HTML/CSS/JS raiz)
 // Se o arquivo existir na pasta local, ele será entregue.
+app.use('/pl-atendimento', (_req, res) => res.sendStatus(404));
 app.use(express.static(__dirname));
 
 // 3. PROXY CATCH-ALL (O "Coringa")

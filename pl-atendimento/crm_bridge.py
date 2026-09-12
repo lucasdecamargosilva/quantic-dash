@@ -56,7 +56,7 @@ class CRM:
         self.sync_status = {'erro': '', 'registrados': 0}
         env = {}
         path = Path(os.environ.get('PL_CRM_ENV_FILE', str(
-            Path(__file__).resolve().parent.parent / 'quantic-dash' / 'crm-app' / '.env.production')))
+            Path(__file__).resolve().parent.parent / 'crm-app' / '.env.production')))
         if path.exists():
             for line in path.read_text(encoding='utf-8-sig').splitlines():
                 if '=' in line and not line.lstrip().startswith('#'):
