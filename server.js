@@ -159,7 +159,12 @@ function usuarioDaSessao(req) {
 
 function autenticaProspeccao(req, res, next) {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !origemProspeccaoValida(req)) return res.sendStatus(403);
-    if (usuarioDaSessao(req) || isAuthorized(req.headers.authorization, PROSPECCAO_ACCOUNTS)) {
+    const usuario = usuarioDaSessao(req) || (() => {
+        if (!isAuthorized(req.headers.authorization, PROSPECCAO_ACCOUNTS)) return null;
+        return Buffer.from(req.headers.authorization.slice(6), 'base64').toString('utf8').split(':')[0];
+    })();
+    if (usuario) {
+        req.headers['x-prospeccao-user'] = usuario;
         res.setHeader('Cache-Control', 'no-store');
         return next();
     }

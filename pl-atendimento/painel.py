@@ -617,10 +617,22 @@ def sugere(linhas, nome):
 COMBO_STATUS = {}
 ENVIOS = {}          # eid -> {"estado": enviando|ok|erro, "erro": ""}
 MAX_DISPARO_MASSA = 100
+ABORDAGEM_SEGUNDA = "Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?"
 
 
-def inicia_disparo_massa(chatids, texto):
-    """Valida os alvos no servidor e envia uma mensagem por vez em segundo plano."""
+def nome_vendedor(usuario):
+    return "a Dione" if (usuario or "").strip().lower() == "dione" else "o Lucas"
+
+
+def mensagens_abordagem(nome, vendedor):
+    limpo = (nome or "").strip()
+    primeiro = "" if not limpo or re.match(r"^\+?\d", limpo) else re.sub(r"[,:;]+$", "", limpo.split()[0])
+    return ["Oi%s, aqui é %s, da Provou Levou." % ((" " + primeiro) if primeiro else "", vendedor),
+            ABORDAGEM_SEGUNDA]
+
+
+def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas"):
+    """Valida os alvos e envia a mensagem escolhida a cada conversa em segundo plano."""
     if not isinstance(chatids, list):
         raise ValueError("Selecione pelo menos uma conversa.")
     chatids = list(dict.fromkeys(str(x).strip() for x in chatids if str(x).strip()))
@@ -628,8 +640,10 @@ def inicia_disparo_massa(chatids, texto):
         raise ValueError("Selecione pelo menos uma conversa.")
     if len(chatids) > MAX_DISPARO_MASSA:
         raise ValueError("O limite por disparo é de %d conversas." % MAX_DISPARO_MASSA)
+    if modo not in (None, "abordagem"):
+        raise ValueError("Modelo de disparo inválido.")
     texto = str(texto or "").strip()
-    if not texto:
+    if modo != "abordagem" and not texto:
         raise ValueError("Escolha ou escreva a mensagem do disparo.")
     if len(texto) > 4096:
         raise ValueError("A mensagem pode ter no máximo 4.096 caracteres.")
@@ -648,19 +662,25 @@ def inicia_disparo_massa(chatids, texto):
     eid = uuid.uuid4().hex[:12]
     estado = ENVIOS[eid] = {
         "estado": "enviando", "erro": "", "total": len(alvos),
-        "enviados": 0, "falhas": 0, "resultados": []
+        "enviados": 0, "falhas": 0, "resultados": [], "modo": modo
     }
 
     def roda():
         for alvo in alvos:
             resultado = {"chatid": alvo["chatid"], "nome": alvo["nome"] or alvo["fone"],
-                         "ok": False, "erro": ""}
+                         "ok": False, "erro": "", "mensagens_enviadas": 0}
             try:
-                uz("/send/text", {"number": alvo["fone"], "text": texto})
+                mensagens = (mensagens_abordagem(alvo["nome"], vendedor)
+                             if modo == "abordagem" else [texto])
+                for mensagem in mensagens:
+                    uz("/send/text", {"number": alvo["fone"], "text": mensagem})
+                    resultado["mensagens_enviadas"] += 1
                 resultado["ok"] = True
                 estado["enviados"] += 1
             except Exception as e:
-                resultado["erro"] = str(e)[:150]
+                prefixo = ("A primeira mensagem foi enviada; a segunda falhou: "
+                           if modo == "abordagem" and resultado["mensagens_enviadas"] else "")
+                resultado["erro"] = (prefixo + str(e))[:180]
                 estado["falhas"] += 1
             estado["resultados"].append(resultado)
         estado["estado"] = "ok" if not estado["falhas"] else "erro"
@@ -872,7 +892,7 @@ overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:a
   <div class="massa-body">
     <label for="massaModelo">Mensagem</label>
     <select id="massaModelo" onchange="selecionaTextoMassa()"></select>
-    <label for="massaTexto">Revise antes de disparar</label>
+    <label for="massaTexto" id="massaTextoLabel">Revise antes de disparar</label>
     <textarea id="massaTexto" placeholder="Digite a mensagem…"></textarea>
     <div class="massa-progress" id="massaStatus"></div>
     <div class="massa-resultados" id="massaResultados"></div>
@@ -978,11 +998,11 @@ function atualizaBulk(){
 function abreDisparo(){
   if(!selecionados.size||disparoRodando) return;
   const select=document.getElementById('massaModelo');
-  select.innerHTML=prontos.textos.map(t=>`<option value="${esc(t.id)}">${esc(t.rotulo)}</option>`).join('')+
+  select.innerHTML='<option value="abordagem">👋 Abordagem · 2 mensagens personalizadas</option>'+
+    prontos.textos.map(t=>`<option value="${esc(t.id)}">${esc(t.rotulo)}</option>`).join('')+
     '<option value="">Mensagem personalizada</option>';
-  select.value=prontos.textos.some(t=>t.id==='reaquecer')?'reaquecer':(prontos.textos[0]?.id||'');
+  select.value=prontos.textos.some(t=>t.id==='reaquecer')?'reaquecer':(prontos.textos[0]?.id||'abordagem');
   selecionaTextoMassa();
-  document.getElementById('massaResumo').textContent=selecionados.size+' conversa'+(selecionados.size===1?'':'s')+' selecionada'+(selecionados.size===1?'':'s');
   document.getElementById('massaStatus').textContent=''; document.getElementById('massaResultados').innerHTML='';
   document.getElementById('massaEnviar').disabled=false; document.getElementById('massaCancelar').textContent='Cancelar';
   document.getElementById('massaDialog').showModal();
@@ -990,31 +1010,44 @@ function abreDisparo(){
 function fechaDisparo(){ if(!disparoRodando) document.getElementById('massaDialog').close(); }
 function selecionaTextoMassa(){
   const id=document.getElementById('massaModelo').value, pronto=prontos.textos.find(t=>t.id===id);
-  if(pronto) document.getElementById('massaTexto').value=pronto.texto;
-  document.getElementById('massaTexto').focus();
+  const campo=document.getElementById('massaTexto'), abordagem=id==='abordagem';
+  campo.readOnly=abordagem;
+  document.getElementById('massaTextoLabel').textContent=abordagem
+    ? 'Prévia — o nome de cada cliente será preenchido automaticamente'
+    : 'Revise antes de disparar';
+  campo.value=abordagem
+    ? 'Oi [nome do cliente], aqui é '+prontos.vendedor+', da Provou Levou.\n\n'
+      +'Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?'
+    : (pronto?.texto||'');
+  const n=selecionados.size;
+  document.getElementById('massaResumo').textContent=n+' conversa'+(n===1?'':'s')+' selecionada'+(n===1?'':'s')+
+    (abordagem?' · 2 mensagens por cliente com nome personalizado':'');
+  if(!abordagem) campo.focus();
 }
 async function disparaMassa(){
-  const texto=document.getElementById('massaTexto').value.trim(); if(!texto) return;
+  const texto=document.getElementById('massaTexto').value.trim(),
+    modo=document.getElementById('massaModelo').value==='abordagem'?'abordagem':null;
+  if(!texto) return;
   const ids=[...selecionados], bt=document.getElementById('massaEnviar'), st=document.getElementById('massaStatus');
   disparoRodando=true; bt.disabled=true; document.getElementById('massaModelo').disabled=true;
   document.getElementById('massaTexto').disabled=true; st.innerHTML='<span class="spin"></span> preparando disparo…'; atualizaBulk();
   try{
     const response=await fetch('/api/disparo',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({chatids:ids,texto})});
+      body:JSON.stringify({chatids:ids,texto,modo})});
     const d=await response.json(); if(!response.ok||!d.eid) throw new Error(d.erro||'Não foi possível iniciar o disparo.');
     let fim=null;
     for(let i=0;i<600;i++){
       await new Promise(r=>setTimeout(r,500));
       fim=await (await fetch('/api/envio?eid='+encodeURIComponent(d.eid))).json();
-      st.innerHTML='<span class="spin"></span> '+(fim.enviados+fim.falhas)+'/'+fim.total+' processadas · '+fim.enviados+' enviadas';
+      st.innerHTML='<span class="spin"></span> '+(fim.enviados+fim.falhas)+'/'+fim.total+' conversas processadas · '+fim.enviados+' concluídas';
       if(fim.estado==='ok'||fim.estado==='erro') break;
     }
     if(!fim||!['ok','erro'].includes(fim.estado)) throw new Error('O disparo continua em segundo plano. Atualize a tela para conferir.');
     (fim.resultados||[]).filter(x=>x.ok).forEach(x=>selecionados.delete(x.chatid));
     const falhas=(fim.resultados||[]).filter(x=>!x.ok);
     st.innerHTML=falhas.length
-      ? '<span class="err">'+fim.enviados+' enviadas · '+falhas.length+' falharam</span>'
-      : '<span class="ok">'+fim.enviados+' mensagens enviadas ✓</span>';
+      ? '<span class="err">'+fim.enviados+' conversas concluídas · '+falhas.length+' falharam</span>'
+      : '<span class="ok">'+fim.enviados+' conversas concluídas ✓</span>';
     document.getElementById('massaResultados').innerHTML=falhas.map(x=>
       `<div class="massa-falha">${esc(x.nome)} — ${esc(x.erro||'falhou')}</div>`).join('');
     document.getElementById('massaCancelar').textContent='Fechar';
@@ -1145,22 +1178,6 @@ async function abrir(i){
       <table class="planos"><thead><tr><th>Plano</th><th>Mensalidade</th><th>Provas</th></tr></thead><tbody>${prontos.planos.map(p=>
         `<tr><td>${esc(p.nome)}</td><td>${esc(p.preco)}</td><td>${esc(p.fotos)}</td></tr>`).join('')}</tbody></table>
       <div class="obs">Sem custo de instalação · integração no mesmo dia · 7 dias grátis.</div>
-      <h3 style="margin-top:14px">Áudios avulsos</h3>
-      <div class="chips">${prontos.audios.map(a=>`
-        <button class="chip aud" onclick="mandaAudio('${a.id}',this)">${esc(a.rotulo)} · ${a.seg}s
-          <small>${esc(a.resumo)}</small></button>`).join('')}</div>
-      <h3 style="margin-top:14px">Gravar áudio</h3>
-      <div class="gravador">
-        <button class="mic" id="mic" onclick="toggleMic()">🎙️ Gravar</button>
-        <span class="tempo" id="tempo">0:00</span>
-        <audio id="previa" controls style="display:none;height:34px"></audio>
-        <button class="btn" id="envAud" style="display:none" onclick="enviaGravado(false)">Enviar</button>
-        <button class="btn sec" id="testAud" style="display:none" onclick="enviaGravado(true)">Testar em mim</button>
-        <button class="btn sec" id="descAud" style="display:none" onclick="descarta()">Descartar</button>
-      </div>
-      <h3 style="margin-top:14px">Textos prontos</h3>
-      <div class="chips">${prontos.textos.filter(t=>t.id!=='reaquecer').map(t=>`
-        <button class="chip" onclick="poeTexto('${t.id}')">${esc(t.rotulo)}</button>`).join('')}</div>
     </div>`;
   document.getElementById('chat').scrollTop=9e9;
   carregaCRM(p.chatid);
@@ -1368,7 +1385,7 @@ function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   const b=document.getElementById('ok'); if(b)b.textContent='Aprovar e enviar'; }
 function poeAbordagem(){
   const nome=primeiroNome(pend[sel]?.nome), c=document.getElementById('txt');
-  c.value='Oi'+(nome?' '+nome:'')+', aqui é o Lucas, da Provou Levou.\n\n'
+  c.value='Oi'+(nome?' '+nome:'')+', aqui é '+prontos.vendedor+', da Provou Levou.\n\n'
     +'Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?';
   c.dataset.modo='abordagem'; c.focus();
   document.getElementById('ok').textContent='Aprovar e enviar 2 mensagens';
@@ -1379,9 +1396,9 @@ function proxima(){ descarta(); selId=null; sel=null; carrega();
 let rec=null,pedacos=[],t0=0,cron=null,blobGravado=null,audioUrl=null,gravadoEnviando=false;
 function sincronizaGravador(){
   const gravando=rec&&rec.state==='recording', pronto=!!blobGravado;
-  ['mic','micChat'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent=gravando?'⏹ Parar':'🎙️ Gravar';b.classList.toggle('rec',!!gravando);}});
-  ['previa','previaChat'].forEach(id=>{const p=document.getElementById(id);if(p){p.style.display=pronto?'':'none';if(pronto&&p.getAttribute('src')!==audioUrl)p.src=audioUrl;}});
-  ['envAud','testAud','descAud','envAudChat','descAudChat'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=pronto?'':'none';});
+  ['micChat'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent=gravando?'⏹ Parar':'🎙️ Gravar';b.classList.toggle('rec',!!gravando);}});
+  ['previaChat'].forEach(id=>{const p=document.getElementById(id);if(p){p.style.display=pronto?'':'none';if(pronto&&p.getAttribute('src')!==audioUrl)p.src=audioUrl;}});
+  ['envAudChat','descAudChat'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=pronto?'':'none';});
   const box=document.getElementById('gravadorChat');if(box)box.style.display=gravando||pronto?'':'none';
 }
 async function toggleMic(){
@@ -1399,27 +1416,27 @@ async function toggleMic(){
     audioUrl=URL.createObjectURL(blobGravado); sincronizaGravador(); };
   rec.start(); t0=Date.now(); sincronizaGravador();
   cron=setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000);
-    ['tempo','tempoChat'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}); },200);
+    ['tempoChat'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}); },200);
 }
 function descarta(){ blobGravado=null;
   clearInterval(cron);
   if(rec){rec.onstop=null;if(rec.state==='recording')rec.stop();rec.stream.getTracks().forEach(t=>t.stop());rec=null;}
   if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}
-  ['tempo','tempoChat'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='0:00';});
+  ['tempoChat'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='0:00';});
   sincronizaGravador(); }
 async function enviaGravado(teste){
   if(!blobGravado||gravadoEnviando) return;
   gravadoEnviando=true;
   const chatid=selId, fone=pend[sel].fone, blob=blobGravado;
   const st=document.getElementById('st');
-  const botoes=['envAud','testAud','envAudChat','mic','micChat','descAud','descAudChat'].map(id=>document.getElementById(id)).filter(Boolean);
+  const botoes=['envAudChat','micChat','descAudChat'].map(id=>document.getElementById(id)).filter(Boolean);
   botoes.forEach(b=>b.disabled=true);
   try{
   st.innerHTML='<span class="spin"></span> enviando áudio'+(teste?' pra você':'')+'…';
   const b64=await new Promise((resolve,reject)=>{const fr=new FileReader();
     fr.onerror=()=>reject(new Error('Não foi possível ler o áudio.'));
     fr.onload=()=>resolve(fr.result.split(',')[1]); fr.readAsDataURL(blob);});
-  const seg=document.getElementById('tempo').textContent;
+  const seg=document.getElementById('tempoChat').textContent;
   const d=await (await fetch('/api/gravado',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({fone,b64,seg,teste})})).json();
   if(selId!==chatid) return;
@@ -1580,7 +1597,8 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps(
                     {"audios": AUDIOS, "textos": TEXTOS, "combos": COMBOS,
                      "catalogo": CATALOGO_MENSAGENS, "status": STATUS,
-                     "planos": PLANOS},
+                     "planos": PLANOS,
+                     "vendedor": nome_vendedor(self.headers.get("X-Prospeccao-User"))},
                     ensure_ascii=False))
             if p.path == "/api/sync":
                 return self._send(200, json.dumps({**SYNC, "crm": CRM_CLIENT.sync_status, "events": dict(LIVE_EVENTS.status)}, ensure_ascii=False))
@@ -1682,7 +1700,9 @@ class H(BaseHTTPRequestHandler):
                         origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
                     return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
                 try:
-                    eid = inicia_disparo_massa(d.get("chatids"), d.get("texto"))
+                    eid = inicia_disparo_massa(
+                        d.get("chatids"), d.get("texto"), d.get("modo"),
+                        nome_vendedor(self.headers.get("X-Prospeccao-User")))
                     return self._send(200, json.dumps({"ok": True, "eid": eid}))
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
