@@ -205,6 +205,10 @@ def cria_banco():
         c.execute("ALTER TABLE leads ADD COLUMN oculto INTEGER DEFAULT 0")
     if "responsavel" not in [r[1] for r in c.execute("PRAGMA table_info(leads)")]:
         c.execute("ALTER TABLE leads ADD COLUMN responsavel TEXT")
+    if "excluida" not in [r[1] for r in c.execute("PRAGMA table_info(mensagens)")]:
+        c.execute("ALTER TABLE mensagens ADD COLUMN excluida INTEGER NOT NULL DEFAULT 0")
+    if "editada" not in [r[1] for r in c.execute("PRAGMA table_info(mensagens)")]:
+        c.execute("ALTER TABLE mensagens ADD COLUMN editada INTEGER NOT NULL DEFAULT 0")
     c.commit()
 
 
@@ -240,6 +244,43 @@ def uz(path, body):
     if not UZ_TOKEN:
         raise RuntimeError("Configure UAZAPI_TOKEN em .env.local.")
     return _req(UZ + path, body, {"token": UZ_TOKEN})
+
+
+def altera_mensagem(chatid, messageid, acao, texto=None):
+    """Altera no WhatsApp primeiro; só então reflete a operação no histórico local."""
+    if not isinstance(chatid, str) or not isinstance(messageid, str) or not chatid or not messageid:
+        raise ValueError("Conversa ou mensagem inválida.")
+    if acao not in ("editar", "excluir"):
+        raise ValueError("Ação inválida.")
+    c = con()
+    m = c.execute("SELECT from_me,tipo,texto,excluida FROM mensagens WHERE chatid=? AND messageid=?",
+                  (chatid, messageid)).fetchone()
+    if not m or not m["from_me"] or m["excluida"]:
+        raise ValueError("Mensagem enviada não encontrada.")
+    if acao == "editar":
+        if m["tipo"] not in ("Conversation", "ExtendedTextMessage", "TextMessage"):
+            raise ValueError("Só é possível editar mensagens de texto.")
+        if not isinstance(texto, str) or not texto.strip():
+            raise ValueError("Digite o novo texto da mensagem.")
+        texto = texto.strip()
+        if len(texto) > 4096:
+            raise ValueError("Mensagem muito longa.")
+        if texto == (m["texto"] or ""):
+            return
+    resposta = uz("/message/edit" if acao == "editar" else "/message/delete",
+                  {"id": messageid, **({"text": texto} if acao == "editar" else {})})
+    if not isinstance(resposta, dict) or resposta.get("error") or resposta.get("erro") or resposta.get("success") is False:
+        detalhe = resposta.get("error") or resposta.get("erro") if isinstance(resposta, dict) else None
+        raise RuntimeError(str(detalhe or "A integração não confirmou a alteração da mensagem."))
+    if acao == "editar":
+        c.execute("UPDATE mensagens SET texto=?, editada=1 WHERE messageid=? AND chatid=?",
+                  (texto, messageid, chatid))
+    else:
+        # Mantém o ID como lápide: uma sincronização atrasada não pode recriar a bolha.
+        c.execute("UPDATE mensagens SET excluida=1, texto='', file_url=NULL WHERE messageid=? AND chatid=?",
+                  (messageid, chatid))
+    c.commit()
+    UI_EVENTS.publish()
 
 
 # A Uazapi APAGA os arquivos depois de poucos dias: a URL do audio volta 404 e o
@@ -512,7 +553,7 @@ def fila(status=None, busca=None, responsavel=None):
                                        else r["responsavel"] == responsavel)]
     out = []
     for r in linhas:
-        u = c.execute("SELECT tipo,texto,segundos FROM mensagens WHERE chatid=?"
+        u = c.execute("SELECT tipo,texto,segundos FROM mensagens WHERE chatid=? AND excluida=0"
                       " ORDER BY ts DESC LIMIT 1", (r["chatid"],)).fetchone()
         dt = quando(r["ultimo_ts"])
         out.append({"chatid": r["chatid"], "fone": r["fone"], "nome": r["nome"],
@@ -585,7 +626,7 @@ def contagem():
 def conversa(chatid):
     c = con()
     lead = c.execute("SELECT * FROM leads WHERE chatid=?", (chatid,)).fetchone()
-    ms = c.execute("SELECT * FROM mensagens WHERE chatid=? ORDER BY ts", (chatid,)).fetchall()
+    ms = c.execute("SELECT * FROM mensagens WHERE chatid=? AND excluida=0 ORDER BY ts", (chatid,)).fetchall()
     encerrado = bool(lead and lead["status"] in STATUS_ENCERRADO)
     ja = {r["url"] for r in c.execute("SELECT url FROM transcricoes")}
     # lead encerrado nao gasta IA
@@ -603,7 +644,7 @@ def conversa(chatid):
             t, aud = tr[m["file_url"]], True
         linhas.append({"id": m["messageid"], "de": "loja" if m["from_me"] else "lead",
                        "hora": quando(m["ts"]).strftime("%d/%m %H:%M"),
-                       "texto": t, "audio": aud, "tipo": m["tipo"],
+                       "texto": t, "audio": aud, "tipo": m["tipo"], "editada": bool(m["editada"]),
                        "midia": bool(m["file_url"] and m["tipo"] in TIPOS_MIDIA)})
     return {"linhas": linhas, "status": lead["status"] if lead else "INTERESSADO",
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
@@ -818,6 +859,13 @@ min-height:0;height:100%;position:relative;overflow:auto}
 .bolha.lead{background:var(--bolha-lead);align-self:flex-start;border-bottom-left-radius:3px}
 .bolha.loja{background:var(--bolha-loja);align-self:flex-end;border-bottom-right-radius:3px}
 .bolha .meta{font-size:10.5px;color:var(--fraco);margin-top:3px}
+.bolha .meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.msg-acao{border:0;background:transparent;color:var(--roxo2);font:inherit;font-size:11px;cursor:pointer;padding:1px 3px;border-radius:4px}
+.msg-acao:hover,.msg-acao:focus-visible{background:var(--chip);text-decoration:underline}
+.msg-acao.excluir{color:var(--verm)}
+.msg-edicao{display:flex;flex-direction:column;gap:7px;min-width:min(300px,65vw)}
+.msg-edicao textarea{min-height:82px;font-size:13px}
+.msg-edicao-acoes{display:flex;gap:7px;justify-content:flex-end}
 .bolha .aud{color:var(--roxo2)}
 .midia-audio{display:block;width:min(310px,68vw);height:38px;margin:2px 0 5px}
 .midia-imagem{display:block;max-width:min(360px,68vw);max-height:330px;border-radius:8px;object-fit:contain;background:#0001}
@@ -1343,12 +1391,58 @@ function bolhasPend(linhas){
 }
 function desenhaChat(linhas){
   const ch=document.getElementById('chat'); if(!ch) return;
+  if(editandoMensagem) { ultimasLinhas=linhas; return; }
   const perto=ch.scrollHeight-ch.scrollTop-ch.clientHeight<80;
   const novo=bolhas(linhas)+bolhasPend(linhas);
   if(novo!==ch.innerHTML){ ch.innerHTML=novo; if(perto) ch.scrollTop=9e9; }
   ultimasLinhas=linhas;
 }
 let ultimasLinhas=[];
+let editandoMensagem=null, mensagemEmAcao=null;
+function iniciaEdicao(id){
+  if(mensagemEmAcao) return;
+  const l=ultimasLinhas.find(x=>x.id===id&&x.de==='loja');
+  if(!l) return;
+  editandoMensagem=id;
+  const bolha=[...document.querySelectorAll('#chat .bolha[data-id]')].find(x=>x.dataset.id===id);
+  if(!bolha) {editandoMensagem=null;return;}
+  bolha.innerHTML='<div class="msg-edicao"><textarea aria-label="Editar mensagem"></textarea>'+
+    '<div class="msg-edicao-acoes"><button class="btn sec" type="button" data-msg-action="cancelar">Cancelar</button>'+
+    '<button class="btn" type="button" data-msg-action="salvar">Salvar</button></div></div>';
+  const campo=bolha.querySelector('textarea');campo.value=l.texto;campo.focus();campo.setSelectionRange(campo.value.length,campo.value.length);
+}
+async function acaoMensagem(acao,id,texto){
+  if(mensagemEmAcao) return;
+  if(acao==='excluir'&&!confirm('Excluir esta mensagem para todos no WhatsApp?')) return;
+  mensagemEmAcao=id;
+  const st=document.getElementById('st');
+  if(st) st.textContent=acao==='editar'?'Editando mensagem…':'Excluindo mensagem…';
+  try{
+    const r=await fetch('/api/mensagem/'+acao,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chatid:selId,id,texto})});
+    const d=await r.json();
+    if(!r.ok||!d.ok) throw new Error(d.erro||'Não foi possível alterar a mensagem.');
+    if(st) st.innerHTML='<span class="ok">Mensagem '+(acao==='editar'?'editada':'excluída')+' ✓</span>';
+  }catch(e){if(st) st.innerHTML='<span class="err">'+esc(e.message||'Falha ao alterar mensagem.')+'</span>';}
+  finally{
+    mensagemEmAcao=null;editandoMensagem=null;
+    const cid=selId;
+    const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
+    if(r.ok&&selId===cid) desenhaChat((await r.json()).linhas);
+  }
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('#chat [data-msg-action]');if(!b)return;
+  const id=b.closest('.bolha')?.dataset.id, acao=b.dataset.msgAction;
+  if(!id)return;
+  if(acao==='editar') iniciaEdicao(id);
+  else if(acao==='cancelar'){editandoMensagem=null;desenhaChat(ultimasLinhas);}
+  else if(acao==='salvar'){
+    const texto=b.closest('.bolha').querySelector('textarea')?.value.trim();
+    if(!texto){alert('Digite o novo texto da mensagem.');return;}
+    acaoMensagem('editar',id,texto);
+  }else if(acao==='excluir') acaoMensagem('excluir',id);
+});
 // acompanha o envio em segundo plano e marca a bolha como enviada ou falhou
 async function segue(eid,item){
   for(let i=0;i<40;i++){
@@ -1373,7 +1467,11 @@ function conteudoBolha(l){
   return `<a class="midia-link" href="${url}" target="_blank">📎 Abrir documento</a>${legenda}`;
 }
 function bolhas(linhas){
-  return linhas.map(l=>`<div class="bolha ${l.de==='lead'?'lead':'loja'}">${conteudoBolha(l)}<div class="meta">${esc(l.hora)}${l.audio?' · <span class="aud">áudio transcrito</span>':''}</div></div>`).join('');
+  return linhas.map(l=>{
+    const enviada=l.de==='loja', texto=['Conversation','ExtendedTextMessage','TextMessage'].includes(l.tipo);
+    const acoes=enviada?`${texto?'<button class="msg-acao" type="button" data-msg-action="editar" title="Editar mensagem">Editar</button>':''}<button class="msg-acao excluir" type="button" data-msg-action="excluir" title="Excluir para todos">Excluir</button>`:'';
+    return `<div class="bolha ${enviada?'loja':'lead'}" data-id="${esc(l.id)}">${conteudoBolha(l)}<div class="meta">${esc(l.hora)}${l.editada?' · editada':''}${l.audio?' · <span class="aud">áudio transcrito</span>':''}${acoes}</div></div>`;
+  }).join('');
 }
 
 function primeiroNome(nome){
@@ -1384,6 +1482,7 @@ function primeiroNome(nome){
 
 async function abrir(i){
   descarta();
+  editandoMensagem=null;
   sel=i; selId=pend[i].chatid; enviados=[]; ultimasLinhas=[];
   document.querySelectorAll('.item').forEach((e,j)=>e.classList.toggle('sel',j===i));
   const p=pend[i], P=document.getElementById('painel');
@@ -1984,6 +2083,19 @@ class H(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or 0)
             bruto = self.rfile.read(n).decode("utf-8") if n else ""
             d = json.loads(bruto) if bruto.strip() else {}   # /api/atualizar vai sem corpo
+            if self.path in ("/api/mensagem/editar", "/api/mensagem/excluir"):
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    altera_mensagem(d.get("chatid"), d.get("id"), self.path.rsplit("/", 1)[-1],
+                                   d.get("texto"))
+                    return self._send(200, json.dumps({"ok": True}))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except Exception as e:
+                    return self._send(502, json.dumps({"erro": str(e)[:200]}, ensure_ascii=False))
             if self.path in ("/api/crm/registrar", "/api/crm/etapa", "/api/crm/observacao"):
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                     return self._send(415, json.dumps({"erro": "Use application/json."}))
