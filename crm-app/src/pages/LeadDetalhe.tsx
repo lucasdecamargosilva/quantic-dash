@@ -5,6 +5,7 @@ import { applyCustomLeadStatus, persistLeadStatus } from "../lib/lead-status";
 import type { Lead, Interacao, LeadStatus } from "../types";
 import StatusBadge from "../components/StatusBadge";
 import InteracaoForm from "../components/InteracaoForm";
+import DataTesteGratis from "../components/DataTesteGratis";
 
 const TIPO_LABELS: Record<string, string> = {
   dm_enviada: "DM Enviada",
@@ -45,7 +46,7 @@ export default function LeadDetalhe() {
   async function updateStatus(status: LeadStatus) {
     if (!id) return;
     await persistLeadStatus(id, status);
-    setLead((prev) => (prev ? { ...prev, status } : null));
+    await fetchLead();
   }
 
   async function salvarNotas() {
@@ -123,6 +124,7 @@ export default function LeadDetalhe() {
       </div>
 
       {/* Notas */}
+      <DataTesteGratis leadId={lead.id} value={lead.teste_gratis_em} onSaved={fetchLead} />
       <div className="mb-8 stagger-in" style={{ animationDelay: "100ms" }}>
         <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Notas</label>
         <textarea

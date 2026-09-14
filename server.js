@@ -205,7 +205,8 @@ app.post('/prospeccao/logout', (req, res) => {
 
 const prospeccaoProxy = createProxyMiddleware({
     target: 'http://127.0.0.1:8781',
-    changeOrigin: true,
+    // O Python valida Origin contra Host; preserve o domínio público.
+    changeOrigin: false,
     proxyTimeout: 0,
     timeout: 0,
 });

@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Objecoes from "./pages/Objecoes";
 import Metas from "./pages/Metas";
 import Atendimento from "./pages/Atendimento";
+import TestesGratis from "./pages/TestesGratis";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/testes-gratis" element={<TestesGratis />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/objecoes" element={<Objecoes />} />
           <Route path="/metas" element={<Metas />} />

@@ -5,6 +5,11 @@ import logoProvouLevouEscuro from "../assets/provou-levou-logo-escuro.png";
 
 const NAV_ITEMS = [
   {
+    to: "/testes-gratis",
+    label: "Testes grátis",
+    icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v4M11 1v4M2 7h12M5 10h2" /></svg>,
+  },
+  {
     to: "/",
     label: "Dashboard",
     icon: (

@@ -16,6 +16,7 @@ export interface Lead {
   email: string | null;
   created_at: string;
   updated_at: string;
+  teste_gratis_em?: string | null;
 }
 
 export type Categoria = "oculos" | "roupa";

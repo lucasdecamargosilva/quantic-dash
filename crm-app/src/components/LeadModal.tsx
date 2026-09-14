@@ -5,6 +5,7 @@ import type { Lead, Interacao, LeadStatus, Categoria } from "../types";
 import { FONTES_OPORTUNIDADE, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import StatusBadge from "./StatusBadge";
 import InteracaoForm from "./InteracaoForm";
+import DataTesteGratis from "./DataTesteGratis";
 
 const TIPO_LABELS: Record<string, string> = {
   dm_enviada: "DM Enviada",
@@ -60,7 +61,7 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
 
   async function updateStatus(status: LeadStatus) {
     await persistLeadStatus(leadId, status);
-    setLead((prev) => (prev ? { ...prev, status } : null));
+    await fetchLead();
     onUpdated?.();
   }
 
@@ -326,6 +327,7 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
               </div>
             </div>
 
+            <DataTesteGratis leadId={lead.id} value={lead.teste_gratis_em} onSaved={() => { fetchLead(); onUpdated?.(); }} />
             {/* Notas */}
             <div className="mb-6">
               <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Notas</label>

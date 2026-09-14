@@ -799,6 +799,8 @@ white-space:normal;line-height:1.35}
 .planos tr:hover td{background:var(--hover)}
 .obs{font-size:12px;color:var(--fraco);margin-top:7px;line-height:1.45}
 .gravador{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.compositor{display:flex;gap:8px;align-items:stretch}.compositor textarea{flex:1;min-width:0}
+.compositor .mic{align-self:center;white-space:nowrap}.gravador-chat{margin:6px 0}
 .mic{background:#7f1d1d;color:#fff;font-weight:600}
 .mic.rec{background:#dc2626;animation:bat 1s infinite}
 .tempo{font-variant-numeric:tabular-nums;color:var(--fraco);font-size:13px;min-width:42px}
@@ -833,6 +835,7 @@ overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:a
   <h1>Atendimento</h1>
   <div class="filtros" id="filtros"></div>
   <a class="btn crm-link" href="https://crm.quanticsolutions.com.br/crm/pipeline" target="_blank" rel="noopener" title="Abrir o Pipeline do CRM em uma nova aba">Ir para o CRM <span aria-hidden="true">↗</span></a>
+  <a class="btn sec crm-link" style="margin-left:0" href="https://crm.quanticsolutions.com.br/crm/testes-gratis" target="_blank" rel="noopener">Clientes em teste grátis</a>
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
           style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora">🔄 Atualizar</button>
   <button class="btn sec" id="tema" onclick="viraTema()" style="padding:6px 11px;font-size:13px">🌙</button>
@@ -1088,6 +1091,7 @@ function primeiroNome(nome){
 }
 
 async function abrir(i){
+  descarta();
   sel=i; selId=pend[i].chatid; enviados=[]; ultimasLinhas=[];
   document.querySelectorAll('.item').forEach((e,j)=>e.classList.toggle('sel',j===i));
   const p=pend[i], P=document.getElementById('painel');
@@ -1110,7 +1114,14 @@ async function abrir(i){
         title="Envia a apresentação do Provou Catálogo em duas mensagens e um vídeo">💬 Provou Catálogo</button>
       <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
     </div>
-    <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
+    <div class="compositor"><textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
+      <button class="mic" id="micChat" onclick="toggleMic()" title="Gravar áudio">🎙️ Gravar</button></div>
+    <div class="gravador gravador-chat" id="gravadorChat" style="display:none">
+      <span class="tempo" id="tempoChat">0:00</span>
+      <audio id="previaChat" controls style="display:none;height:34px;max-width:100%"></audio>
+      <button class="btn" id="envAudChat" style="display:none" onclick="enviaGravado(false)">Enviar áudio</button>
+      <button class="btn sec" id="descAudChat" style="display:none" onclick="descarta()">Descartar</button>
+    </div>
     <div class="acoes">
       <button class="btn" id="ok" onclick="enviar()">Aprovar e enviar</button>
       <button class="btn sec" onclick="proxima()">Concluir</button>
@@ -1352,47 +1363,61 @@ function poeAbordagem(){
   c.dataset.modo='abordagem'; c.focus();
   document.getElementById('ok').textContent='Aprovar e enviar 2 mensagens';
 }
-function proxima(){ selId=null; sel=null; carrega();
+function proxima(){ descarta(); selId=null; sel=null; carrega();
   document.getElementById('painel').innerHTML='<div class="vazio">Escolha a próxima.</div>'; }
 
-let rec=null,pedacos=[],t0=0,cron=null,blobGravado=null;
+let rec=null,pedacos=[],t0=0,cron=null,blobGravado=null,audioUrl=null,gravadoEnviando=false;
+function sincronizaGravador(){
+  const gravando=rec&&rec.state==='recording', pronto=!!blobGravado;
+  ['mic','micChat'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent=gravando?'⏹ Parar':'🎙️ Gravar';b.classList.toggle('rec',!!gravando);}});
+  ['previa','previaChat'].forEach(id=>{const p=document.getElementById(id);if(p){p.style.display=pronto?'':'none';if(pronto&&p.getAttribute('src')!==audioUrl)p.src=audioUrl;}});
+  ['envAud','testAud','descAud','envAudChat','descAudChat'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=pronto?'':'none';});
+  const box=document.getElementById('gravadorChat');if(box)box.style.display=gravando||pronto?'':'none';
+}
 async function toggleMic(){
-  const b=document.getElementById('mic'), st=document.getElementById('st');
+  if(gravadoEnviando) return;
+  const st=document.getElementById('st'), chatid=selId;
   if(rec&&rec.state==='recording'){ rec.stop(); return; }
   let stream;
   try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
   catch(e){ st.innerHTML='<span class="err">microfone: '+esc(e.name)+'</span>'; return; }
-  pedacos=[]; blobGravado=null; rec=new MediaRecorder(stream);
+  if(selId!==chatid){stream.getTracks().forEach(t=>t.stop());return;}
+  descarta(); pedacos=[]; blobGravado=null; rec=new MediaRecorder(stream);
   rec.ondataavailable=e=>{ if(e.data.size) pedacos.push(e.data); };
   rec.onstop=()=>{ clearInterval(cron); stream.getTracks().forEach(t=>t.stop());
     blobGravado=new Blob(pedacos,{type:rec.mimeType||'audio/webm'});
-    const p=document.getElementById('previa'); p.src=URL.createObjectURL(blobGravado); p.style.display='';
-    ['envAud','testAud','descAud'].forEach(i=>document.getElementById(i).style.display='');
-    b.textContent='🎙️ Gravar'; b.classList.remove('rec'); };
-  rec.start(); t0=Date.now(); b.textContent='⏹ Parar'; b.classList.add('rec');
-  document.getElementById('previa').style.display='none';
-  ['envAud','testAud','descAud'].forEach(i=>document.getElementById(i).style.display='none');
+    audioUrl=URL.createObjectURL(blobGravado); sincronizaGravador(); };
+  rec.start(); t0=Date.now(); sincronizaGravador();
   cron=setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000);
-    document.getElementById('tempo').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); },200);
+    ['tempo','tempoChat'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}); },200);
 }
 function descarta(){ blobGravado=null;
-  document.getElementById('previa').style.display='none';
-  document.getElementById('tempo').textContent='0:00';
-  ['envAud','testAud','descAud'].forEach(i=>document.getElementById(i).style.display='none'); }
+  clearInterval(cron);
+  if(rec){rec.onstop=null;if(rec.state==='recording')rec.stop();rec.stream.getTracks().forEach(t=>t.stop());rec=null;}
+  if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}
+  ['tempo','tempoChat'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='0:00';});
+  sincronizaGravador(); }
 async function enviaGravado(teste){
-  if(!blobGravado) return;
+  if(!blobGravado||gravadoEnviando) return;
+  gravadoEnviando=true;
+  const chatid=selId, fone=pend[sel].fone, blob=blobGravado;
   const st=document.getElementById('st');
-  const bt=document.getElementById(teste?'testAud':'envAud'); bt.disabled=true;
+  const botoes=['envAud','testAud','envAudChat','mic','micChat','descAud','descAudChat'].map(id=>document.getElementById(id)).filter(Boolean);
+  botoes.forEach(b=>b.disabled=true);
+  try{
   st.innerHTML='<span class="spin"></span> enviando áudio'+(teste?' pra você':'')+'…';
-  const b64=await new Promise(r=>{const fr=new FileReader();
-    fr.onload=()=>r(fr.result.split(',')[1]); fr.readAsDataURL(blobGravado);});
+  const b64=await new Promise((resolve,reject)=>{const fr=new FileReader();
+    fr.onerror=()=>reject(new Error('Não foi possível ler o áudio.'));
+    fr.onload=()=>resolve(fr.result.split(',')[1]); fr.readAsDataURL(blob);});
   const seg=document.getElementById('tempo').textContent;
   const d=await (await fetch('/api/gravado',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({fone:pend[sel].fone,b64,seg,teste})})).json();
-  bt.disabled=false;
+    body:JSON.stringify({fone,b64,seg,teste})})).json();
+  if(selId!==chatid) return;
   if(d.ok){ st.innerHTML='<span class="ok">áudio enviado'+(teste?' pra você':'')+' ✓</span>';
     if(!teste){ enviados.push('áudio '+seg); descarta(); } }
   else st.innerHTML='<span class="err">'+esc(d.erro||'')+'</span>';
+  }catch(e){if(selId===chatid)st.innerHTML='<span class="err">Não foi possível enviar o áudio. Tente novamente.</span>';}
+  finally{gravadoEnviando=false;botoes.forEach(b=>b.disabled=false);}
 }
 
 // O painel ja sincroniza sozinho a cada poucos segundos. Este botao serve pra
