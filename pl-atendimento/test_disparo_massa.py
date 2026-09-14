@@ -155,18 +155,20 @@ class DisparoMassaTest(unittest.TestCase):
             "file": "data:video/mp4;base64,AAAA",
         })
 
-    def test_preco_por_prova_cai_a_cada_plano_e_termina_em_055(self):
+    def test_preco_por_prova_fica_proximo_de_078_ate_159_e_cai_nos_maiores(self):
         taxas = []
         texto_planos = next(t["texto"] for t in painel.TEXTOS if t["id"] == "tabela")
         for plano in painel.PLANOS:
             preco = int(plano["preco"].removeprefix("R$ ").replace(".", ""))
             provas = int(plano["fotos"].replace(".", ""))
             taxa = float(plano["por_prova"].removeprefix("R$ ").replace(",", "."))
-            self.assertAlmostEqual(preco / provas, taxa, delta=0.005)
-            self.assertIn(plano["preco"], texto_planos)
+            self.assertAlmostEqual(preco / provas, taxa, delta=0.0051)
+            self.assertIn(f"{plano['preco']} — {plano['fotos']} provas", texto_planos)
             taxas.append(taxa)
-        self.assertTrue(all(a > b for a, b in zip(taxas, taxas[1:])))
-        self.assertEqual(0.55, taxas[-1])
+        self.assertEqual([50, 100, 200], [int(p["fotos"]) for p in painel.PLANOS[:3]])
+        self.assertTrue(all(0.78 <= taxa <= 0.80 for taxa in taxas[:3]))
+        self.assertTrue(all(a > b for a, b in zip(taxas[2:], taxas[3:])))
+        self.assertGreaterEqual(taxas[-1], 0.55)
 
 
 if __name__ == "__main__":

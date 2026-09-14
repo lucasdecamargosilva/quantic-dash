@@ -83,12 +83,12 @@ O que a Provou Levou vende:
 
 Planos mensais do Provou Catálogo:
   Essencial = R$ 39, com 50 provas virtuais
-  Crescimento = R$ 79, com 120 provas virtuais
-  Profissional = R$ 159, com 250 provas virtuais
-  Escala = R$ 309, com 500 provas virtuais
-  Volume 1.000 = R$ 599, com 1.000 provas virtuais
-  Volume 1.500 = R$ 869, com 1.500 provas virtuais
-  Volume 2.500 = R$ 1.375, com 2.500 provas virtuais
+  Crescimento = R$ 79, com 100 provas virtuais
+  Profissional = R$ 159, com 200 provas virtuais
+  Escala = R$ 369, com 500 provas virtuais
+  Volume 1.000 = R$ 699, com 1.000 provas virtuais
+  Volume 1.500 = R$ 959, com 1.500 provas virtuais
+  Volume 2.500 = R$ 1.499, com 2.500 provas virtuais
 São 7 dias grátis para testar; no fim do teste recomendamos o pacote adequado.
 
 Como você escreve no WhatsApp:
@@ -117,12 +117,12 @@ AUDIOS = [
 # (o texto de envio fica em TEXTOS['tabela'])
 PLANOS = [
  {"nome": "Essencial",     "preco": "R$ 39",    "fotos": "50",    "por_prova": "R$ 0,78"},
- {"nome": "Crescimento",   "preco": "R$ 79",    "fotos": "120",   "por_prova": "R$ 0,66"},
- {"nome": "Profissional",  "preco": "R$ 159",   "fotos": "250",   "por_prova": "R$ 0,64"},
- {"nome": "Escala",        "preco": "R$ 309",   "fotos": "500",   "por_prova": "R$ 0,62"},
- {"nome": "Volume 1.000",  "preco": "R$ 599",   "fotos": "1.000", "por_prova": "R$ 0,60"},
- {"nome": "Volume 1.500",  "preco": "R$ 869",   "fotos": "1.500", "por_prova": "R$ 0,58"},
- {"nome": "Volume 2.500",  "preco": "R$ 1.375", "fotos": "2.500", "por_prova": "R$ 0,55"},
+ {"nome": "Crescimento",   "preco": "R$ 79",    "fotos": "100",   "por_prova": "R$ 0,79"},
+ {"nome": "Profissional",  "preco": "R$ 159",   "fotos": "200",   "por_prova": "R$ 0,80"},
+ {"nome": "Escala",        "preco": "R$ 369",   "fotos": "500",   "por_prova": "R$ 0,74"},
+ {"nome": "Volume 1.000",  "preco": "R$ 699",   "fotos": "1.000", "por_prova": "R$ 0,70"},
+ {"nome": "Volume 1.500",  "preco": "R$ 959",   "fotos": "1.500", "por_prova": "R$ 0,64"},
+ {"nome": "Volume 2.500",  "preco": "R$ 1.499", "fotos": "2.500", "por_prova": "R$ 0,60"},
 ]
 
 COMBOS = [
@@ -147,12 +147,12 @@ TEXTOS = [
  {"id": "tabela", "rotulo": "Tabela de planos",
   "texto": "Nossos pacotes mensais do Provou Catálogo são:\n\n"
            "*Essencial* — R$ 39 — 50 provas virtuais\n"
-           "*Crescimento* — R$ 79 — 120 provas virtuais\n"
-           "*Profissional* — R$ 159 — 250 provas virtuais\n"
-           "*Escala* — R$ 309 — 500 provas virtuais\n"
-           "*Volume 1.000* — R$ 599 — 1.000 provas virtuais\n"
-           "*Volume 1.500* — R$ 869 — 1.500 provas virtuais\n"
-           "*Volume 2.500* — R$ 1.375 — 2.500 provas virtuais\n\n"
+           "*Crescimento* — R$ 79 — 100 provas virtuais\n"
+           "*Profissional* — R$ 159 — 200 provas virtuais\n"
+           "*Escala* — R$ 369 — 500 provas virtuais\n"
+           "*Volume 1.000* — R$ 699 — 1.000 provas virtuais\n"
+           "*Volume 1.500* — R$ 959 — 1.500 provas virtuais\n"
+           "*Volume 2.500* — R$ 1.499 — 2.500 provas virtuais\n\n"
            "Não tem custo de instalação, a integração a gente faz no mesmo dia e você "
            "testa 7 dias grátis antes de escolher o pacote."},
  {"id": "dadoscatalogo", "rotulo": "Pedir logo + e-mail",
