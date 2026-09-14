@@ -277,6 +277,10 @@ def fonte_video_catalogo():
 def manda_catalogo(fone):
     for texto in CATALOGO_MENSAGENS:
         uz("/send/text", {"number": fone, "text": texto})
+    return manda_video_catalogo(fone)
+
+
+def manda_video_catalogo(fone):
     return uz("/send/media", {
         "number": fone,
         "type": "video",
@@ -777,6 +781,8 @@ min-height:0;height:100%;position:relative;overflow:auto}
 .midia-legenda{margin-top:6px;white-space:pre-wrap}.midia-link{color:var(--roxo2);font-weight:700;text-decoration:none}
 textarea{width:100%;background:var(--campo);color:var(--txt);border:1px solid var(--linha);
 border-radius:10px;padding:11px;font:inherit;min-height:96px;resize:vertical}
+.catalogo-rascunho{margin-top:10px}.catalogo-rascunho label{display:block;font-size:12px;color:var(--fraco);margin-bottom:5px}
+.catalogo-rascunho video{display:block;width:min(360px,100%);max-height:240px;margin-top:7px;border-radius:9px;background:#000}
 .acoes{display:flex;gap:9px;margin-top:11px;flex-wrap:wrap;align-items:center}
 .aviso{font-size:12.5px;color:var(--fraco);margin-top:8px}
 .status{display:flex;gap:6px;margin:10px 0 2px;flex-wrap:wrap}
@@ -1167,13 +1173,19 @@ async function abrir(i){
     <div class="acoes" style="margin:8px 0 14px">
       <button class="btn sec" id="btAbordagem" onclick="poeAbordagem()"
         title="Prepara a abordagem inicial personalizada em duas mensagens">👋 Abordagem</button>
-      <button class="btn sec" id="btCatalogo" onclick="mandaCatalogo(this)"
-        title="Envia a apresentação do Provou Catálogo em duas mensagens e um vídeo">💬 Provou Catálogo</button>
+      <button class="btn sec" id="btCatalogo" onclick="poeCatalogo()"
+        title="Prepara duas mensagens e um vídeo para aprovação">💬 Provou Catálogo</button>
       <button class="btn sec" id="btPlanos" onclick="poeTexto('tabela')"
         title="Prepara a mensagem com os valores dos sete planos para revisão">💰 Planos</button>
       <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
     </div>
     <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
+    <div class="catalogo-rascunho" id="catalogoRascunho" hidden>
+      <label for="catalogoTexto2">Segunda mensagem</label>
+      <textarea id="catalogoTexto2"></textarea>
+      <label for="catalogoVideo">Vídeo — será enviado por último, após sua aprovação</label>
+      <video id="catalogoVideo" controls preload="metadata" src="/api/catalogo/video"></video>
+    </div>
     <div class="gravador gravador-chat" id="gravadorChat" style="display:none">
       <span class="tempo" id="tempoChat">0:00</span>
       <audio id="previaChat" controls style="display:none;height:34px;max-width:100%"></audio>
@@ -1316,13 +1328,20 @@ async function mudaStatus(s,b){
 }
 async function enviar(){
   const campo=document.getElementById('txt'), texto=campo.value.trim(); if(!texto) return;
-  const textos=campo.dataset.modo==='abordagem'
-    ? texto.split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean)
-    : [texto];
+  const modo=campo.dataset.modo, segundo=modo==='catalogo'
+    ? document.getElementById('catalogoTexto2').value.trim() : '';
   const st=document.getElementById('st'), botao=document.getElementById('ok');
+  if(modo==='catalogo'&&!segundo){
+    st.innerHTML='<span class="err">Revise também a segunda mensagem antes de enviar.</span>'; return;
+  }
+  const textos=modo==='catalogo' ? [texto,segundo]
+    : modo==='abordagem' ? texto.split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean) : [texto];
   const conversa=selId, fone=pend[sel].fone;
-  campo.value=''; delete campo.dataset.modo; botao.disabled=true; st.textContent='';
-  let enviadas=0, erro='';
+  campo.value=''; delete campo.dataset.modo;
+  const rascunho=document.getElementById('catalogoRascunho');
+  if(rascunho) rascunho.hidden=true;
+  botao.disabled=true; st.textContent='';
+  let enviadas=0, erro='', videoTentado=false;
   try{
     for(const t of textos){
       const item={chatid:conversa,tipo:'texto',texto:t,estado:'enviando',t:Date.now()};
@@ -1334,12 +1353,28 @@ async function enviar(){
       if(r.estado==='erro'){ erro=r.erro||'falhou'; break; }
       enviadas++;
     }
+    if(modo==='catalogo'&&!erro){
+      videoTentado=true;
+      const item={chatid:conversa,tipo:'video',texto:'🎬 Vídeo do Provou Catálogo',estado:'enviando',t:Date.now()};
+      pendentes.push(item); desenhaChat(ultimasLinhas);
+      const d=await (await fetch('/api/catalogo/video',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({fone})})).json();
+      if(!d.eid){item.estado='erro';item.erro=d.erro||'falhou';desenhaChat(ultimasLinhas);erro=item.erro;}
+      else{
+        const r=await segue(d.eid,item);
+        if(r.estado==='erro') erro=r.erro||'falhou';
+      }
+    }
   }catch(e){ erro=e.message||'falhou';
   }finally{
     botao.disabled=false; botao.textContent='Aprovar e enviar';
   }
+  if(modo==='catalogo'&&erro) erro=videoTentado
+    ? 'As duas mensagens foram enviadas, mas o vídeo falhou: '+erro
+    : enviadas+' de 2 mensagens enviadas; vídeo não enviado. '+erro;
   st.innerHTML=erro ? '<span class="err">'+esc(erro)+'</span>'
-    : '<span class="ok">'+enviadas+' mensagem'+(enviadas===1?'':'s')+' enviada'+(enviadas===1?'':'s')+' ✓</span>';
+    : '<span class="ok">'+(modo==='catalogo'?'2 mensagens + vídeo enviados ✓':
+      enviadas+' mensagem'+(enviadas===1?'':'s')+' enviada'+(enviadas===1?'':'s')+' ✓')+'</span>';
 }
 async function mandaAudio(id,botao){
   const st=document.getElementById('st'), a=prontos.audios.find(x=>x.id===id);
@@ -1375,34 +1410,27 @@ async function mandaCombo(id,botao){
   }
   botao.disabled=false;
 }
-async function mandaCatalogo(botao){
-  const st=document.getElementById('st'), textos=prontos.catalogo||[];
+function poeCatalogo(){
+  const textos=prontos.catalogo||[];
   if(textos.length!==2) return;
-  botao.disabled=true; st.innerHTML='<span class="spin"></span> enviando 2 mensagens + vídeo…';
-  const items=textos.map(t=>({chatid:selId,tipo:'texto',texto:t,estado:'enviando',t:Date.now()}));
-  pendentes.push(...items); desenhaChat(ultimasLinhas);
-  const d=await (await fetch('/api/catalogo',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({fone:pend[sel].fone})})).json();
-  if(!d.eid){
-    items.forEach(x=>{x.estado='erro';x.erro=d.erro||'falhou'});
-    desenhaChat(ultimasLinhas); st.innerHTML='<span class="err">'+esc(d.erro||'falhou')+'</span>';
-    botao.disabled=false; return;
-  }
-  const r=await segue(d.eid,items[1]);
-  items.forEach(x=>{x.estado=r.estado;x.erro=r.erro||''}); desenhaChat(ultimasLinhas);
-  if(r.estado==='ok'){
-    botao.classList.add('enviado'); st.innerHTML='<span class="ok">2 mensagens + vídeo enviados ✓</span>';
-  } else st.innerHTML='<span class="err">'+esc(r.erro||'falhou')+'</span>';
-  botao.disabled=false;
+  const campo=document.getElementById('txt');
+  campo.value=textos[0]; campo.dataset.modo='catalogo';
+  document.getElementById('catalogoTexto2').value=textos[1];
+  document.getElementById('catalogoRascunho').hidden=false;
+  document.getElementById('ok').textContent='Aprovar e enviar 2 mensagens + vídeo';
+  document.getElementById('st').textContent='Revise as duas mensagens e o vídeo antes de enviar.';
+  campo.focus();
 }
 function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   const c=document.getElementById('txt');
-  c.value=t.texto; delete c.dataset.modo; c.focus();
+  c.value=t.texto; delete c.dataset.modo;
+  document.getElementById('catalogoRascunho').hidden=true; c.focus();
   const b=document.getElementById('ok'); if(b)b.textContent='Aprovar e enviar'; }
 function poeAbordagem(){
   const nome=primeiroNome(pend[sel]?.nome), c=document.getElementById('txt');
   c.value='Oi'+(nome?' '+nome:'')+', aqui é '+prontos.vendedor+', da Provou Levou.\n\n'
     +'Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?';
+  document.getElementById('catalogoRascunho').hidden=true;
   c.dataset.modo='abordagem'; c.focus();
   document.getElementById('ok').textContent='Aprovar e enviar 2 mensagens';
 }
@@ -1575,6 +1603,9 @@ class H(BaseHTTPRequestHandler):
             q = urllib.parse.parse_qs(p.query)
             if p.path == "/":
                 return self._send(200, PAGINA, "text/html; charset=utf-8")
+            if p.path == "/api/catalogo/video":
+                with open(CATALOGO_VIDEO, "rb") as video:
+                    return self._send_media(video.read(), "video/mp4")
             if p.path == "/api/midia":
                 try:
                     corpo, mime = carrega_midia((q.get("id") or [""])[0])
@@ -1724,6 +1755,8 @@ class H(BaseHTTPRequestHandler):
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/catalogo":
                 return self._fundo(lambda: manda_catalogo(d["fone"]))
+            if self.path == "/api/catalogo/video":
+                return self._fundo(lambda: manda_video_catalogo(d["fone"]))
             if self.path == "/api/audio":
                 a = next((x for x in AUDIOS if x["id"] == d["id"]), None)
                 return self._fundo(lambda: manda_audio(d["fone"], a))

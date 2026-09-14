@@ -142,7 +142,7 @@ app.use((req, res, next) => {
 const PROSPECCAO_ACCOUNTS = loadAccounts();
 const PROSPECCAO_SESSION_SECRET = process.env.PROSPECCAO_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const loginAttempts = new Map();
-const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|midia|conversa|crm(?:\/.*)?|ocultar|status|enviar|audio|combo|combo_status|catalogo|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
+const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|midia|conversa|crm(?:\/.*)?|ocultar|status|enviar|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
 
 function origemProspeccaoValida(req) {
     const origem = req.headers.origin;

@@ -144,6 +144,17 @@ class DisparoMassaTest(unittest.TestCase):
         self.assertEqual("video", chamadas[-1][1]["type"])
         self.assertEqual("data:video/mp4;base64,AAAA", chamadas[-1][1]["file"])
 
+    def test_video_do_catalogo_pode_ser_enviado_apos_aprovacao_dos_textos(self):
+        with patch.object(painel, "uz") as mock_uz, patch.object(
+            painel, "fonte_video_catalogo", return_value="data:video/mp4;base64,AAAA"
+        ):
+            painel.manda_video_catalogo("5511000000001")
+
+        mock_uz.assert_called_once_with("/send/media", {
+            "number": "5511000000001", "type": "video",
+            "file": "data:video/mp4;base64,AAAA",
+        })
+
 
 if __name__ == "__main__":
     unittest.main()
