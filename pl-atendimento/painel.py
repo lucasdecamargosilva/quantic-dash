@@ -808,8 +808,7 @@ white-space:normal;line-height:1.35}
 .planos tr:hover td{background:var(--hover)}
 .obs{font-size:12px;color:var(--fraco);margin-top:7px;line-height:1.45}
 .gravador{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-.compositor{display:flex;gap:8px;align-items:stretch}.compositor textarea{flex:1;min-width:0}
-.compositor .mic{align-self:center;white-space:nowrap}.gravador-chat{margin:6px 0}
+.gravador-chat{margin:6px 0}
 .mic{background:#7f1d1d;color:#fff;font-weight:600}
 .mic.rec{background:#dc2626;animation:bat 1s infinite}
 .tempo{font-variant-numeric:tabular-nums;color:var(--fraco);font-size:13px;min-width:42px}
@@ -1121,10 +1120,11 @@ async function abrir(i){
         title="Prepara a abordagem inicial personalizada em duas mensagens">👋 Abordagem</button>
       <button class="btn sec" id="btCatalogo" onclick="mandaCatalogo(this)"
         title="Envia a apresentação do Provou Catálogo em duas mensagens e um vídeo">💬 Provou Catálogo</button>
+      <button class="btn sec" id="btPlanos" onclick="poeTexto('tabela')"
+        title="Prepara a mensagem com os valores dos sete planos para revisão">💰 Planos</button>
       <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
     </div>
-    <div class="compositor"><textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
-      <button class="mic" id="micChat" onclick="toggleMic()" title="Gravar áudio">🎙️ Gravar</button></div>
+    <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
     <div class="gravador gravador-chat" id="gravadorChat" style="display:none">
       <span class="tempo" id="tempoChat">0:00</span>
       <audio id="previaChat" controls style="display:none;height:34px;max-width:100%"></audio>
@@ -1137,6 +1137,7 @@ async function abrir(i){
       <button class="btn sec" id="btnOcultar" onclick="ocultar(${d.oculto?'false':'true'})"
         title="Some da fila mesmo que a pessoa mande mensagem nova">${
         d.oculto ? '↩︎ Restaurar na fila' : '🚫 Remover da fila'}</button>
+      <button class="mic" id="micChat" onclick="toggleMic()" title="Gravar áudio">🎙️ Gravar</button>
       <span id="st" class="aviso"></span>
     </div>
     <div class="rapidos">
