@@ -61,3 +61,23 @@ class ResponsavelTest(unittest.TestCase):
         self.assertEqual([], painel.fila(busca="Aurora", responsavel="Lucas"))
         self.assertEqual(["d"], [r["chatid"] for r in painel.fila(responsavel="_sem_responsavel")])
         self.assertEqual(4, len(painel.fila()))
+
+    def test_grafico_conta_todas_etapas_sem_removidos_e_suporte(self):
+        painel.cria_banco()
+        c = painel.con()
+        c.executemany("INSERT INTO leads(chatid,nome,status,ultimo_ts,ultimo_de,responsavel,oculto) "
+                      "VALUES(?,?,?,?,?,?,?)", [
+            ("a", "A", "INTERESSADO", 1, "lead", "Dione", 0),
+            ("b", "B", "CONVERTIDO", 2, "nos", "Dione", 0),
+            ("c", "C", "INTERESSADO", 3, "lead", "Lucas", 1),
+            ("d", "D", "INTERESSADO", 4, "lead", None, 0),
+            ("e", "E", "INTERESSADO", 5, "lead", "Lucas", 0),
+        ])
+        c.execute("INSERT INTO mensagens(messageid,chatid,from_me,texto) VALUES(?,?,?,?)",
+                  ("suporte", "e", 0, "Olá! Tive um problema ao usar o provador virtual"))
+        c.commit()
+        dados = painel.contagem()["_responsaveis"]
+        self.assertEqual({"Lucas": 0, "Dione": 2, "": 1}, {r["responsavel"]: r["total"] for r in dados})
+        painel.atribui_responsavel("d", "Lucas")
+        self.assertEqual({"Lucas": 1, "Dione": 2, "": 0},
+                         {r["responsavel"]: r["total"] for r in painel.contagem()["_responsaveis"]})

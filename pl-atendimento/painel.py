@@ -565,6 +565,12 @@ def contagem():
         + SEM_SUPORTE).fetchone()["n"]
     d["_ocultos"] = c.execute(
         "SELECT COUNT(*) n FROM leads WHERE oculto=1").fetchone()["n"]
+    por_responsavel = {r["responsavel"]: r["n"] for r in c.execute(
+        "SELECT COALESCE(NULLIF(TRIM(responsavel),''),'') responsavel, COUNT(*) n "
+        "FROM leads WHERE COALESCE(oculto,0)=0" + SEM_SUPORTE + " GROUP BY 1")}
+    nomes = list(RESPONSAVEIS) + sorted(n for n in por_responsavel if n and n not in RESPONSAVEIS) + [""]
+    d["_responsaveis"] = [{"nome": n or "Sem responsável", "responsavel": n,
+                           "total": por_responsavel.get(n, 0)} for n in nomes]
     return d
 
 
@@ -927,6 +933,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .busca{border-bottom:0;padding:6px 14px 12px}.busca input{background:var(--chip);height:39px}
 .bulkbar{position:static;min-height:46px;background:var(--chip);padding:7px 14px}
 .lista-col>.busca{order:1}.lista-col>.bulkbar{order:2}.lista-col>.lista{order:3}
+.responsaveis-grafico{order:4;flex:none;padding:14px 16px;border-top:1px solid var(--linha);background:var(--card)}
+.grafico-cabecalho{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}
+.grafico-cabecalho h2{display:flex;align-items:center;gap:7px;font-size:13px;margin:0;font-weight:650}
+.grafico-cabecalho .ico{color:var(--roxo2)}.grafico-total{font-size:11px;color:var(--fraco);white-space:nowrap}
+.grafico-escopo{font-size:10.5px;color:var(--fraco);margin:0 0 11px}
+.grafico-linha{margin-top:9px}.grafico-rotulo{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:4px}
+.grafico-rotulo>span{display:flex;align-items:center;gap:6px}.grafico-rotulo b{font-variant-numeric:tabular-nums}
+.grafico-ponto{width:7px;height:7px;border-radius:50%;background:var(--serie)}
+.grafico-trilha{height:6px;border-radius:99px;background:var(--chip);overflow:hidden}
+.grafico-barra{height:100%;background:var(--serie);border-radius:99px;transition:width .25s}
+.grafico-linha{--serie:var(--roxo2)}.grafico-linha[data-responsavel="Dione"]{--serie:var(--azul)}
+.grafico-linha[data-responsavel=""]{--serie:var(--fraco)}
+@media(max-width:900px){.lista-col{height:max(75vh,650px)}}
 .filtro-responsavel{order:1;display:flex;align-items:center;gap:8px;padding:0 14px 12px;
  color:var(--fraco);font-size:12px}.filtro-responsavel>.ico{color:var(--roxo)}
 .filtro-responsavel select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--linha);
@@ -1018,6 +1037,11 @@ textarea:focus{border-color:var(--roxo)}.rapidos{border:1px solid var(--linha);p
       <select id="filtroResponsavel" onchange="setResponsavelFiltro(this.value)"><option value="">Todos</option></select>
     </label>
     <div class="lista" id="lista"></div>
+    <section class="responsaveis-grafico" aria-labelledby="graficoResponsaveisTitulo">
+      <div class="grafico-cabecalho"><h2 id="graficoResponsaveisTitulo"><span data-icon="pipeline"></span>Leads por responsável</h2><span class="grafico-total" id="graficoResponsaveisTotal">…</span></div>
+      <p class="grafico-escopo">Total da prospecção · independente dos filtros</p>
+      <div id="graficoResponsaveis"><span class="tag">Carregando distribuição…</span></div>
+    </section>
   </div>
   <div id="painel" class="painel"><div class="vazio vazio-inicio"><span class="avatar" data-icon="chat"></span>
     <strong>Vamos conversar?</strong><p>Selecione um cliente ao lado para acompanhar a conversa e preparar sua próxima mensagem.</p></div></div>
@@ -1265,6 +1289,7 @@ async function disparaMassa(){
 async function filtros(){
   let n={};
   try{ n=await (await fetch('/api/contagem')).json(); }catch(e){}
+  if(Array.isArray(n._responsaveis))desenhaGraficoResponsaveis(n._responsaveis);
   const rot=[['','Esperando','_esperando'],
              ['_sem_resposta','Sem resposta','_sem_resposta'],
              ...prontos.status.map(s=>[s,s,s]),
@@ -1276,6 +1301,14 @@ async function filtros(){
 }
 function setFiltro(v){ filtro=v; limpaBusca(false); filtros(); carrega(); }
 function setResponsavelFiltro(v){filtroResponsavel=v;carrega();}
+function desenhaGraficoResponsaveis(dados){
+  const total=dados.reduce((s,r)=>s+r.total,0);
+  document.getElementById('graficoResponsaveisTotal').textContent=total.toLocaleString('pt-BR')+' leads';
+  document.getElementById('graficoResponsaveis').innerHTML=dados.map(r=>{
+    const pct=total?r.total/total*100:0;
+    return `<div class="grafico-linha" data-responsavel="${esc(r.responsavel)}"><div class="grafico-rotulo"><span><i class="grafico-ponto" aria-hidden="true"></i>${esc(r.nome)}</span><b>${r.total.toLocaleString('pt-BR')}</b></div><div class="grafico-trilha" role="img" aria-label="${esc(r.nome)}: ${r.total} leads, ${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}% do total"><div class="grafico-barra" style="width:${pct}%"></div></div></div>`;
+  }).join('');
+}
 
 // Mensagens que voce acabou de mandar e a Uazapi ainda esta processando. Elas
 // aparecem na hora, com um relogio, e somem quando a sincronizacao traz a real.
