@@ -832,7 +832,7 @@ overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:a
 <header>
   <h1>Atendimento</h1>
   <div class="filtros" id="filtros"></div>
-  <a class="btn crm-link" href="https://crm.quanticsolutions.com.br/crm/" target="_blank" rel="noopener" title="Abrir o CRM em uma nova aba">Ir para o CRM <span aria-hidden="true">↗</span></a>
+  <a class="btn crm-link" href="https://crm.quanticsolutions.com.br/crm/pipeline" target="_blank" rel="noopener" title="Abrir o Pipeline do CRM em uma nova aba">Ir para o CRM <span aria-hidden="true">↗</span></a>
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
           style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora">🔄 Atualizar</button>
   <button class="btn sec" id="tema" onclick="viraTema()" style="padding:6px 11px;font-size:13px">🌙</button>
