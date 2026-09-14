@@ -933,7 +933,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .busca{border-bottom:0;padding:6px 14px 12px}.busca input{background:var(--chip);height:39px}
 .bulkbar{position:static;min-height:46px;background:var(--chip);padding:7px 14px}
 .lista-col>.busca{order:1}.lista-col>.bulkbar{order:2}.lista-col>.lista{order:3}
-.responsaveis-grafico{order:4;flex:none;padding:14px 16px;border-top:1px solid var(--linha);background:var(--card)}
+.responsaveis-grafico{margin-top:14px;padding:14px 16px;border:1px solid var(--linha);border-radius:12px;background:var(--card)}
 .grafico-cabecalho{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}
 .grafico-cabecalho h2{display:flex;align-items:center;gap:7px;font-size:13px;margin:0;font-weight:650}
 .grafico-cabecalho .ico{color:var(--roxo2)}.grafico-total{font-size:11px;color:var(--fraco);white-space:nowrap}
@@ -945,7 +945,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .grafico-barra{height:100%;background:var(--serie);border-radius:99px;transition:width .25s}
 .grafico-linha{--serie:var(--roxo2)}.grafico-linha[data-responsavel="Dione"]{--serie:var(--azul)}
 .grafico-linha[data-responsavel=""]{--serie:var(--fraco)}
-@media(max-width:900px){.lista-col{height:max(75vh,650px)}}
 .filtro-responsavel{order:1;display:flex;align-items:center;gap:8px;padding:0 14px 12px;
  color:var(--fraco);font-size:12px}.filtro-responsavel>.ico{color:var(--roxo)}
 .filtro-responsavel select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--linha);
@@ -1037,11 +1036,6 @@ textarea:focus{border-color:var(--roxo)}.rapidos{border:1px solid var(--linha);p
       <select id="filtroResponsavel" onchange="setResponsavelFiltro(this.value)"><option value="">Todos</option></select>
     </label>
     <div class="lista" id="lista"></div>
-    <section class="responsaveis-grafico" aria-labelledby="graficoResponsaveisTitulo">
-      <div class="grafico-cabecalho"><h2 id="graficoResponsaveisTitulo"><span data-icon="pipeline"></span>Leads por responsável</h2><span class="grafico-total" id="graficoResponsaveisTotal">…</span></div>
-      <p class="grafico-escopo">Total da prospecção · independente dos filtros</p>
-      <div id="graficoResponsaveis"><span class="tag">Carregando distribuição…</span></div>
-    </section>
   </div>
   <div id="painel" class="painel"><div class="vazio vazio-inicio"><span class="avatar" data-icon="chat"></span>
     <strong>Vamos conversar?</strong><p>Selecione um cliente ao lado para acompanhar a conversa e preparar sua próxima mensagem.</p></div></div>
@@ -1301,7 +1295,10 @@ async function filtros(){
 }
 function setFiltro(v){ filtro=v; limpaBusca(false); filtros(); carrega(); }
 function setResponsavelFiltro(v){filtroResponsavel=v;carrega();}
+let dadosGraficoResponsaveis=null;
 function desenhaGraficoResponsaveis(dados){
+  dadosGraficoResponsaveis=dados;
+  if(!document.getElementById('graficoResponsaveis'))return;
   const total=dados.reduce((s,r)=>s+r.total,0);
   document.getElementById('graficoResponsaveisTotal').textContent=total.toLocaleString('pt-BR')+' leads';
   document.getElementById('graficoResponsaveis').innerHTML=dados.map(r=>{
@@ -1430,7 +1427,12 @@ async function abrir(i){
       <div class="planos-scroll"><table class="planos"><thead><tr><th>Plano</th><th>Mensalidade</th><th>Provas</th><th>Por prova</th></tr></thead><tbody>${prontos.planos.map(p=>
         `<tr><td>${esc(p.nome)}</td><td>${esc(p.preco)}</td><td>${esc(p.fotos)}</td><td>${esc(p.por_prova)}</td></tr>`).join('')}</tbody></table></div>
       <div class="obs">Sem custo de instalação · integração no mesmo dia · 7 dias grátis.</div>
-    </div></div>
+    </div>
+    <section class="responsaveis-grafico" aria-labelledby="graficoResponsaveisTitulo">
+      <div class="grafico-cabecalho"><h2 id="graficoResponsaveisTitulo">${icone('pipeline')}Leads por responsável</h2><span class="grafico-total" id="graficoResponsaveisTotal">…</span></div>
+      <p class="grafico-escopo">Total da prospecção · independente dos filtros</p>
+      <div id="graficoResponsaveis"><span class="tag">Carregando distribuição…</span></div>
+    </section></div>
     <div class="drawer-fundo" id="drawerFundo" hidden onclick="toggleDadosLead(false)"></div>
     <aside class="lead-drawer" id="leadDrawer" aria-label="Dados do lead" hidden>
       <div class="drawer-head"><h2>${icone('user')} Dados do lead</h2><button class="btn sec drawer-fechar" id="fechaDadosLead" onclick="toggleDadosLead(false)" aria-label="Fechar dados do lead">✕</button></div>
@@ -1440,6 +1442,7 @@ async function abrir(i){
       <section id="crm" class="crm-card" aria-live="polite"><div class="crm-head"><span class="crm-title">Carregando dados do CRM…</span></div></section>
     </aside>`;
   document.getElementById('chat').scrollTop=9e9;
+  if(dadosGraficoResponsaveis)desenhaGraficoResponsaveis(dadosGraficoResponsaveis);
   crmNotas=[];
 }
 
