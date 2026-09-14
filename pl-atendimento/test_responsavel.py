@@ -82,6 +82,13 @@ class ResponsavelTest(unittest.TestCase):
                          next(r["etapas"] for r in dados if r["responsavel"] == "Dione"))
         for r in dados:
             self.assertEqual(r["total"], sum(r["etapas"].values()))
+        self.assertEqual(0, sum(r["sem_resposta"] for r in dados))
+        c.execute("UPDATE leads SET ultimo_de='nos' WHERE chatid IN ('a','d','e')")
+        c.commit()
+        contagem = painel.contagem()
+        self.assertEqual({"Lucas": 0, "Dione": 1, "": 1},
+                         {r["responsavel"]: r["sem_resposta"] for r in contagem["_responsaveis"]})
+        self.assertEqual(contagem["_sem_resposta"], sum(r["sem_resposta"] for r in contagem["_responsaveis"]))
         painel.atribui_responsavel("d", "Lucas")
         self.assertEqual({"Lucas": 1, "Dione": 2, "": 0},
                          {r["responsavel"]: r["total"] for r in painel.contagem()["_responsaveis"]})

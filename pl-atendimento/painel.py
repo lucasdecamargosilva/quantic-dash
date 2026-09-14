@@ -566,14 +566,18 @@ def contagem():
     d["_ocultos"] = c.execute(
         "SELECT COUNT(*) n FROM leads WHERE oculto=1").fetchone()["n"]
     por_responsavel = {}
+    sem_resposta_responsavel = {}
     for r in c.execute(
         "SELECT COALESCE(NULLIF(TRIM(responsavel),''),'') responsavel, "
-        "COALESCE(status,'INTERESSADO') etapa, COUNT(*) n FROM leads "
+        "COALESCE(status,'INTERESSADO') etapa, COUNT(*) n, "
+        "SUM(CASE WHEN ultimo_de='nos' AND status NOT IN ('CONVERTIDO','PERDIDO') THEN 1 ELSE 0 END) sem_resposta FROM leads "
         "WHERE COALESCE(oculto,0)=0" + SEM_SUPORTE + " GROUP BY 1,2"):
         por_responsavel.setdefault(r["responsavel"], {})[r["etapa"]] = r["n"]
+        sem_resposta_responsavel[r["responsavel"]] = sem_resposta_responsavel.get(r["responsavel"], 0) + r["sem_resposta"]
     nomes = list(RESPONSAVEIS) + sorted(n for n in por_responsavel if n and n not in RESPONSAVEIS) + [""]
     d["_responsaveis"] = [{"nome": n or "Sem responsável", "responsavel": n,
                            "total": sum(por_responsavel.get(n, {}).values()),
+                           "sem_resposta": sem_resposta_responsavel.get(n, 0),
                            "etapas": {**dict.fromkeys(STATUS, 0), **por_responsavel.get(n, {})}} for n in nomes]
     return d
 
@@ -955,6 +959,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .grafico-etapa b{color:var(--txt);font-variant-numeric:tabular-nums}.grafico-etapa::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--etapa-cor,var(--fraco))}
 .grafico-etapa[data-etapa="INTERESSADO"]{--etapa-cor:var(--alerta)}.grafico-etapa[data-etapa="TESTE GRÁTIS"]{--etapa-cor:var(--azul)}
 .grafico-etapa[data-etapa="CONVERTIDO"]{--etapa-cor:var(--ok)}.grafico-etapa[data-etapa="PERDIDO"]{--etapa-cor:var(--verm)}
+.grafico-etapa[data-etapa="SEM RESPOSTA"]{--etapa-cor:var(--roxo2);border-style:dashed}
 .filtro-responsavel{order:1;display:flex;align-items:center;gap:8px;padding:0 14px 12px;
  color:var(--fraco);font-size:12px}.filtro-responsavel>.ico{color:var(--roxo)}
 .filtro-responsavel select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--linha);
@@ -1314,7 +1319,8 @@ function desenhaGraficoResponsaveis(dados){
   document.getElementById('graficoResponsaveis').innerHTML=dados.map(r=>{
     const pct=total?r.total/total*100:0;
     const rotulos={'INTERESSADO':'Interessados','TESTE GRÁTIS':'Teste grátis','CONVERTIDO':'Convertidos','PERDIDO':'Perdidos'};
-    const etapas=Object.entries(r.etapas||{}).map(([etapa,n])=>`<span class="grafico-etapa" data-etapa="${esc(etapa)}">${esc(rotulos[etapa]||etapa)}<b>${n.toLocaleString('pt-BR')}</b></span>`).join('');
+    const etapas=Object.entries(r.etapas||{}).map(([etapa,n])=>`<span class="grafico-etapa" data-etapa="${esc(etapa)}">${esc(rotulos[etapa]||etapa)}<b>${n.toLocaleString('pt-BR')}</b></span>`).join('')+
+      `<span class="grafico-etapa" data-etapa="SEM RESPOSTA" title="Leads aguardando resposta do cliente. Já incluídos nas etapas e no total acima.">Sem resposta<b>${(r.sem_resposta||0).toLocaleString('pt-BR')}</b></span>`;
     return `<div class="grafico-linha" data-responsavel="${esc(r.responsavel)}"><div class="grafico-rotulo"><span><i class="grafico-ponto" aria-hidden="true"></i>${esc(r.nome)}</span><b>${r.total.toLocaleString('pt-BR')}</b></div><div class="grafico-trilha" role="img" aria-label="${esc(r.nome)}: ${r.total} leads, ${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}% do total"><div class="grafico-barra" style="width:${pct}%"></div></div><div class="grafico-etapas">${etapas}</div></div>`;
   }).join('');
 }
