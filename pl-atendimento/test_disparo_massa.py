@@ -155,6 +155,19 @@ class DisparoMassaTest(unittest.TestCase):
             "file": "data:video/mp4;base64,AAAA",
         })
 
+    def test_preco_por_prova_cai_a_cada_plano_e_termina_em_055(self):
+        taxas = []
+        texto_planos = next(t["texto"] for t in painel.TEXTOS if t["id"] == "tabela")
+        for plano in painel.PLANOS:
+            preco = int(plano["preco"].removeprefix("R$ ").replace(".", ""))
+            provas = int(plano["fotos"].replace(".", ""))
+            taxa = float(plano["por_prova"].removeprefix("R$ ").replace(",", "."))
+            self.assertAlmostEqual(preco / provas, taxa, delta=0.005)
+            self.assertIn(plano["preco"], texto_planos)
+            taxas.append(taxa)
+        self.assertTrue(all(a > b for a, b in zip(taxas, taxas[1:])))
+        self.assertEqual(0.55, taxas[-1])
+
 
 if __name__ == "__main__":
     unittest.main()

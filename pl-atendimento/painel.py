@@ -84,10 +84,10 @@ O que a Provou Levou vende:
 Planos mensais do Provou Catálogo:
   Essencial = R$ 39, com 50 provas virtuais
   Crescimento = R$ 79, com 120 provas virtuais
-  Profissional = R$ 149, com 250 provas virtuais
-  Escala = R$ 279, com 500 provas virtuais
-  Volume 1.000 = R$ 555, com 1.000 provas virtuais
-  Volume 1.500 = R$ 830, com 1.500 provas virtuais
+  Profissional = R$ 159, com 250 provas virtuais
+  Escala = R$ 309, com 500 provas virtuais
+  Volume 1.000 = R$ 599, com 1.000 provas virtuais
+  Volume 1.500 = R$ 869, com 1.500 provas virtuais
   Volume 2.500 = R$ 1.375, com 2.500 provas virtuais
 São 7 dias grátis para testar; no fim do teste recomendamos o pacote adequado.
 
@@ -116,13 +116,13 @@ AUDIOS = [
 # Tabela pra CONSULTA na tela — a equipe olha enquanto conversa.
 # (o texto de envio fica em TEXTOS['tabela'])
 PLANOS = [
- {"nome": "Essencial",     "preco": "R$ 39",  "fotos": "50"},
- {"nome": "Crescimento",   "preco": "R$ 79",  "fotos": "120"},
- {"nome": "Profissional",  "preco": "R$ 149", "fotos": "250"},
- {"nome": "Escala",        "preco": "R$ 279", "fotos": "500"},
- {"nome": "Volume 1.000",  "preco": "R$ 555", "fotos": "1.000"},
- {"nome": "Volume 1.500",  "preco": "R$ 830", "fotos": "1.500"},
- {"nome": "Volume 2.500",  "preco": "R$ 1.375", "fotos": "2.500"},
+ {"nome": "Essencial",     "preco": "R$ 39",    "fotos": "50",    "por_prova": "R$ 0,78"},
+ {"nome": "Crescimento",   "preco": "R$ 79",    "fotos": "120",   "por_prova": "R$ 0,66"},
+ {"nome": "Profissional",  "preco": "R$ 159",   "fotos": "250",   "por_prova": "R$ 0,64"},
+ {"nome": "Escala",        "preco": "R$ 309",   "fotos": "500",   "por_prova": "R$ 0,62"},
+ {"nome": "Volume 1.000",  "preco": "R$ 599",   "fotos": "1.000", "por_prova": "R$ 0,60"},
+ {"nome": "Volume 1.500",  "preco": "R$ 869",   "fotos": "1.500", "por_prova": "R$ 0,58"},
+ {"nome": "Volume 2.500",  "preco": "R$ 1.375", "fotos": "2.500", "por_prova": "R$ 0,55"},
 ]
 
 COMBOS = [
@@ -148,10 +148,10 @@ TEXTOS = [
   "texto": "Nossos pacotes mensais do Provou Catálogo são:\n\n"
            "*Essencial* — R$ 39 — 50 provas virtuais\n"
            "*Crescimento* — R$ 79 — 120 provas virtuais\n"
-           "*Profissional* — R$ 149 — 250 provas virtuais\n"
-           "*Escala* — R$ 279 — 500 provas virtuais\n"
-           "*Volume 1.000* — R$ 555 — 1.000 provas virtuais\n"
-           "*Volume 1.500* — R$ 830 — 1.500 provas virtuais\n"
+           "*Profissional* — R$ 159 — 250 provas virtuais\n"
+           "*Escala* — R$ 309 — 500 provas virtuais\n"
+           "*Volume 1.000* — R$ 599 — 1.000 provas virtuais\n"
+           "*Volume 1.500* — R$ 869 — 1.500 provas virtuais\n"
            "*Volume 2.500* — R$ 1.375 — 2.500 provas virtuais\n\n"
            "Não tem custo de instalação, a integração a gente faz no mesmo dia e você "
            "testa 7 dias grátis antes de escolher o pacote."},
@@ -825,7 +825,7 @@ white-space:normal;line-height:1.35}
 .chip.combo::before{content:'▶▶ ';color:var(--roxo2)}
 .chip.enviado{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}
 .chip.enviado::after{content:' ✓';color:var(--ok);font-weight:700}
-.planos{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:2px}
+.planos-scroll{max-width:100%;overflow-x:auto}.planos{width:100%;min-width:440px;border-collapse:collapse;font-size:13.5px;margin-top:2px}
 .planos th,.planos td{padding:6px 8px;border-bottom:1px solid var(--linha);text-align:left}
 .planos th{font-size:11px;color:var(--fraco);font-weight:700;text-transform:uppercase;letter-spacing:.35px}
 .planos tr:last-child td{border-bottom:0}
@@ -1203,8 +1203,8 @@ async function abrir(i){
     </div>
     <div class="rapidos">
       <h3>Planos — para consultar</h3>
-      <table class="planos"><thead><tr><th>Plano</th><th>Mensalidade</th><th>Provas</th></tr></thead><tbody>${prontos.planos.map(p=>
-        `<tr><td>${esc(p.nome)}</td><td>${esc(p.preco)}</td><td>${esc(p.fotos)}</td></tr>`).join('')}</tbody></table>
+      <div class="planos-scroll"><table class="planos"><thead><tr><th>Plano</th><th>Mensalidade</th><th>Provas</th><th>Por prova</th></tr></thead><tbody>${prontos.planos.map(p=>
+        `<tr><td>${esc(p.nome)}</td><td>${esc(p.preco)}</td><td>${esc(p.fotos)}</td><td>${esc(p.por_prova)}</td></tr>`).join('')}</tbody></table></div>
       <div class="obs">Sem custo de instalação · integração no mesmo dia · 7 dias grátis.</div>
     </div>`;
   document.getElementById('chat').scrollTop=9e9;
