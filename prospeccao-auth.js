@@ -73,7 +73,7 @@ function createSession(user, secret, now = Date.now()) {
     return `${payload}.${signature}`;
 }
 
-function readSession(token, secret, accounts, now = Date.now()) {
+function readSession(token, secret, accounts, now = Date.now(), revokedBefore = {}) {
     if (typeof token !== 'string' || token.length > 2048) return null;
     const [payload, signature, extra] = token.split('.');
     if (!payload || !signature || extra) return null;
@@ -82,6 +82,8 @@ function readSession(token, secret, accounts, now = Date.now()) {
     try {
         const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
         if (typeof session.user !== 'string' || !Number.isFinite(session.exp) || session.exp <= now) return null;
+        const cutoff = revokedBefore[session.user];
+        if (Number.isFinite(cutoff) && session.exp - 7 * 24 * 60 * 60 * 1000 <= cutoff) return null;
         return accounts.some(([user]) => safeEqual(user, session.user)) ? session.user : null;
     } catch (_) {
         return null;

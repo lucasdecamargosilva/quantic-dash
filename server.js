@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
 const { loadAccounts, isAuthorized, createSession, readSession } = require('./prospeccao-auth');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
@@ -139,7 +140,19 @@ app.use((req, res, next) => {
 // 2a-ter. Painel de prospecção — processo Python interno protegido por acesso próprio.
 // A credencial anterior continua válida; usuários adicionais têm senha própria.
 // Configure somente hashes no ambiente do serviço, nunca no Git.
-const PROSPECCAO_ACCOUNTS = loadAccounts();
+const LUCAS_AUTH_FILE = '/data/prospeccao/lucas-auth.json';
+const PROSPECCAO_ENV = { ...process.env };
+const PROSPECCAO_REVOKED_BEFORE = {};
+if (fs.existsSync(LUCAS_AUTH_FILE)) {
+    const credential = JSON.parse(fs.readFileSync(LUCAS_AUTH_FILE, 'utf8'));
+    if (PROSPECCAO_ENV.PROSPECCAO_USER !== 'lucas' ||
+        !/^[a-f0-9]{64}$/.test(credential.hash) || !Number.isFinite(credential.invalidBefore)) {
+        throw new Error('Credencial persistente do Lucas inválida.');
+    }
+    PROSPECCAO_ENV.PROSPECCAO_PASSWORD_HASH = credential.hash;
+    PROSPECCAO_REVOKED_BEFORE[PROSPECCAO_ENV.PROSPECCAO_USER] = credential.invalidBefore;
+}
+const PROSPECCAO_ACCOUNTS = loadAccounts(PROSPECCAO_ENV);
 const PROSPECCAO_SESSION_SECRET = process.env.PROSPECCAO_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const loginAttempts = new Map();
 const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|midia|conversa|crm(?:\/.*)?|ocultar|status|enviar|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
@@ -154,7 +167,8 @@ function origemProspeccaoValida(req) {
 
 function usuarioDaSessao(req) {
     const cookie = (req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('prospeccao_session='));
-    return readSession(cookie?.slice('prospeccao_session='.length), PROSPECCAO_SESSION_SECRET, PROSPECCAO_ACCOUNTS);
+    return readSession(cookie?.slice('prospeccao_session='.length), PROSPECCAO_SESSION_SECRET,
+        PROSPECCAO_ACCOUNTS, Date.now(), PROSPECCAO_REVOKED_BEFORE);
 }
 
 function autenticaProspeccao(req, res, next) {

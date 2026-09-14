@@ -21,6 +21,10 @@ Para dar acesso individual a outras pessoas sem substituir o login existente,
 configure também `PROSPECCAO_USERS_JSON` como um objeto JSON que associa cada
 usuário ao hash SHA-256 de sua senha, por exemplo
 `{"dione":"<hash SHA-256 da senha individual>"}`. Não salve senhas nem hashes no Git.
+Após um reset do usuário `lucas`, o serviço lê o hash de
+`/data/prospeccao/lucas-auth.json` (`hash` e `invalidBefore` em milissegundos),
+que prevalece sobre `PROSPECCAO_PASSWORD_HASH`. O arquivo fica no volume
+persistente e revoga apenas as sessões do Lucas anteriores ao reset.
 Configure `PROSPECCAO_SESSION_SECRET` com uma chave aleatória longa para manter as
 sessões válidas após reinícios do serviço. Sem ela, a chave muda a cada reinício.
 Sem esses campos a rota permanece fechada. O serviço Python continua acessível

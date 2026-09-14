@@ -37,3 +37,14 @@ test('sessão assinada expira, não aceita alteração e respeita usuários ativ
     assert.equal(readSession(token, 'segredo', [], 1001), null);
     assert.equal(readSession(token, 'segredo', accounts, 1000 + 7 * 24 * 60 * 60 * 1000), null);
 });
+
+test('reset revoga sessões antigas só do usuário afetado', () => {
+    const accounts = [['lucas', hash('nova-senha')], ['dione', hash('senha-dione')]];
+    const oldLucas = createSession('lucas', 'segredo', 1000);
+    const oldDione = createSession('dione', 'segredo', 1000);
+    const newLucas = createSession('lucas', 'segredo', 3000);
+    const revoked = { lucas: 2000 };
+    assert.equal(readSession(oldLucas, 'segredo', accounts, 3001, revoked), null);
+    assert.equal(readSession(oldDione, 'segredo', accounts, 3001, revoked), 'dione');
+    assert.equal(readSession(newLucas, 'segredo', accounts, 3001, revoked), 'lucas');
+});
