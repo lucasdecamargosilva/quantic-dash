@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10112b">
+  <title>Entrar · Painel de Prospecção</title>
+  <style>
+    :root { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #252744; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #f6f5fa; }
+    .layout { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(440px, 1fr); min-height: 100vh; }
+    .intro { position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: clamp(32px, 5vw, 72px); background: radial-gradient(circle at 82% 13%, #363387 0, transparent 35%), linear-gradient(145deg, #171741, #100f2c 80%); color: #fff; }
+    .intro:after { content: ""; position: absolute; width: 650px; height: 650px; bottom: -410px; right: -180px; border: 1px solid rgba(255,255,255,.13); border-radius: 50%; box-shadow: 0 0 0 85px rgba(255,255,255,.025), 0 0 0 170px rgba(255,255,255,.025); pointer-events: none; }
+    .brand { display: flex; align-items: center; gap: 13px; position: relative; z-index: 1; font-size: 18px; font-weight: 750; letter-spacing: -.03em; }
+    .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; background: linear-gradient(135deg, #a397ff, #7047dd); box-shadow: 0 10px 24px rgba(0,0,0,.18); font-size: 22px; }
+    .intro-copy { position: relative; z-index: 1; max-width: 540px; padding-bottom: 25px; }
+    .eyebrow { color: #aaa1ff; font-size: 12px; font-weight: 750; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 20px 0 18px; font-size: clamp(38px, 4.5vw, 66px); line-height: 1.07; letter-spacing: -.055em; }
+    .intro-copy p { max-width: 410px; color: #c7c7dc; font-size: 17px; line-height: 1.7; }
+    .intro-foot { position: relative; z-index: 1; color: #aaa9c7; font-size: 13px; }
+    .form-area { display: grid; place-items: center; padding: 36px; }
+    .card { width: min(100%, 430px); }
+    .card-top { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 35px; padding: 8px 12px; border: 1px solid #e5e2f3; border-radius: 999px; color: #6552ac; background: #fff; font-size: 12px; font-weight: 700; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #805ae8; }
+    h2 { margin: 0 0 10px; color: #1e1d35; font-size: 34px; letter-spacing: -.04em; }
+    .subtitle { margin: 0 0 36px; color: #77778b; line-height: 1.6; }
+    label { display: block; margin: 0 0 9px; font-size: 14px; font-weight: 700; }
+    .field { margin-bottom: 22px; }
+    .input-wrap { position: relative; }
+    input { width: 100%; height: 54px; padding: 0 16px; border: 1px solid #deddea; border-radius: 12px; outline: none; background: #fff; color: #23233d; font: inherit; transition: border-color .15s, box-shadow .15s; }
+    input::placeholder { color: #aaaabb; }
+    input:focus { border-color: #7353d2; box-shadow: 0 0 0 4px rgba(115,83,210,.12); }
+    .password-input { padding-right: 78px; }
+    .show { position: absolute; right: 10px; top: 8px; height: 38px; padding: 0 10px; border: 0; background: transparent; color: #6c5aab; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .submit { width: 100%; height: 54px; margin-top: 8px; border: 0; border-radius: 12px; color: #fff; background: linear-gradient(110deg, #7045d5, #5e31bd); box-shadow: 0 10px 20px rgba(92,48,192,.18); font: inherit; font-weight: 750; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+    .submit:hover { transform: translateY(-1px); box-shadow: 0 14px 24px rgba(92,48,192,.23); }
+    .submit:disabled { opacity: .7; cursor: wait; transform: none; }
+    .error { min-height: 20px; margin: -2px 0 12px; color: #b53954; font-size: 13px; line-height: 1.5; }
+    .help { margin-top: 29px; color: #9291a3; font-size: 12px; line-height: 1.5; text-align: center; }
+    @media (max-width: 850px) { .layout { grid-template-columns: 1fr; } .intro { min-height: 225px; padding: 30px; } .intro-copy { padding: 0; } .intro-copy h1 { font-size: 34px; margin: 20px 0 8px; } .intro-copy p, .intro-foot, .eyebrow { display: none; } .form-area { padding: 38px 24px 60px; } .card-top { margin-bottom: 24px; } }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="intro" aria-label="Painel de Prospecção">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span> Quantic Dash</div>
+      <div class="intro-copy">
+        <div class="eyebrow">Provou Levou · Comercial</div>
+        <h1>Boas conversas começam aqui.</h1>
+        <p>Acompanhe seus contatos, responda clientes e avance cada oportunidade em um só lugar.</p>
+      </div>
+      <div class="intro-foot">Painel de Prospecção · Acesso da equipe</div>
+    </section>
+    <section class="form-area" aria-label="Entrar no painel">
+      <div class="card">
+        <div class="card-top"><span class="dot"></span> ACESSO AO PAINEL</div>
+        <h2>Bem-vindo de volta</h2>
+        <p class="subtitle">Entre com seu usuário e senha para continuar.</p>
+        <form id="login-form">
+          <div class="field"><label for="usuario">Usuário</label><input id="usuario" name="usuario" type="text" autocomplete="username" placeholder="Seu usuário" required autofocus></div>
+          <div class="field"><label for="senha">Senha</label><div class="input-wrap"><input id="senha" class="password-input" name="senha" type="password" autocomplete="current-password" placeholder="Digite sua senha" required><button class="show" id="show-password" type="button" aria-label="Mostrar senha">Mostrar</button></div></div>
+          <p class="error" id="error" role="alert" aria-live="polite"></p>
+          <button class="submit" id="submit" type="submit">Entrar no painel</button>
+        </form>
+        <p class="help">Acesso exclusivo para a equipe comercial da Provou Levou.</p>
+      </div>
+    </section>
+  </main>
+  <script>
+    const form = document.getElementById('login-form');
+    const submit = document.getElementById('submit');
+    const error = document.getElementById('error');
+    const password = document.getElementById('senha');
+    const show = document.getElementById('show-password');
+    show.addEventListener('click', () => {
+      const visible = password.type === 'password';
+      password.type = visible ? 'text' : 'password';
+      show.textContent = visible ? 'Ocultar' : 'Mostrar';
+      show.setAttribute('aria-label', visible ? 'Ocultar senha' : 'Mostrar senha');
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      error.textContent = '';
+      submit.disabled = true;
+      submit.textContent = 'Entrando...';
+      try {
+        const response = await fetch('/prospeccao/session', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ usuario: document.getElementById('usuario').value.trim(), senha: password.value }),
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Não foi possível entrar. Tente novamente.');
+        }
+        window.location.replace('/prospeccao/');
+      } catch (err) {
+        error.textContent = err.message;
+        submit.disabled = false;
+        submit.textContent = 'Entrar no painel';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
-const { loadAccounts, isAuthorized } = require('../prospeccao-auth');
+const { loadAccounts, isAuthorized, createSession, readSession } = require('../prospeccao-auth');
 
 const hash = (password) => crypto.createHash('sha256').update(password).digest('hex');
 const basic = (user, password) => `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;
@@ -27,4 +27,13 @@ test('sem credenciais configuradas, o painel fica fechado', () => {
 test('rejeita configuração adicional inválida', () => {
     assert.throws(() => loadAccounts({ PROSPECCAO_USERS_JSON: '{' }));
     assert.throws(() => loadAccounts({ PROSPECCAO_USERS_JSON: '{"dione":"senha-em-claro"}' }));
+});
+
+test('sessão assinada expira, não aceita alteração e respeita usuários ativos', () => {
+    const accounts = [['dione', hash('senha-dione')]];
+    const token = createSession('dione', 'segredo', 1000);
+    assert.equal(readSession(token, 'segredo', accounts, 1001), 'dione');
+    assert.equal(readSession(token, 'outro-segredo', accounts, 1001), null);
+    assert.equal(readSession(token, 'segredo', [], 1001), null);
+    assert.equal(readSession(token, 'segredo', accounts, 1000 + 7 * 24 * 60 * 60 * 1000), null);
 });

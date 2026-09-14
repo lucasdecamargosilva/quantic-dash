@@ -67,4 +67,25 @@ function isAuthorized(header, accounts) {
     return authorized;
 }
 
-module.exports = { loadAccounts, isAuthorized };
+function createSession(user, secret, now = Date.now()) {
+    const payload = Buffer.from(JSON.stringify({ user, exp: now + 7 * 24 * 60 * 60 * 1000 })).toString('base64url');
+    const signature = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+    return `${payload}.${signature}`;
+}
+
+function readSession(token, secret, accounts, now = Date.now()) {
+    if (typeof token !== 'string' || token.length > 2048) return null;
+    const [payload, signature, extra] = token.split('.');
+    if (!payload || !signature || extra) return null;
+    const expected = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+    if (!safeEqual(signature, expected)) return null;
+    try {
+        const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+        if (typeof session.user !== 'string' || !Number.isFinite(session.exp) || session.exp <= now) return null;
+        return accounts.some(([user]) => safeEqual(user, session.user)) ? session.user : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+module.exports = { loadAccounts, isAuthorized, createSession, readSession };

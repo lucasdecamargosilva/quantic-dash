@@ -2,7 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const { loadAccounts, isAuthorized } = require('./prospeccao-auth');
+const crypto = require('crypto');
+const { loadAccounts, isAuthorized, createSession, readSession } = require('./prospeccao-auth');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
@@ -139,26 +140,68 @@ app.use((req, res, next) => {
 // A credencial anterior continua válida; usuários adicionais têm senha própria.
 // Configure somente hashes no ambiente do serviço, nunca no Git.
 const PROSPECCAO_ACCOUNTS = loadAccounts();
+const PROSPECCAO_SESSION_SECRET = process.env.PROSPECCAO_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const loginAttempts = new Map();
 const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|midia|conversa|crm(?:\/.*)?|ocultar|status|enviar|audio|combo|combo_status|catalogo|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
 
+function origemProspeccaoValida(req) {
+    const origem = req.headers.origin;
+    if (req.headers['sec-fetch-site'] === 'cross-site') return false;
+    if (!origem) return true;
+    try { return new URL(origem).host === req.headers.host; }
+    catch (_) { return false; }
+}
+
+function usuarioDaSessao(req) {
+    const cookie = (req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('prospeccao_session='));
+    return readSession(cookie?.slice('prospeccao_session='.length), PROSPECCAO_SESSION_SECRET, PROSPECCAO_ACCOUNTS);
+}
+
 function autenticaProspeccao(req, res, next) {
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-        const origem = req.headers.origin;
-        const site = req.headers['sec-fetch-site'];
-        let origemValida = true;
-        try { if (origem) origemValida = new URL(origem).host === req.headers.host; }
-        catch (_) { origemValida = false; }
-        if (!origemValida || site === 'cross-site') {
-            return res.sendStatus(403);
-        }
-    }
-    if (isAuthorized(req.headers.authorization, PROSPECCAO_ACCOUNTS)) {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !origemProspeccaoValida(req)) return res.sendStatus(403);
+    if (usuarioDaSessao(req) || isAuthorized(req.headers.authorization, PROSPECCAO_ACCOUNTS)) {
         res.setHeader('Cache-Control', 'no-store');
         return next();
     }
-    res.setHeader('WWW-Authenticate', 'Basic realm="Painel de prospecção", charset="UTF-8"');
-    return res.status(401).send('Acesso restrito.');
+    res.setHeader('Cache-Control', 'no-store');
+    if (req.path === '/prospeccao/' || req.path === '/prospeccao') return res.redirect(303, '/prospeccao/login');
+    return res.status(401).json({ error: 'Faça login para acessar o painel.' });
 }
+
+app.get('/prospeccao/login', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (usuarioDaSessao(req)) return res.redirect('/prospeccao/');
+    res.sendFile(path.join(__dirname, 'prospeccao-login.html'));
+});
+
+app.post('/prospeccao/session', express.json({ limit: '4kb' }), (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (!origemProspeccaoValida(req)) return res.sendStatus(403);
+    const ip = req.ip;
+    const now = Date.now();
+    const attempts = loginAttempts.get(ip) || { count: 0, until: now + 15 * 60 * 1000 };
+    if (attempts.until < now) { attempts.count = 0; attempts.until = now + 15 * 60 * 1000; }
+    if (attempts.count >= 10) return res.status(429).json({ error: 'Muitas tentativas. Tente novamente em alguns minutos.' });
+    const { usuario, senha } = req.body || {};
+    if (typeof usuario !== 'string' || typeof senha !== 'string' || usuario.length > 100 || senha.length > 200 ||
+        !isAuthorized(`Basic ${Buffer.from(`${usuario}:${senha}`).toString('base64')}`, PROSPECCAO_ACCOUNTS)) {
+        attempts.count++;
+        loginAttempts.set(ip, attempts);
+        return res.status(401).json({ error: 'Usuário ou senha incorretos.' });
+    }
+    loginAttempts.delete(ip);
+    res.cookie('prospeccao_session', createSession(usuario, PROSPECCAO_SESSION_SECRET), {
+        httpOnly: true, sameSite: 'lax', secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+        path: '/', maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    res.json({ ok: true });
+});
+
+app.post('/prospeccao/logout', (req, res) => {
+    if (!origemProspeccaoValida(req)) return res.sendStatus(403);
+    res.clearCookie('prospeccao_session', { path: '/' });
+    res.json({ ok: true });
+});
 
 const prospeccaoProxy = createProxyMiddleware({
     target: 'http://127.0.0.1:8781',
