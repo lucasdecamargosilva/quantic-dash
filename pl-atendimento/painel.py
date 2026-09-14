@@ -82,10 +82,13 @@ O que a Provou Levou vende:
 - Em ambos, criamos um grupo no WhatsApp onde o lojista acompanha cada prova em tempo real.
 
 Planos mensais do Provou Catálogo:
-  Essencial = R$ 39, com 50 fotos
-  Crescimento = R$ 79, com 120 fotos
-  Profissional = R$ 149, com 250 fotos
-  Escala = R$ 279, com 500 fotos
+  Essencial = R$ 39, com 50 provas virtuais
+  Crescimento = R$ 79, com 120 provas virtuais
+  Profissional = R$ 149, com 250 provas virtuais
+  Escala = R$ 279, com 500 provas virtuais
+  Volume 1.000 = R$ 555, com 1.000 provas virtuais
+  Volume 1.500 = R$ 830, com 1.500 provas virtuais
+  Volume 2.500 = R$ 1.375, com 2.500 provas virtuais
 São 7 dias grátis para testar; no fim do teste recomendamos o pacote adequado.
 
 Como você escreve no WhatsApp:
@@ -110,13 +113,16 @@ AUDIOS = [
   "resumo": "7 dias grátis pra testar; no fim indicamos o pacote pelo volume real. Pede logo + e-mail pra montar o catálogo."},
 ]
 
-# Tabela pra CONSULTA na tela — o Lucas olha enquanto conversa.
+# Tabela pra CONSULTA na tela — a equipe olha enquanto conversa.
 # (o texto de envio fica em TEXTOS['tabela'])
 PLANOS = [
  {"nome": "Essencial",     "preco": "R$ 39",  "fotos": "50"},
  {"nome": "Crescimento",   "preco": "R$ 79",  "fotos": "120"},
  {"nome": "Profissional",  "preco": "R$ 149", "fotos": "250"},
  {"nome": "Escala",        "preco": "R$ 279", "fotos": "500"},
+ {"nome": "Volume 1.000",  "preco": "R$ 555", "fotos": "1.000"},
+ {"nome": "Volume 1.500",  "preco": "R$ 830", "fotos": "1.500"},
+ {"nome": "Volume 2.500",  "preco": "R$ 1.375", "fotos": "2.500"},
 ]
 
 COMBOS = [
@@ -140,10 +146,13 @@ TEXTOS = [
   "texto": "Oi, Conseguiu dar uma olhada no que te enviei sobre o Provador Virtual?"},
  {"id": "tabela", "rotulo": "Tabela de planos",
   "texto": "Nossos pacotes mensais do Provou Catálogo são:\n\n"
-           "*Essencial* — R$ 39 — 50 fotos\n"
-           "*Crescimento* — R$ 79 — 120 fotos\n"
-           "*Profissional* — R$ 149 — 250 fotos\n"
-           "*Escala* — R$ 279 — 500 fotos\n\n"
+           "*Essencial* — R$ 39 — 50 provas virtuais\n"
+           "*Crescimento* — R$ 79 — 120 provas virtuais\n"
+           "*Profissional* — R$ 149 — 250 provas virtuais\n"
+           "*Escala* — R$ 279 — 500 provas virtuais\n"
+           "*Volume 1.000* — R$ 555 — 1.000 provas virtuais\n"
+           "*Volume 1.500* — R$ 830 — 1.500 provas virtuais\n"
+           "*Volume 2.500* — R$ 1.375 — 2.500 provas virtuais\n\n"
            "Não tem custo de instalação, a integração a gente faz no mesmo dia e você "
            "testa 7 dias grátis antes de escolher o pacote."},
  {"id": "dadoscatalogo", "rotulo": "Pedir logo + e-mail",
@@ -1132,7 +1141,7 @@ async function abrir(i){
     </div>
     <div class="rapidos">
       <h3>Planos — para consultar</h3>
-      <table class="planos"><thead><tr><th>Plano</th><th>Mensalidade</th><th>Fotos</th></tr></thead><tbody>${prontos.planos.map(p=>
+      <table class="planos"><thead><tr><th>Plano</th><th>Mensalidade</th><th>Provas</th></tr></thead><tbody>${prontos.planos.map(p=>
         `<tr><td>${esc(p.nome)}</td><td>${esc(p.preco)}</td><td>${esc(p.fotos)}</td></tr>`).join('')}</tbody></table>
       <div class="obs">Sem custo de instalação · integração no mesmo dia · 7 dias grátis.</div>
       <h3 style="margin-top:14px">Áudios avulsos</h3>
