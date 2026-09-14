@@ -764,7 +764,8 @@ min-height:0;height:100%;position:relative;overflow:auto}
 @media(max-width:900px){body{overflow:auto}.wrap{display:block;overflow:visible;flex:none}.lista-col{height:55vh}
 .painel{height:auto;min-height:55vh;overflow:visible}}
 .vazio{color:var(--fraco);text-align:center;padding:60px 20px}
-.chat{max-height:42vh;overflow:auto;display:flex;flex-direction:column;gap:7px;margin:12px 0;padding-right:4px}
+.chat{height:clamp(340px,58vh,700px);overflow:auto;display:flex;flex-direction:column;gap:7px;margin:12px 0;padding-right:4px}
+@media(max-width:900px){.chat{height:52vh;min-height:300px}}
 .bolha{max-width:82%;padding:7px 11px;border-radius:11px;font-size:13.5px;white-space:pre-wrap}
 .bolha.lead{background:var(--bolha-lead);align-self:flex-start;border-bottom-left-radius:3px}
 .bolha.loja{background:var(--bolha-loja);align-self:flex-end;border-bottom-right-radius:3px}
@@ -867,6 +868,8 @@ overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:a
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
           style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora">🔄 Atualizar</button>
   <button class="btn sec" id="tema" onclick="viraTema()" style="padding:6px 11px;font-size:13px">🌙</button>
+  <button class="btn sec" id="btSair" type="button" onclick="sair()"
+          style="padding:6px 11px;font-size:13px;white-space:nowrap" hidden>Sair</button>
   <span class="tag" id="sync"><span class="pulso"></span> ao vivo</span>
 </header>
 <div class="wrap">
@@ -914,6 +917,19 @@ function aplicaTema(t){
 }
 function viraTema(){ aplicaTema(document.documentElement.dataset.tema==='claro'?'escuro':'claro'); }
 aplicaTema(localStorage.getItem('pl_tema') || 'claro');   // padrao: claro
+document.getElementById('btSair').hidden=!location.pathname.startsWith('/prospeccao');
+
+async function sair(){
+  const botao=document.getElementById('btSair');
+  botao.disabled=true; botao.textContent='Saindo…';
+  try{
+    const resposta=await fetch('/prospeccao/logout',{method:'POST',credentials:'same-origin'});
+    if(!resposta.ok) throw new Error('Falha ao sair');
+    location.replace('/prospeccao/login');
+  }catch(e){
+    botao.disabled=false; botao.textContent='Tentar sair';
+  }
+}
 
 function esc(s){return (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function cls(s){return (s||'').split(' ')[0]}
