@@ -1,6 +1,7 @@
 import sqlite3
 import unittest
 import threading
+from unittest.mock import patch
 from crm_bridge import CRM, anuncio, telefone
 
 
@@ -81,6 +82,17 @@ class BridgeTest(unittest.TestCase):
     def test_lookup_does_not_create(self):
         self.assertIsNone(self.crm.ensure(self.cid))
         self.assertEqual(self.rows, [])
+
+    def test_details_returns_lead_and_scoped_notes(self):
+        self.assertIsNone(self.crm.details(self.cid)['lead'])
+        self.crm.ensure(self.cid, create=True)
+        note = self.crm.add_note(self.cid, 'Retornar na sexta-feira.')
+        with patch.object(self.crm, 'request', wraps=self.remote) as request:
+            details = self.crm.details(self.cid)
+        self.assertEqual(note['conteudo'], details['notas'][0]['conteudo'])
+        request.assert_any_call('interacoes', {'lead_id': 'eq.' + details['lead']['id'],
+                                'tipo': 'eq.nota', 'select': 'id,conteudo,created_at',
+                                'order': 'created_at.desc', 'limit': 20})
 
     def test_existing_formatted_phone_preserves_stage(self):
         self.rows.append({'id': 'existing', 'telefone': '+55 (11) 8765-4321', 'status': 'fechou'})

@@ -43,3 +43,21 @@ class ResponsavelTest(unittest.TestCase):
             painel.atribui_responsavel("loja@s.whatsapp.net", "Outra pessoa")
         with self.assertRaisesRegex(ValueError, "Conversa não encontrada"):
             painel.atribui_responsavel("loja@s.whatsapp.net", "Lucas")
+
+    def test_filtro_combina_responsavel_busca_e_etapa(self):
+        painel.cria_banco()
+        c = painel.con()
+        c.executemany("INSERT INTO leads(chatid,fone,nome,status,ultimo_ts,ultimo_de,responsavel) "
+                      "VALUES(?,?,?,?,?,?,?)", [
+            ("a", "5511000000001", "Loja Aurora", "INTERESSADO", 1, "lead", "Dione"),
+            ("b", "5511000000002", "Loja Bela", "TESTE GRÁTIS", 2, "lead", "Dione"),
+            ("c", "5511000000003", "Loja Clara", "INTERESSADO", 3, "lead", "Lucas"),
+            ("d", "5511000000004", "Loja Dora", "INTERESSADO", 4, "lead", None),
+        ])
+        c.commit()
+        self.assertEqual({"a", "b"}, {r["chatid"] for r in painel.fila(responsavel="Dione")})
+        self.assertEqual(["b"], [r["chatid"] for r in painel.fila("TESTE GRÁTIS", responsavel="Dione")])
+        self.assertEqual(["a"], [r["chatid"] for r in painel.fila(busca="Aurora", responsavel="Dione")])
+        self.assertEqual([], painel.fila(busca="Aurora", responsavel="Lucas"))
+        self.assertEqual(["d"], [r["chatid"] for r in painel.fila(responsavel="_sem_responsavel")])
+        self.assertEqual(4, len(painel.fila()))

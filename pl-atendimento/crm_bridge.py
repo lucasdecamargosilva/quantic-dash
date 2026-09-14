@@ -99,7 +99,8 @@ class CRM:
             raise RuntimeError('Sem conexão com o Quantic Dash. Tente novamente.') from None
 
     def remote_lead(self, lead_id):
-        rows = self.request('leads', {'id': 'eq.' + lead_id, 'select': 'id,nome_loja,status,telefone'})
+        rows = self.request('leads', {'id': 'eq.' + lead_id,
+                            'select': 'id,nome_loja,status,telefone,email,instagram,site,fonte_oportunidade,notas,created_at'})
         if len(rows) != 1:
             raise ValueError('Lead vinculado não está acessível no CRM.')
         row = rows[0]
@@ -107,6 +108,12 @@ class CRM:
         if custom:
             row['status'] = custom[0]['status']
         return row
+
+    def details(self, chatid):
+        lead = self.ensure(chatid)
+        notes = self.request('interacoes', {'lead_id': 'eq.' + lead['id'], 'tipo': 'eq.nota',
+                             'select': 'id,conteudo,created_at', 'order': 'created_at.desc', 'limit': 20}) if lead else []
+        return {'lead': lead, 'etapas': ETAPAS, 'notas': notes}
 
     def reflect_local(self, chatid, lead):
         """Os filtros locais acompanham a etapa confirmada, inclusive encerramentos."""

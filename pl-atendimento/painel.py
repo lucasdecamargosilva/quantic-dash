@@ -480,7 +480,7 @@ def normaliza_busca(valor):
     return " ".join("".join(c for c in valor if not unicodedata.combining(c)).casefold().split())
 
 
-def fila(status=None, busca=None):
+def fila(status=None, busca=None, responsavel=None):
     c = con()
     busca = str(busca or "").strip()
     if busca:
@@ -507,6 +507,9 @@ def fila(status=None, busca=None):
             "SELECT * FROM leads WHERE ultimo_de='lead' AND COALESCE(oculto,0)=0"
             " AND status NOT IN ('CONVERTIDO','PERDIDO')"
             + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
+    if responsavel:
+        linhas = [r for r in linhas if (not r["responsavel"] if responsavel == "_sem_responsavel"
+                                       else r["responsavel"] == responsavel)]
     out = []
     for r in linhas:
         u = c.execute("SELECT tipo,texto,segundos FROM mensagens WHERE chatid=?"
@@ -891,36 +894,127 @@ box-shadow:0 8px 28px #0004;pointer-events:auto;animation:notifica-in .18s ease-
 overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}
 @keyframes notifica-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
 .ok{color:var(--ok)}.err{color:#f87171}
+/* Navegacao e identidade visual do atendimento. */
+[hidden]{display:none!important}[data-icon]{display:inline-flex;align-items:center}
+:root{color-scheme:dark}html[data-tema="claro"]{color-scheme:light}
+html:not([data-tema="claro"]) .responsavel-tag{color:#c4b5fd}
+html:not([data-tema="claro"]) .responsavel-tag[data-responsavel="Dione"]{color:#93c5fd}
+html:not([data-tema="claro"]) .responsavel-tag[data-responsavel=""]{color:var(--fraco)}
+.ico{width:17px;height:17px;display:inline-block;flex:none;vertical-align:-3px;stroke:currentColor;
+ fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+header{flex-wrap:wrap;gap:10px 14px;padding:14px 22px 0;background:var(--card)}
+.marca{display:flex;align-items:center;gap:10px;margin-right:auto}
+.marca-simbolo,.avatar{display:inline-flex;align-items:center;justify-content:center;flex:none;
+ color:var(--roxo);background:var(--hover);border:1px solid color-mix(in srgb,var(--roxo) 15%,var(--linha))}
+.marca-simbolo{width:38px;height:38px;border-radius:12px;background:var(--roxo);color:white}
+.marca-simbolo .ico{width:21px;height:21px}.marca small{display:block;font-size:10px;
+ letter-spacing:1.2px;color:var(--fraco);font-weight:650}.marca h1{line-height:1.3}
+header>.filtros{order:10;width:100%;flex-wrap:nowrap;overflow-x:auto;padding:4px 0 12px;scrollbar-width:thin}
+.crm-link{margin-left:0}.btn,.mic{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+button,a,input,select,textarea{transition:background .15s,border-color .15s,box-shadow .15s}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,
+.item:focus-visible{outline:2px solid var(--roxo2);outline-offset:3px}
+.btn.sec:hover{background:var(--hover);border-color:color-mix(in srgb,var(--roxo) 40%,var(--linha))}
+.btn:disabled{cursor:default}.fbtn{border-radius:8px;padding:7px 11px}.fbtn.on{box-shadow:0 3px 9px #6d28d91a}
+.lista-titulo{display:flex;align-items:center;gap:8px;padding:17px 16px 7px;font-size:14px;font-weight:650}
+.lista-titulo>.ico{color:var(--roxo)}.lista-total{margin-left:auto;font-size:11px;border-radius:6px;
+ background:var(--chip);color:var(--fraco);padding:2px 7px;font-variant-numeric:tabular-nums}
+.busca{border-bottom:0;padding:6px 14px 12px}.busca input{background:var(--chip);height:39px}
+.bulkbar{position:static;min-height:46px;background:var(--chip);padding:7px 14px}
+.lista-col>.busca{order:1}.lista-col>.bulkbar{order:2}.lista-col>.lista{order:3}
+.filtro-responsavel{order:1;display:flex;align-items:center;gap:8px;padding:0 14px 12px;
+ color:var(--fraco);font-size:12px}.filtro-responsavel>.ico{color:var(--roxo)}
+.filtro-responsavel select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--linha);
+ border-radius:8px;background:var(--campo);color:var(--txt);font:inherit;cursor:pointer}
+.item{grid-template-columns:16px 34px minmax(0,1fr);padding:15px 14px;gap:9px;align-items:start}
+.item-check{margin:10px 0 0}.avatar{width:34px;height:34px;border-radius:11px}
+.item .nome{overflow-wrap:anywhere}.item .responsavel-tag{color:var(--roxo);gap:4px}
+.item .responsavel-tag .ico{width:11px;height:11px}.item .pill{border-color:var(--linha)}
+.responsavel-tag{gap:5px;font-weight:650;padding:3px 9px;color:var(--roxo);background:var(--hover);
+ border-color:color-mix(in srgb,var(--roxo) 25%,var(--linha))}
+.responsavel-tag[data-responsavel="Dione"]{color:var(--azul);background:color-mix(in srgb,var(--azul) 10%,var(--card));
+ border-color:color-mix(in srgb,var(--azul) 28%,var(--linha))}
+.responsavel-tag[data-responsavel=""]{color:var(--fraco);background:var(--chip);border-style:dashed}
+.responsavel-tag .ico{width:13px;height:13px}
+.cliente-topo{display:flex;align-items:center;gap:13px;padding:2px 0 12px;border-bottom:1px solid var(--linha)}
+.cliente-topo .avatar{width:48px;height:48px;border-radius:15px}.cliente-topo .avatar .ico{width:25px;height:25px}
+.cliente-info{min-width:0;flex:1}.cliente-nome{font-size:18px;overflow-wrap:anywhere;letter-spacing:-.3px}
+.cliente-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.cliente-meta .ico{width:13px;height:13px}
+.cliente-link{font-size:12px;text-decoration:none;white-space:nowrap;padding:7px 10px}
+.cliente-acoes{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}
+.painel:has(.conversa-conteudo){display:flex;padding:0;overflow:hidden}
+.conversa-conteudo{flex:1;min-width:0;overflow:auto;padding:18px 22px}
+.painel:has(.lead-drawer:not([hidden])) .cliente-topo{flex-wrap:wrap;align-items:flex-start}
+.painel:has(.lead-drawer:not([hidden])) .cliente-info{flex-basis:calc(100% - 61px)}
+.painel:has(.lead-drawer:not([hidden])) .cliente-acoes{width:100%}
+.lead-drawer{width:340px;flex:none;overflow:auto;padding:18px;background:var(--card);border-left:1px solid var(--linha)}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px}
+.drawer-head h2{display:flex;align-items:center;gap:7px;font-size:15px;margin:0}.drawer-head h2 .ico{color:var(--roxo)}
+.drawer-fechar{padding:5px 9px}.lead-dados{margin:12px 0 18px;display:grid;gap:12px}
+.lead-dados dt{font-size:11px;color:var(--fraco);margin-bottom:2px}.lead-dados dd{font-size:13px;margin:0;overflow-wrap:anywhere}
+.lead-drawer .crm-head,.lead-drawer .crm-stage-control{align-items:stretch;flex-direction:column}
+.lead-drawer .crm-heading{flex-wrap:wrap}.lead-drawer .crm-select{width:100%;min-width:0;max-width:none}
+.lead-drawer .crm-note{align-items:stretch;flex-direction:column}.lead-drawer .crm-note-input{height:90px;min-height:90px;
+ resize:vertical;padding:9px;line-height:1.5;width:100%}.crm-notas{margin-top:16px;border-top:1px solid var(--linha);padding-top:12px}
+.crm-notas h3{font-size:12px;margin:0 0 9px}.crm-nota{border:1px solid var(--linha);border-radius:9px;padding:10px;margin-bottom:8px;background:var(--chip)}
+.crm-nota p{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 5px}.crm-nota time{font-size:10px;color:var(--fraco)}
+.drawer-fundo{display:none}
+@media(max-width:1150px){.lead-drawer{width:310px}.cliente-acoes{width:100%;justify-content:flex-start}.cliente-topo{flex-wrap:wrap}}
+@media(max-width:900px){.painel:has(.conversa-conteudo){display:block;overflow:visible}.conversa-conteudo{overflow:visible;padding:16px 14px}
+ .lead-drawer{position:fixed;right:0;top:0;bottom:0;width:min(360px,92vw);z-index:31;box-shadow:-12px 0 35px #0003}
+ .drawer-fundo:not([hidden]){display:block;position:fixed;inset:0;background:#0005;z-index:30}}
+.chat{background:var(--bg);border:1px solid var(--linha);border-radius:14px;padding:16px;
+ scrollbar-width:thin;scrollbar-color:var(--linha) transparent}
+.bolha{padding:10px 13px;line-height:1.55;box-shadow:0 1px 2px #00000008}
+.bolha.lead{background:var(--card);border:1px solid var(--linha)}
+.atalhos{gap:7px;margin:8px 0 12px}.atalhos .btn{font-size:12px;padding:7px 11px}
+.editor-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--fraco);margin:0 0 7px}
+textarea:focus{border-color:var(--roxo)}.rapidos{border:1px solid var(--linha);padding:14px;border-radius:12px;background:var(--chip)}
+.rapidos h3{display:flex;align-items:center;gap:7px}.vazio-inicio{display:flex;flex-direction:column;align-items:center;
+ justify-content:center;min-height:65vh;padding:30px;gap:10px}.vazio-inicio .avatar{width:64px;height:64px;border-radius:20px}
+.vazio-inicio .avatar .ico{width:30px;height:30px}.vazio-inicio strong{color:var(--txt);font-size:18px}
+.vazio-inicio p{max-width:300px;margin:0;font-size:13px;line-height:1.7}
+@media(max-width:1100px){header{gap:8px;padding:12px 14px 0}header #sync{display:none}}
+@media(max-width:650px){.marca{width:100%}header .crm-link{font-size:12px}.cliente-topo{flex-wrap:wrap}
+ .cliente-link{margin-left:61px}.painel{padding:16px 14px}.cliente-nome{font-size:16px}.chat{padding:12px}
+ .vazio-inicio{min-height:35vh}.responsavel-select{max-width:100%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.cliente-acoes .cliente-link{margin-left:0}
 </style></head><body>
 <div class="notificacoes" id="notificacoes" aria-live="polite"></div>
 <header>
-  <h1>Atendimento</h1>
+  <div class="marca"><span class="marca-simbolo" data-icon="chat"></span><div><small>PROVOU LEVOU</small><h1>Prospecção</h1></div></div>
   <div class="filtros" id="filtros"></div>
-  <a class="btn crm-link" href="https://crm.quanticsolutions.com.br/crm/pipeline" target="_blank" rel="noopener" title="Abrir o Pipeline do CRM em uma nova aba">Ir para o CRM <span aria-hidden="true">↗</span></a>
-  <a class="btn sec crm-link" style="margin-left:0" href="https://crm.quanticsolutions.com.br/crm/testes-gratis" target="_blank" rel="noopener">Clientes em teste grátis</a>
+  <a class="btn crm-link" href="https://crm.quanticsolutions.com.br/crm/pipeline" target="_blank" rel="noopener" title="Abrir o Pipeline do CRM em uma nova aba"><span data-icon="pipeline"></span>Ir para o CRM <span aria-hidden="true">↗</span></a>
+  <a class="btn sec crm-link" style="margin-left:0" href="https://crm.quanticsolutions.com.br/crm/testes-gratis" target="_blank" rel="noopener"><span data-icon="calendar"></span>Clientes em teste grátis</a>
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
-          style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora">🔄 Atualizar</button>
-  <button class="btn sec" id="tema" onclick="viraTema()" style="padding:6px 11px;font-size:13px">🌙</button>
+          style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora"><span data-icon="refresh"></span>Atualizar</button>
+  <button class="btn sec" id="tema" onclick="viraTema()" aria-label="Alternar tema" title="Alternar tema" style="padding:6px 11px;font-size:13px">🌙</button>
   <button class="btn sec" id="btSair" type="button" onclick="sair()"
-          style="padding:6px 11px;font-size:13px;white-space:nowrap" hidden>Sair</button>
+          style="padding:6px 11px;font-size:13px;white-space:nowrap" hidden><span data-icon="logout"></span>Sair</button>
   <span class="tag" id="sync"><span class="pulso"></span> ao vivo</span>
 </header>
 <div class="wrap">
   <div class="lista-col">
+    <div class="lista-titulo"><span data-icon="chat"></span>Conversas <span class="lista-total" id="listaTotal">…</span></div>
     <div class="bulkbar">
       <label class="bulkcheck"><input type="checkbox" id="selTodos" onchange="marcaTodas(this.checked)">
         <span id="bulkCount">Selecionar todas</span></label>
-      <button class="btn bulk-send" id="bulkOpen" onclick="abreDisparo()" disabled>Disparar</button>
+      <button class="btn bulk-send" id="bulkOpen" onclick="abreDisparo()" disabled><span data-icon="send"></span>Disparar</button>
     </div>
     <div class="busca">
-      <span class="busca-icone" aria-hidden="true">⌕</span>
+      <span class="busca-icone" data-icon="search" aria-hidden="true"></span>
       <input id="busca" type="search" placeholder="Buscar por nome ou telefone…" autocomplete="off"
         aria-label="Buscar por nome ou telefone" oninput="agendaBusca(this.value)" onkeydown="if(event.key==='Escape')limpaBusca()">
       <button class="busca-limpar" id="buscaLimpar" onclick="limpaBusca()" aria-label="Limpar pesquisa" hidden>✕</button>
     </div>
+    <label class="filtro-responsavel" for="filtroResponsavel"><span data-icon="user"></span>Responsável
+      <select id="filtroResponsavel" onchange="setResponsavelFiltro(this.value)"><option value="">Todos</option></select>
+    </label>
     <div class="lista" id="lista"></div>
   </div>
-  <div id="painel" class="painel"><div class="vazio">Escolha uma conversa.</div></div>
+  <div id="painel" class="painel"><div class="vazio vazio-inicio"><span class="avatar" data-icon="chat"></span>
+    <strong>Vamos conversar?</strong><p>Selecione um cliente ao lado para acompanhar a conversa e preparar sua próxima mensagem.</p></div></div>
 </div>
 <dialog class="massa" id="massaDialog">
   <div class="massa-head"><div><h2>Disparo em massa</h2><p id="massaResumo"></p></div>
@@ -940,12 +1034,38 @@ overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:a
 </dialog>
 <script>
 let pend=[], sel=null, selId=null, prontos={audios:[],textos:[],combos:[],status:[]},
-    enviados=[], filtro='', busca='', buscaTimer=null, buscaSeq=0,
+    enviados=[], filtro='', filtroResponsavel='', busca='', buscaTimer=null, buscaSeq=0,
     selecionados=new Set(), disparoRodando=false;
+
+function icone(nome){
+  const paths={
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
+    chat:'<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5a8.5 8.5 0 1 1 17 0Z"/><path d="M8 11h8M8 14h5"/>',
+    search:'<circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/>',
+    pipeline:'<rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="4" height="8" rx="1"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18m-13 5 3 3 5-5"/>',
+    refresh:'<path d="M20 7v5h-5M4 17v-5h5M5.5 7a8 8 0 0 1 13-2L20 7M4 17l1.5 2a8 8 0 0 0 13-2"/>',
+    send:'<path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/>',
+    check:'<path d="m5 12 4 4L19 6"/>',
+    stop:'<rect x="5" y="5" width="14" height="14" rx="2"/>',
+    archive:'<rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7v14h14V7M10 11h4"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.8 2.1Z"/>',
+    tag:'<path d="M20 13 11 22 2 13V2h11l9 9-2 2Z"/><circle cx="7" cy="7" r="1"/>',
+    book:'<path d="M12 5v16M3 3h5a4 4 0 0 1 4 2 4 4 0 0 1 4-2h5v16h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3Z"/>',
+    mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/>',
+    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5M21 12H9"/>',
+    moon:'<path d="M21 12.8A9 9 0 0 1 11.2 3 9 9 0 1 0 21 12.8Z"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/>'
+  };
+  return `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${paths[nome]||paths.chat}</svg>`;
+}
+document.querySelectorAll('[data-icon]').forEach(e=>e.innerHTML=icone(e.dataset.icon));
+function tagResponsavel(nome){return icone('user')+'<span>'+esc(nome||'Sem responsável')+'</span>';}
 
 function aplicaTema(t){
   document.documentElement.dataset.tema=t;
-  document.getElementById('tema').textContent = t==='claro' ? '🌙' : '☀️';
+  document.getElementById('tema').innerHTML = icone(t==='claro'?'moon':'sun');
   localStorage.setItem('pl_tema',t);
 }
 function viraTema(){ aplicaTema(document.documentElement.dataset.tema==='claro'?'escuro':'claro'); }
@@ -970,7 +1090,8 @@ function cls(s){return (s||'').split(' ')[0]}
 function atualizaResponsavel(responsavel){
   const tag=document.getElementById('responsavelTag');
   const select=document.getElementById('responsavelSelect');
-  if(tag) tag.textContent='Responsável: '+(responsavel||'não atribuído');
+  if(tag){tag.innerHTML=tagResponsavel(responsavel);tag.dataset.responsavel=responsavel||'';}
+  const drawerNome=document.getElementById('drawerResponsavel');if(drawerNome)drawerNome.textContent=responsavel||'Sem responsável';
   if(select&&!select.disabled){ select.value=responsavel||''; select.dataset.saved=select.value; }
 }
 async function salvaResponsavel(select){
@@ -1013,34 +1134,39 @@ function mostraNotificacao(m){
 }
 async function abreConversaNotificada(chatid,aviso){
   let i=pend.findIndex(p=>p.chatid===chatid);
-  if(i<0){ filtro=''; limpaBusca(false); await filtros(); await carrega(); i=pend.findIndex(p=>p.chatid===chatid); }
+  if(i<0){ filtro=''; filtroResponsavel=''; document.getElementById('filtroResponsavel').value='';
+    limpaBusca(false); await filtros(); await carrega(); i=pend.findIndex(p=>p.chatid===chatid); }
   if(i>=0) abrir(i); aviso.remove();
 }
 
 async function carrega(){
   const pedido=++buscaSeq, params=new URLSearchParams();
   if(busca) params.set('busca',busca); else if(filtro) params.set('status',filtro);
+  if(filtroResponsavel) params.set('responsavel',filtroResponsavel);
   const r=await fetch('/api/fila'+(params.size?'?'+params.toString():''));
   const dados=await r.json(); if(pedido!==buscaSeq) return;
   pend=dados;
+  document.getElementById('listaTotal').textContent=pend.length;
   const L=document.getElementById('lista'); L.innerHTML='';
   pend.forEach((p,i)=>{
     const d=document.createElement('div');
     d.className='item'+(p.chatid===selId?' sel':'');
     d.onclick=()=>abrir(i);
+    d.tabIndex=0; d.setAttribute('aria-label','Abrir conversa com '+(p.nome||p.fone));
+    d.onkeydown=e=>{if(e.target===d&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrir(i);}};
     d.innerHTML=`<input class="item-check" type="checkbox" aria-label="Selecionar ${esc(p.nome||p.fone)}"
       ${selecionados.has(p.chatid)?'checked':''} onclick="event.stopPropagation()"
-      onchange="marca('${esc(p.chatid)}',this.checked)"><div class="item-body">
+      onchange="marca('${esc(p.chatid)}',this.checked)"><span class="avatar">${icone('user')}</span><div class="item-body">
       <div class="top"><span class="nome">${esc(p.nome||p.fone)}</span>
       <span class="h">${esc(p.ha)}</span></div>
-      ${p.responsavel?`<span class="responsavel-tag">${esc(p.responsavel)}</span>`:''}
+      <span class="responsavel-tag" data-responsavel="${esc(p.responsavel||'')}">${tagResponsavel(p.responsavel)}</span>
       <div class="msg">${esc(p.ultima)}</div>
       <div style="margin-top:6px;display:flex;gap:5px">
         <span class="pill ${cls(p.status)}">${esc(p.status)}</span>
         <span class="pill">${esc(p.quando)}</span></div></div>`;
     L.appendChild(d);
   });
-  if(!pend.length&&busca) L.innerHTML='<div class="vazio">Nenhuma conversa encontrada.</div>';
+  if(!pend.length) L.innerHTML='<div class="vazio">'+icone('search')+'<p>Nenhuma conversa encontrada com estes filtros.</p></div>';
   if(selId){ const i=pend.findIndex(x=>x.chatid===selId); if(i>=0) sel=i; }
   atualizaBulk();
 }
@@ -1138,10 +1264,12 @@ async function filtros(){
              ...prontos.status.map(s=>[s,s,s]),
              ['_ocultos','Removidos','_ocultos']];
   document.getElementById('filtros').innerHTML=rot.map(([v,r,k])=>
-    `<button class="fbtn${filtro===v?' on':''}" onclick="setFiltro('${v}')">${esc(r)}
+    `<button class="fbtn${filtro===v?' on':''}" aria-pressed="${filtro===v}" onclick="setFiltro('${v}')">${icone(
+      ({'':'chat','_sem_resposta':'clock','INTERESSADO':'user','TESTE GRÁTIS':'calendar','CONVERTIDO':'check','PERDIDO':'logout','_ocultos':'logout'})[v]||'tag')}${esc(r)}
        <b>${n[k]||0}</b></button>`).join('');
 }
 function setFiltro(v){ filtro=v; limpaBusca(false); filtros(); carrega(); }
+function setResponsavelFiltro(v){filtroResponsavel=v;carrega();}
 
 // Mensagens que voce acabou de mandar e a Uazapi ainda esta processando. Elas
 // aparecem na hora, com um relogio, e somem quando a sincronizacao traz a real.
@@ -1191,9 +1319,7 @@ function conteudoBolha(l){
   return `<a class="midia-link" href="${url}" target="_blank">📎 Abrir documento</a>${legenda}`;
 }
 function bolhas(linhas){
-  return linhas.map(l=>`<div class="bolha ${l.de==='lead'?'lead':'loja'}">${conteudoBolha(l)}
-    <div class="meta">${esc(l.hora)}${l.audio?' · <span class="aud">áudio transcrito</span>':''}</div>
-  </div>`).join('');
+  return linhas.map(l=>`<div class="bolha ${l.de==='lead'?'lead':'loja'}">${conteudoBolha(l)}<div class="meta">${esc(l.hora)}${l.audio?' · <span class="aud">áudio transcrito</span>':''}</div></div>`).join('');
 }
 
 function primeiroNome(nome){
@@ -1212,29 +1338,32 @@ async function abrir(i){
   if(selId!==p.chatid) return;
   ultimasLinhas=d.linhas;
   P.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
-      <div><strong>${esc(d.nome||d.fone)}</strong>
+    <div class="conversa-conteudo">
+    <div class="cliente-topo">
+      <span class="avatar">${icone('user')}</span>
+      <div class="cliente-info"><strong class="cliente-nome">${esc(d.nome||d.fone)}</strong>
         <div class="responsavel-linha">
-          <span class="responsavel-tag" id="responsavelTag">Responsável: ${esc(d.responsavel||'não atribuído')}</span>
+          <span class="responsavel-tag" id="responsavelTag" data-responsavel="${esc(d.responsavel||'')}">${tagResponsavel(d.responsavel)}</span>
           <select class="responsavel-select" id="responsavelSelect" aria-label="Atribuir responsável" onchange="salvaResponsavel(this)" data-saved="${esc(d.responsavel||'')}">
             <option value="">Atribuir responsável</option>
             ${(prontos.responsaveis||[]).map(nome=>`<option value="${esc(nome)}" ${d.responsavel===nome?'selected':''}>${esc(nome)}</option>`).join('')}
           </select><span class="responsavel-erro" id="responsavelErro" role="status"></span>
         </div>
-        <div class="tag">${esc(d.fone)} · última ${esc(p.ha)} (${esc(p.quando)})</div></div>
-      <a class="tag" href="https://wa.me/${esc(d.fone)}" target="_blank">WhatsApp ↗</a>
+        <div class="tag cliente-meta">${icone('phone')}${esc(d.fone)} · ${icone('clock')} última ${esc(p.ha)} (${esc(p.quando)})</div></div>
+      <div class="cliente-acoes"><a class="btn sec cliente-link" href="https://wa.me/${esc(d.fone)}" target="_blank" rel="noopener">${icone('chat')}WhatsApp ↗</a>
+      <button class="btn sec cliente-link" id="btDadosLead" onclick="toggleDadosLead()" aria-expanded="false" aria-controls="leadDrawer">${icone('user')} Dados do lead</button></div>
     </div>
-    <section id="crm" class="crm-card" aria-live="polite"><div class="crm-head"><span class="crm-title">Carregando etapa do CRM…</span></div></section>
     <div class="chat" id="chat">${bolhas(d.linhas)}${bolhasPend(d.linhas)}</div>
-    <div class="acoes" style="margin:8px 0 14px">
+    <div class="acoes atalhos">
       <button class="btn sec" id="btAbordagem" onclick="poeAbordagem()"
-        title="Prepara a abordagem inicial personalizada em duas mensagens">👋 Abordagem</button>
+        title="Prepara a abordagem inicial personalizada em duas mensagens">${icone('user')} Abordagem</button>
       <button class="btn sec" id="btCatalogo" onclick="poeCatalogo()"
-        title="Prepara duas mensagens e um vídeo para aprovação">💬 Provou Catálogo</button>
+        title="Prepara duas mensagens e um vídeo para aprovação">${icone('book')} Provou Catálogo</button>
       <button class="btn sec" id="btPlanos" onclick="poeTexto('tabela')"
-        title="Prepara a mensagem com os valores dos sete planos para revisão">💰 Planos</button>
-      <button class="btn sec" onclick="poeTexto('reaquecer')">🔥 Reaquecer</button>
+        title="Prepara a mensagem com os valores dos sete planos para revisão">${icone('tag')} Planos</button>
+      <button class="btn sec" onclick="poeTexto('reaquecer')">${icone('refresh')} Reaquecer</button>
     </div>
+    <label class="editor-label" for="txt">${icone('chat')} Sua mensagem</label>
     <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
     <div class="catalogo-rascunho" id="catalogoRascunho" hidden>
       <label for="catalogoTexto2">Segunda mensagem</label>
@@ -1249,33 +1378,60 @@ async function abrir(i){
       <button class="btn sec" id="descAudChat" style="display:none" onclick="descarta()">Descartar</button>
     </div>
     <div class="acoes">
-      <button class="btn" id="ok" onclick="enviar()">Aprovar e enviar</button>
-      <button class="btn sec" onclick="proxima()">Concluir</button>
+      <button class="btn" id="ok" onclick="enviar()">${icone('send')} Aprovar e enviar</button>
+      <button class="btn sec" onclick="proxima()">${icone('check')} Concluir</button>
       <button class="btn sec" id="btnOcultar" onclick="ocultar(${d.oculto?'false':'true'})"
         title="Some da fila mesmo que a pessoa mande mensagem nova">${
-        d.oculto ? '↩︎ Restaurar na fila' : '🚫 Remover da fila'}</button>
-      <button class="mic" id="micChat" onclick="toggleMic()" title="Gravar áudio">🎙️ Gravar</button>
+        d.oculto ? icone('refresh')+' Restaurar na fila' : icone('archive')+' Remover da fila'}</button>
+      <button class="mic" id="micChat" onclick="toggleMic()" title="Gravar áudio">${icone('mic')} Gravar</button>
       <span id="st" class="aviso"></span>
     </div>
     <div class="rapidos">
-      <h3>Planos — para consultar</h3>
+      <h3>${icone('tag')} Planos — para consultar</h3>
       <div class="planos-scroll"><table class="planos"><thead><tr><th>Plano</th><th>Mensalidade</th><th>Provas</th><th>Por prova</th></tr></thead><tbody>${prontos.planos.map(p=>
         `<tr><td>${esc(p.nome)}</td><td>${esc(p.preco)}</td><td>${esc(p.fotos)}</td><td>${esc(p.por_prova)}</td></tr>`).join('')}</tbody></table></div>
       <div class="obs">Sem custo de instalação · integração no mesmo dia · 7 dias grátis.</div>
-    </div>`;
+    </div></div>
+    <div class="drawer-fundo" id="drawerFundo" hidden onclick="toggleDadosLead(false)"></div>
+    <aside class="lead-drawer" id="leadDrawer" aria-label="Dados do lead" hidden>
+      <div class="drawer-head"><h2>${icone('user')} Dados do lead</h2><button class="btn sec drawer-fechar" id="fechaDadosLead" onclick="toggleDadosLead(false)" aria-label="Fechar dados do lead">✕</button></div>
+      <dl class="lead-dados"><div><dt>Cliente</dt><dd>${esc(d.nome||d.fone)}</dd></div>
+      <div><dt>Telefone</dt><dd>${esc(d.fone)}</dd></div>
+      <div><dt>Responsável pela conversa</dt><dd id="drawerResponsavel">${esc(d.responsavel||'Sem responsável')}</dd></div></dl>
+      <section id="crm" class="crm-card" aria-live="polite"><div class="crm-head"><span class="crm-title">Carregando dados do CRM…</span></div></section>
+    </aside>`;
   document.getElementById('chat').scrollTop=9e9;
-  carregaCRM(p.chatid);
+  crmNotas=[];
 }
 
-let crmOcupado=false, crmConsulta=0;
+function toggleDadosLead(abrir){
+  const drawer=document.getElementById('leadDrawer');if(!drawer)return;
+  const aberto=abrir===undefined?drawer.hidden:abrir;
+  drawer.hidden=!aberto;document.getElementById('drawerFundo').hidden=!aberto;
+  const botao=document.getElementById('btDadosLead');botao.setAttribute('aria-expanded',String(aberto));
+  if(aberto){document.getElementById('fechaDadosLead').focus();if(!drawer.dataset.carregado)carregaCRM();}
+  else botao.focus();
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('leadDrawer')?.hidden===false)toggleDadosLead(false);});
+
+let crmOcupado=false, crmConsulta=0, crmNotas=[];
+function dataCRM(valor){if(!valor)return 'Não informado';const d=new Date(valor);return isNaN(d)?'Não informado':d.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});}
+function desenhaNotas(notas){
+  crmNotas=notas||[];const box=document.getElementById('crmNotas');if(!box)return;
+  box.innerHTML='<h3>Últimas observações</h3>'+(crmNotas.length?crmNotas.map(n=>
+    `<article class="crm-nota"><p>${esc(n.conteudo)}</p><time>${esc(dataCRM(n.created_at))}</time></article>`).join(''):
+    '<p class="tag">Nenhuma observação registrada.</p>');
+}
 function desenhaCRM(d){
   const box=document.getElementById('crm'); if(!box) return;
+  const rascunho=box.querySelector('.crm-note-input')?.value||'';
   const lead=d.lead;
   box.innerHTML='<div class="crm-head"><div class="crm-heading"><span class="crm-eyebrow">QUANTIC DASH</span>'+
     '<span class="crm-title">Oportunidade no CRM</span></div></div>'+
     '<div class="crm-controls"></div>';
   const head=box.querySelector('.crm-head'), controls=box.querySelector('.crm-controls');
   if(!lead){
+    controls.innerHTML='<p class="tag">Este cliente ainda não tem uma oportunidade vinculada.</p>';
     const b=document.createElement('button'); b.className='crm-btn'; b.textContent='Registrar no CRM';
     b.onclick=()=>salvaCRM('/api/crm/registrar'); controls.appendChild(b); return;
   }
@@ -1288,22 +1444,35 @@ function desenhaCRM(d){
   select.onchange=()=>salvaCRM('/api/crm/etapa',select.value);
   stage.appendChild(select); head.appendChild(stage);
 
+  const dados=document.createElement('dl');dados.className='lead-dados';
+  const instagram=(lead.instagram||'').startsWith('whatsapp_')?'':lead.instagram;
+  dados.innerHTML=[['Loja no CRM',lead.nome_loja],['E-mail',lead.email],['Instagram',instagram],
+    ['Site',lead.site],['Origem',lead.fonte_oportunidade],['Cadastro no CRM',dataCRM(lead.created_at)]].map(([k,v])=>
+    `<div><dt>${esc(k)}</dt><dd>${esc(v||'Não informado')}</dd></div>`).join('');
+  controls.appendChild(dados);
+  if(lead.notas){const nota=document.createElement('div');nota.className='crm-nota';nota.innerHTML='<p>'+esc(lead.notas)+'</p>';controls.appendChild(nota);}
+
   const form=document.createElement('form'); form.className='crm-note';
-  const input=document.createElement('input'); input.className='crm-note-input'; input.type='text';
+  const input=document.createElement('textarea'); input.className='crm-note-input';input.value=rascunho;
+  input.id='crmObservacao';const label=document.createElement('label');label.htmlFor=input.id;label.className='tag';label.textContent='Nova observação';
   input.maxLength=2000; input.placeholder='Adicionar observação à oportunidade…';
   input.setAttribute('aria-label','Observação da oportunidade no CRM');
   const button=document.createElement('button'); button.className='crm-btn'; button.type='submit'; button.textContent='Salvar observação';
-  form.append(input,button); form.onsubmit=e=>salvaObservacao(e,form);
+  form.append(label,input,button); form.onsubmit=e=>salvaObservacao(e,form);
   const feedback=document.createElement('div'); feedback.className='crm-feedback'; feedback.setAttribute('role','status');
-  controls.append(form,feedback);
+  controls.prepend(form,feedback);
+  const historico=document.createElement('div');historico.className='crm-notas';historico.id='crmNotas';controls.appendChild(historico);
+  desenhaNotas(d.notas||crmNotas);
 }
 async function carregaCRM(chatid=selId){
-  if(!chatid || crmOcupado) return;
+  if(!chatid || crmOcupado || document.getElementById('leadDrawer')?.hidden!==false) return;
+  if(document.activeElement?.classList.contains('crm-note-input'))return;
+  if(document.querySelector('.crm-note-input')?.value.trim())return;
   const consulta=++crmConsulta;
   try{
     const response=await fetch('/api/crm?chatid='+encodeURIComponent(chatid));
     const d=await response.json(); if(!response.ok || d.erro) throw new Error(d.erro||'Falha ao consultar CRM');
-    if(selId===chatid && consulta===crmConsulta && !crmOcupado) desenhaCRM(d);
+    if(selId===chatid && consulta===crmConsulta && !crmOcupado){desenhaCRM(d);document.getElementById('leadDrawer').dataset.carregado='1';}
   }catch(e){
     if(selId!==chatid || consulta!==crmConsulta || crmOcupado) return;
     const box=document.getElementById('crm'); if(!box) return;
@@ -1342,18 +1511,18 @@ async function salvaObservacao(event,form){
   const input=form.querySelector('.crm-note-input'), texto=input.value.trim();
   if(!texto){ input.focus(); return; }
   const chatid=selId, feedback=form.nextElementSibling; crmOcupado=true; ++crmConsulta;
-  form.querySelectorAll('button,input').forEach(el=>el.disabled=true);
+  form.querySelectorAll('button,textarea').forEach(el=>el.disabled=true);
   feedback.className='crm-feedback'; feedback.textContent='Salvando…';
   try{
     const response=await fetch('/api/crm/observacao',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({chatid,texto})});
     const d=await response.json(); if(!response.ok || d.erro) throw new Error(d.erro||'Não foi possível salvar a observação');
-    if(selId===chatid){ input.value=''; feedback.textContent='Observação salva no CRM.'; }
+    if(selId===chatid){ input.value=''; feedback.textContent='Observação salva no CRM.';desenhaNotas([d.note,...crmNotas].slice(0,20)); }
   }catch(e){
     if(selId===chatid){ feedback.className='crm-feedback err'; feedback.textContent=e.message; }
   }finally{
     crmOcupado=false;
-    if(selId===chatid) form.querySelectorAll('button,input').forEach(el=>el.disabled=false);
+    if(selId===chatid) form.querySelectorAll('button,textarea').forEach(el=>el.disabled=false);
     else carregaCRM();
   }
 }
@@ -1423,7 +1592,7 @@ async function enviar(){
     }
   }catch(e){ erro=e.message||'falhou';
   }finally{
-    botao.disabled=false; botao.textContent='Aprovar e enviar';
+    botao.disabled=false; botao.innerHTML=icone('send')+' Aprovar e enviar';
   }
   if(modo==='catalogo'&&erro) erro=videoTentado
     ? 'As duas mensagens foram enviadas, mas o vídeo falhou: '+erro
@@ -1473,7 +1642,7 @@ function poeCatalogo(){
   campo.value=textos[0]; campo.dataset.modo='catalogo';
   document.getElementById('catalogoTexto2').value=textos[1];
   document.getElementById('catalogoRascunho').hidden=false;
-  document.getElementById('ok').textContent='Aprovar e enviar 2 mensagens + vídeo';
+  document.getElementById('ok').innerHTML=icone('send')+' Aprovar e enviar 2 mensagens + vídeo';
   document.getElementById('st').textContent='Revise as duas mensagens e o vídeo antes de enviar.';
   campo.focus();
 }
@@ -1481,14 +1650,14 @@ function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   const c=document.getElementById('txt');
   c.value=t.texto; delete c.dataset.modo;
   document.getElementById('catalogoRascunho').hidden=true; c.focus();
-  const b=document.getElementById('ok'); if(b)b.textContent='Aprovar e enviar'; }
+  const b=document.getElementById('ok'); if(b)b.innerHTML=icone('send')+' Aprovar e enviar'; }
 function poeAbordagem(){
   const nome=primeiroNome(pend[sel]?.nome), c=document.getElementById('txt');
   c.value='Oi'+(nome?' '+nome:'')+', aqui é '+prontos.vendedor+', da Provou Levou.\n\n'
     +'Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?';
   document.getElementById('catalogoRascunho').hidden=true;
   c.dataset.modo='abordagem'; c.focus();
-  document.getElementById('ok').textContent='Aprovar e enviar 2 mensagens';
+  document.getElementById('ok').innerHTML=icone('send')+' Aprovar e enviar 2 mensagens';
 }
 function proxima(){ descarta(); selId=null; sel=null; carrega();
   document.getElementById('painel').innerHTML='<div class="vazio">Escolha a próxima.</div>'; }
@@ -1496,7 +1665,7 @@ function proxima(){ descarta(); selId=null; sel=null; carrega();
 let rec=null,pedacos=[],t0=0,cron=null,blobGravado=null,audioUrl=null,gravadoEnviando=false;
 function sincronizaGravador(){
   const gravando=rec&&rec.state==='recording', pronto=!!blobGravado;
-  ['micChat'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent=gravando?'⏹ Parar':'🎙️ Gravar';b.classList.toggle('rec',!!gravando);}});
+  ['micChat'].forEach(id=>{const b=document.getElementById(id);if(b){b.innerHTML=gravando?icone('stop')+' Parar':icone('mic')+' Gravar';b.classList.toggle('rec',!!gravando);}});
   ['previaChat'].forEach(id=>{const p=document.getElementById(id);if(p){p.style.display=pronto?'':'none';if(pronto&&p.getAttribute('src')!==audioUrl)p.src=audioUrl;}});
   ['envAudChat','descAudChat'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=pronto?'':'none';});
   const box=document.getElementById('gravadorChat');if(box)box.style.display=gravando||pronto?'':'none';
@@ -1569,7 +1738,11 @@ async function atualiza(){
   setTimeout(()=>{ b.innerHTML=antes; b.disabled=false; atualizando=false; },2200);
 }
 
-(async()=>{ prontos=await (await fetch('/api/prontos')).json(); await filtros(); await carrega();
+(async()=>{ prontos=await (await fetch('/api/prontos')).json();
+  document.getElementById('filtroResponsavel').innerHTML='<option value="">Todos</option>'+
+    (prontos.responsaveis||[]).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')+
+    '<option value="_sem_responsavel">Sem responsável</option>';
+  await filtros(); await carrega();
   await buscaNotificacoes(false); conectaEventos(); })();
 
 let eventosTelaAtivos=false, atualizacaoEvento=null;
@@ -1694,8 +1867,7 @@ class H(BaseHTTPRequestHandler):
                     pass
                 return
             if p.path == "/api/crm":
-                lead = CRM_CLIENT.ensure(q["chatid"][0])
-                return self._send(200, json.dumps({"lead": lead, "etapas": ETAPAS}, ensure_ascii=False))
+                return self._send(200, json.dumps(CRM_CLIENT.details(q["chatid"][0]), ensure_ascii=False))
             if p.path == "/api/prontos":
                 return self._send(200, json.dumps(
                     {"audios": AUDIOS, "textos": TEXTOS, "combos": COMBOS,
@@ -1709,7 +1881,8 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps(contagem(), ensure_ascii=False))
             if p.path == "/api/fila":
                 return self._send(200, json.dumps(fila((q.get("status") or [None])[0],
-                                                       (q.get("busca") or [None])[0]),
+                                                       (q.get("busca") or [None])[0],
+                                                       (q.get("responsavel") or [None])[0]),
                                                   ensure_ascii=False))
             if p.path == "/api/recebidas":
                 return self._send(200, json.dumps(
