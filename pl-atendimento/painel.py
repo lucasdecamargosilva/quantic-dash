@@ -195,7 +195,7 @@ def cria_banco():
     CREATE INDEX IF NOT EXISTS ix_msg_chat ON mensagens(chatid, ts);
     CREATE TABLE IF NOT EXISTS leads (
       chatid TEXT PRIMARY KEY, fone TEXT, nome TEXT, status TEXT,
-      ultimo_ts INTEGER, ultimo_de TEXT, atualizado TEXT);
+      ultimo_ts INTEGER, ultimo_de TEXT, atualizado TEXT, responsavel TEXT);
     CREATE INDEX IF NOT EXISTS ix_lead_ts ON leads(ultimo_ts);
     CREATE TABLE IF NOT EXISTS transcricoes (url TEXT PRIMARY KEY, texto TEXT);
     """)
@@ -203,6 +203,8 @@ def cria_banco():
     # migracao: bancos criados antes do "remover da fila" nao tem essa coluna
     if "oculto" not in [r[1] for r in c.execute("PRAGMA table_info(leads)")]:
         c.execute("ALTER TABLE leads ADD COLUMN oculto INTEGER DEFAULT 0")
+    if "responsavel" not in [r[1] for r in c.execute("PRAGMA table_info(leads)")]:
+        c.execute("ALTER TABLE leads ADD COLUMN responsavel TEXT")
     c.commit()
 
 
@@ -511,7 +513,8 @@ def fila(status=None, busca=None):
                       " ORDER BY ts DESC LIMIT 1", (r["chatid"],)).fetchone()
         dt = quando(r["ultimo_ts"])
         out.append({"chatid": r["chatid"], "fone": r["fone"], "nome": r["nome"],
-                    "status": r["status"], "quando": dt.strftime("%d/%m %H:%M"),
+                    "status": r["status"], "responsavel": r["responsavel"],
+                    "quando": dt.strftime("%d/%m %H:%M"),
                     "ha": humano(dt),
                     "ultima": (u["texto"] if u and u["texto"]
                                else rotulo(u["tipo"], u["segundos"]) if u else "")})
@@ -588,6 +591,7 @@ def conversa(chatid):
     return {"linhas": linhas, "status": lead["status"] if lead else "INTERESSADO",
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
             "nome": lead["nome"] if lead else "", "fone": lead["fone"] if lead else "",
+            "responsavel": lead["responsavel"] if lead else None,
             "encerrado": encerrado}
 
 
@@ -622,6 +626,22 @@ COMBO_STATUS = {}
 ENVIOS = {}          # eid -> {"estado": enviando|ok|erro, "erro": ""}
 MAX_DISPARO_MASSA = 100
 ABORDAGEM_SEGUNDA = "Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?"
+RESPONSAVEIS = ("Lucas", "Dione")
+
+
+def atribui_responsavel(chatid, responsavel):
+    if not isinstance(chatid, str) or not chatid.strip():
+        raise ValueError("Conversa inválida.")
+    if responsavel not in (*RESPONSAVEIS, None, ""):
+        raise ValueError("Responsável inválido.")
+    responsavel = responsavel or None
+    c = con()
+    cur = c.execute("UPDATE leads SET responsavel=? WHERE chatid=?", (responsavel, chatid))
+    if not cur.rowcount:
+        raise ValueError("Conversa não encontrada.")
+    c.commit()
+    UI_EVENTS.publish()
+    return responsavel
 
 
 def nome_vendedor(usuario):
@@ -716,6 +736,12 @@ header{position:sticky;top:0;background:var(--topo);backdrop-filter:blur(8px);
 border-bottom:1px solid var(--linha);padding:12px 20px;display:flex;gap:14px;align-items:center;z-index:9;flex:none}
 h1{font-size:17px;margin:0;font-weight:650}
 .tag{font-size:12px;color:var(--fraco)}
+.responsavel-linha{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0}
+.responsavel-tag{display:inline-flex;align-items:center;border:1px solid var(--linha);
+ border-radius:99px;background:var(--chip);color:var(--txt);padding:2px 9px;font-size:12px}
+.responsavel-select{max-width:160px;border:1px solid var(--linha);border-radius:7px;
+ background:var(--campo);color:var(--txt);padding:3px 7px;font:inherit;font-size:12px;cursor:pointer}
+.responsavel-erro{font-size:12px;color:var(--verm)}
 .pulso{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;
 animation:bat 2s infinite}@keyframes bat{50%{opacity:.25}}
 button{font:inherit;border:0;border-radius:9px;padding:9px 14px;cursor:pointer}
@@ -756,6 +782,7 @@ padding:12px 16px;cursor:pointer;display:grid;grid-template-columns:18px minmax(
 .item:hover{background:var(--hover)}.item.sel{background:var(--hover);box-shadow:inset 3px 0 0 var(--roxo)}
 .item .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .item .nome{font-weight:600;font-size:14px}
+.item .responsavel-tag{margin-top:4px;padding:1px 7px;font-size:11px}
 .item .h{font-size:11.5px;color:var(--fraco);white-space:nowrap}
 .item .msg{font-size:13px;color:var(--previa);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pill{font-size:10.5px;padding:1px 7px;border-radius:99px;border:1px solid var(--linha);color:var(--fraco)}
@@ -940,6 +967,27 @@ async function sair(){
 function esc(s){return (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function cls(s){return (s||'').split(' ')[0]}
 
+function atualizaResponsavel(responsavel){
+  const tag=document.getElementById('responsavelTag');
+  const select=document.getElementById('responsavelSelect');
+  if(tag) tag.textContent='Responsável: '+(responsavel||'não atribuído');
+  if(select&&!select.disabled){ select.value=responsavel||''; select.dataset.saved=select.value; }
+}
+async function salvaResponsavel(select){
+  const cid=selId, anterior=select.dataset.saved||'', erro=document.getElementById('responsavelErro');
+  select.disabled=true; if(erro) erro.textContent='';
+  try{
+    const r=await fetch('/api/responsavel',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chatid:cid,responsavel:select.value})});
+    const d=await r.json();
+    if(!r.ok||!d.ok) throw new Error(d.erro||'Não foi possível salvar.');
+    if(selId===cid){ select.disabled=false; atualizaResponsavel(d.responsavel); }
+  }catch(e){
+    if(selId===cid){ select.disabled=false; select.value=anterior;
+      if(erro) erro.textContent=e.message||'Não foi possível salvar.'; }
+  }
+}
+
 let notificacoesProntas=false, avisosVistos=new Set();
 async function buscaNotificacoes(mostrar=true){
   try{
@@ -985,6 +1033,7 @@ async function carrega(){
       onchange="marca('${esc(p.chatid)}',this.checked)"><div class="item-body">
       <div class="top"><span class="nome">${esc(p.nome||p.fone)}</span>
       <span class="h">${esc(p.ha)}</span></div>
+      ${p.responsavel?`<span class="responsavel-tag">${esc(p.responsavel)}</span>`:''}
       <div class="msg">${esc(p.ultima)}</div>
       <div style="margin-top:6px;display:flex;gap:5px">
         <span class="pill ${cls(p.status)}">${esc(p.status)}</span>
@@ -1165,6 +1214,13 @@ async function abrir(i){
   P.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
       <div><strong>${esc(d.nome||d.fone)}</strong>
+        <div class="responsavel-linha">
+          <span class="responsavel-tag" id="responsavelTag">Responsável: ${esc(d.responsavel||'não atribuído')}</span>
+          <select class="responsavel-select" id="responsavelSelect" aria-label="Atribuir responsável" onchange="salvaResponsavel(this)" data-saved="${esc(d.responsavel||'')}">
+            <option value="">Atribuir responsável</option>
+            ${(prontos.responsaveis||[]).map(nome=>`<option value="${esc(nome)}" ${d.responsavel===nome?'selected':''}>${esc(nome)}</option>`).join('')}
+          </select><span class="responsavel-erro" id="responsavelErro" role="status"></span>
+        </div>
         <div class="tag">${esc(d.fone)} · última ${esc(p.ha)} (${esc(p.quando)})</div></div>
       <a class="tag" href="https://wa.me/${esc(d.fone)}" target="_blank">WhatsApp ↗</a>
     </div>
@@ -1526,7 +1582,7 @@ async function atualizaPorEvento(){
     const cid=selId;
     try{
       const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
-      if(r.ok&&selId===cid) desenhaChat((await r.json()).linhas);
+      if(r.ok&&selId===cid){ const d=await r.json(); desenhaChat(d.linhas); atualizaResponsavel(d.responsavel); }
     }catch(e){}
   },40);
 }
@@ -1546,7 +1602,7 @@ setInterval(async()=>{
     const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
     if(!r.ok) return;
     const d=await r.json();
-    if(selId===cid) desenhaChat(d.linhas);
+    if(selId===cid){ desenhaChat(d.linhas); atualizaResponsavel(d.responsavel); }
   }catch(e){}finally{chatAtualizando=false;}
 },1500);
 setInterval(async()=>{ const s=await (await fetch('/api/sync')).json();
@@ -1644,7 +1700,7 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps(
                     {"audios": AUDIOS, "textos": TEXTOS, "combos": COMBOS,
                      "catalogo": CATALOGO_MENSAGENS, "status": STATUS,
-                     "planos": PLANOS,
+                     "planos": PLANOS, "responsaveis": RESPONSAVEIS,
                      "vendedor": nome_vendedor(self.headers.get("X-Prospeccao-User"))},
                     ensure_ascii=False))
             if p.path == "/api/sync":
@@ -1719,6 +1775,17 @@ class H(BaseHTTPRequestHandler):
                            "CONVERTIDO": "fechou", "PERDIDO": "perdida"}
                 CRM_CLIENT.change(d["chatid"], mapping[d["status"]])
                 return self._send(200, json.dumps({"ok": True}))
+            if self.path == "/api/responsavel":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    responsavel = atribui_responsavel(d.get("chatid"), d.get("responsavel"))
+                    return self._send(200, json.dumps({"ok": True, "responsavel": responsavel},
+                                                      ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/ocultar":
                 c = con()
                 c.execute("UPDATE leads SET oculto=?, atualizado=? WHERE chatid=?",
