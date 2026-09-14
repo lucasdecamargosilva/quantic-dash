@@ -688,6 +688,8 @@ animation:bat 2s infinite}@keyframes bat{50%{opacity:.25}}
 button{font:inherit;border:0;border-radius:9px;padding:9px 14px;cursor:pointer}
 .btn{background:var(--roxo);color:#fff;font-weight:600}.btn:hover{background:var(--roxo2)}
 .btn.sec{background:var(--chip);border:1px solid var(--linha);color:var(--txt);font-weight:500}
+.crm-link{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 11px;
+font-size:13px;border-radius:9px;text-decoration:none;white-space:nowrap}
 .wrap{width:100%;margin:0;padding:0;display:grid;flex:1;min-height:0;overflow:hidden;
 grid-template-columns:minmax(320px,400px) minmax(0,1fr);gap:0;align-items:stretch}
 @media(max-width:900px){.wrap{grid-template-columns:1fr}}
@@ -830,8 +832,9 @@ overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:a
 <header>
   <h1>Atendimento</h1>
   <div class="filtros" id="filtros"></div>
+  <a class="btn crm-link" href="https://crm.quanticsolutions.com.br/crm/" target="_blank" rel="noopener" title="Abrir o CRM em uma nova aba">Ir para o CRM <span aria-hidden="true">↗</span></a>
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
-          style="margin-left:auto;padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora">🔄 Atualizar</button>
+          style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora">🔄 Atualizar</button>
   <button class="btn sec" id="tema" onclick="viraTema()" style="padding:6px 11px;font-size:13px">🌙</button>
   <span class="tag" id="sync"><span class="pulso"></span> ao vivo</span>
 </header>
