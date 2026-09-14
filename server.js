@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const crypto = require('crypto');
+const { loadAccounts, isAuthorized } = require('./prospeccao-auth');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
@@ -136,16 +136,10 @@ app.use((req, res, next) => {
 });
 
 // 2a-ter. Painel de prospecção — processo Python interno protegido por acesso próprio.
-// Configure usuário e SHA-256 da senha no ambiente do serviço, nunca no Git.
-const PROSPECCAO_USER = process.env.PROSPECCAO_USER || '';
-const PROSPECCAO_PASSWORD_HASH = process.env.PROSPECCAO_PASSWORD_HASH || '';
+// A credencial anterior continua válida; usuários adicionais têm senha própria.
+// Configure somente hashes no ambiente do serviço, nunca no Git.
+const PROSPECCAO_ACCOUNTS = loadAccounts();
 const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|midia|conversa|crm(?:\/.*)?|ocultar|status|enviar|audio|combo|combo_status|catalogo|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
-
-function comparaSeguro(recebido, esperado) {
-    const a = Buffer.from(recebido);
-    const b = Buffer.from(esperado);
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
 
 function autenticaProspeccao(req, res, next) {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
@@ -158,16 +152,7 @@ function autenticaProspeccao(req, res, next) {
             return res.sendStatus(403);
         }
     }
-    const cabecalho = req.headers.authorization || '';
-    const codificado = cabecalho.startsWith('Basic ') ? cabecalho.slice(6) : '';
-    let usuario = '';
-    let senha = '';
-    try {
-        [usuario, senha] = Buffer.from(codificado, 'base64').toString('utf8').split(/:(.*)/s, 2);
-    } catch (_) {}
-    const senhaHash = crypto.createHash('sha256').update(senha || '', 'utf8').digest('hex');
-    if (PROSPECCAO_USER && /^[a-f0-9]{64}$/.test(PROSPECCAO_PASSWORD_HASH) &&
-        comparaSeguro(usuario || '', PROSPECCAO_USER) && comparaSeguro(senhaHash, PROSPECCAO_PASSWORD_HASH)) {
+    if (isAuthorized(req.headers.authorization, PROSPECCAO_ACCOUNTS)) {
         res.setHeader('Cache-Control', 'no-store');
         return next();
     }

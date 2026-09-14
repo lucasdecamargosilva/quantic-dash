@@ -17,6 +17,10 @@ O banco local, as conversas, os logs e as chaves ficam fora do Git.
 O Dockerfile inicia o painel junto com o servidor principal e o publica em
 `/prospeccao/`, protegido por login próprio. Configure `PROSPECCAO_USER` e
 `PROSPECCAO_PASSWORD_HASH` (SHA-256 hexadecimal da senha) no ambiente do serviço.
+Para dar acesso individual a outras pessoas sem substituir o login existente,
+configure também `PROSPECCAO_USERS_JSON` como um objeto JSON que associa cada
+usuário ao hash SHA-256 de sua senha, por exemplo
+`{"dione":"<hash SHA-256 da senha individual>"}`. Não salve senhas nem hashes no Git.
 Sem esses campos a rota permanece fechada. O serviço Python continua acessível
 apenas dentro do container. Configure `UAZAPI_TOKEN`, `GEMINI_KEY`, `PL_CRM_URL`
 e `PL_CRM_KEY` como variáveis do serviço no EasyPanel. Monte um volume persistente
