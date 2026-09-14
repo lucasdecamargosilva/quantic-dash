@@ -78,6 +78,10 @@ class ResponsavelTest(unittest.TestCase):
         c.commit()
         dados = painel.contagem()["_responsaveis"]
         self.assertEqual({"Lucas": 0, "Dione": 2, "": 1}, {r["responsavel"]: r["total"] for r in dados})
+        self.assertEqual({"INTERESSADO": 1, "TESTE GRÁTIS": 0, "CONVERTIDO": 1, "PERDIDO": 0},
+                         next(r["etapas"] for r in dados if r["responsavel"] == "Dione"))
+        for r in dados:
+            self.assertEqual(r["total"], sum(r["etapas"].values()))
         painel.atribui_responsavel("d", "Lucas")
         self.assertEqual({"Lucas": 1, "Dione": 2, "": 0},
                          {r["responsavel"]: r["total"] for r in painel.contagem()["_responsaveis"]})

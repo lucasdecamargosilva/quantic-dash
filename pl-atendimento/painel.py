@@ -565,12 +565,16 @@ def contagem():
         + SEM_SUPORTE).fetchone()["n"]
     d["_ocultos"] = c.execute(
         "SELECT COUNT(*) n FROM leads WHERE oculto=1").fetchone()["n"]
-    por_responsavel = {r["responsavel"]: r["n"] for r in c.execute(
-        "SELECT COALESCE(NULLIF(TRIM(responsavel),''),'') responsavel, COUNT(*) n "
-        "FROM leads WHERE COALESCE(oculto,0)=0" + SEM_SUPORTE + " GROUP BY 1")}
+    por_responsavel = {}
+    for r in c.execute(
+        "SELECT COALESCE(NULLIF(TRIM(responsavel),''),'') responsavel, "
+        "COALESCE(status,'INTERESSADO') etapa, COUNT(*) n FROM leads "
+        "WHERE COALESCE(oculto,0)=0" + SEM_SUPORTE + " GROUP BY 1,2"):
+        por_responsavel.setdefault(r["responsavel"], {})[r["etapa"]] = r["n"]
     nomes = list(RESPONSAVEIS) + sorted(n for n in por_responsavel if n and n not in RESPONSAVEIS) + [""]
     d["_responsaveis"] = [{"nome": n or "Sem responsável", "responsavel": n,
-                           "total": por_responsavel.get(n, 0)} for n in nomes]
+                           "total": sum(por_responsavel.get(n, {}).values()),
+                           "etapas": {**dict.fromkeys(STATUS, 0), **por_responsavel.get(n, {})}} for n in nomes]
     return d
 
 
@@ -945,6 +949,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .grafico-barra{height:100%;background:var(--serie);border-radius:99px;transition:width .25s}
 .grafico-linha{--serie:var(--roxo2)}.grafico-linha[data-responsavel="Dione"]{--serie:var(--azul)}
 .grafico-linha[data-responsavel=""]{--serie:var(--fraco)}
+.grafico-etapas{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 15px}
+.grafico-etapa{display:inline-flex;align-items:center;gap:7px;padding:4px 8px;border:1px solid var(--linha);
+ border-radius:7px;background:var(--chip);font-size:11px;color:var(--fraco)}
+.grafico-etapa b{color:var(--txt);font-variant-numeric:tabular-nums}.grafico-etapa::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--etapa-cor,var(--fraco))}
+.grafico-etapa[data-etapa="INTERESSADO"]{--etapa-cor:var(--alerta)}.grafico-etapa[data-etapa="TESTE GRÁTIS"]{--etapa-cor:var(--azul)}
+.grafico-etapa[data-etapa="CONVERTIDO"]{--etapa-cor:var(--ok)}.grafico-etapa[data-etapa="PERDIDO"]{--etapa-cor:var(--verm)}
 .filtro-responsavel{order:1;display:flex;align-items:center;gap:8px;padding:0 14px 12px;
  color:var(--fraco);font-size:12px}.filtro-responsavel>.ico{color:var(--roxo)}
 .filtro-responsavel select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--linha);
@@ -1303,7 +1313,9 @@ function desenhaGraficoResponsaveis(dados){
   document.getElementById('graficoResponsaveisTotal').textContent=total.toLocaleString('pt-BR')+' leads';
   document.getElementById('graficoResponsaveis').innerHTML=dados.map(r=>{
     const pct=total?r.total/total*100:0;
-    return `<div class="grafico-linha" data-responsavel="${esc(r.responsavel)}"><div class="grafico-rotulo"><span><i class="grafico-ponto" aria-hidden="true"></i>${esc(r.nome)}</span><b>${r.total.toLocaleString('pt-BR')}</b></div><div class="grafico-trilha" role="img" aria-label="${esc(r.nome)}: ${r.total} leads, ${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}% do total"><div class="grafico-barra" style="width:${pct}%"></div></div></div>`;
+    const rotulos={'INTERESSADO':'Interessados','TESTE GRÁTIS':'Teste grátis','CONVERTIDO':'Convertidos','PERDIDO':'Perdidos'};
+    const etapas=Object.entries(r.etapas||{}).map(([etapa,n])=>`<span class="grafico-etapa" data-etapa="${esc(etapa)}">${esc(rotulos[etapa]||etapa)}<b>${n.toLocaleString('pt-BR')}</b></span>`).join('');
+    return `<div class="grafico-linha" data-responsavel="${esc(r.responsavel)}"><div class="grafico-rotulo"><span><i class="grafico-ponto" aria-hidden="true"></i>${esc(r.nome)}</span><b>${r.total.toLocaleString('pt-BR')}</b></div><div class="grafico-trilha" role="img" aria-label="${esc(r.nome)}: ${r.total} leads, ${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}% do total"><div class="grafico-barra" style="width:${pct}%"></div></div><div class="grafico-etapas">${etapas}</div></div>`;
   }).join('');
 }
 
