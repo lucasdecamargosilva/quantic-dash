@@ -903,7 +903,12 @@ html:not([data-tema="claro"]) .responsavel-tag[data-responsavel=""]{color:var(--
 .ico{width:17px;height:17px;display:inline-block;flex:none;vertical-align:-3px;stroke:currentColor;
  fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 header{flex-wrap:wrap;gap:10px 14px;padding:14px 22px 0;background:var(--card)}
-.marca{display:flex;align-items:center;gap:10px;margin-right:auto}
+.marca{display:flex;align-items:center;gap:13px;margin-right:auto;min-width:0}
+.marca-logo{display:block;width:168px;height:40px;object-fit:contain;object-position:left center;flex:none}
+.marca-logo.escuro{display:none}
+html:not([data-tema="claro"]) .marca-logo.claro{display:none}
+html:not([data-tema="claro"]) .marca-logo.escuro{display:block}
+.marca h1{border-left:1px solid var(--linha);padding-left:13px;white-space:nowrap}
 .marca-simbolo,.avatar{display:inline-flex;align-items:center;justify-content:center;flex:none;
  color:var(--roxo);background:var(--hover);border:1px solid color-mix(in srgb,var(--roxo) 15%,var(--linha))}
 .marca-simbolo{width:38px;height:38px;border-radius:12px;background:var(--roxo);color:white}
@@ -983,7 +988,8 @@ textarea:focus{border-color:var(--roxo)}.rapidos{border:1px solid var(--linha);p
 </style></head><body>
 <div class="notificacoes" id="notificacoes" aria-live="polite"></div>
 <header>
-  <div class="marca"><span class="marca-simbolo" data-icon="chat"></span><div><small>PROVOU LEVOU</small><h1>Prospecção</h1></div></div>
+  <div class="marca"><img class="marca-logo claro" src="/prospeccao-logo-claro.png" alt="Provou Levou" width="168" height="40">
+    <img class="marca-logo escuro" src="/prospeccao-logo-escuro.png" alt="" width="168" height="40"><h1>Prospecção</h1></div>
   <div class="filtros" id="filtros"></div>
   <a class="btn crm-link" href="https://crm.quanticsolutions.com.br/crm/pipeline" target="_blank" rel="noopener" title="Abrir o Pipeline do CRM em uma nova aba"><span data-icon="pipeline"></span>Ir para o CRM <span aria-hidden="true">↗</span></a>
   <a class="btn sec crm-link" style="margin-left:0" href="https://crm.quanticsolutions.com.br/crm/testes-gratis" target="_blank" rel="noopener"><span data-icon="calendar"></span>Clientes em teste grátis</a>
