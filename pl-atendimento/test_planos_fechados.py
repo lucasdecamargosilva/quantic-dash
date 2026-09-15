@@ -43,3 +43,17 @@ class PlanoFechadoTest(BuscaTest):
         painel.cria_banco()
         rows=c.execute("SELECT chatid,responsavel FROM atendimentos_iniciados").fetchall()
         self.assertEqual([('a','Dione')],[(r[0],r[1]) for r in rows])
+
+    def test_dados_do_lead_expoem_etapas_do_pipeline_principal(self):
+        with patch.object(painel.CRM_CLIENT,"details",return_value={"lead":{"status":"meta"}}):
+            data=painel.dados_pipeline("a")
+        self.assertEqual(set(painel.STATUS),set(data["pipeline"]["etapas"]))
+        self.assertEqual("INTERESSADO",data["pipeline"]["status"])
+        self.assertNotIn("novo_tiktok",data["pipeline"]["etapas"])
+
+    def test_dados_movem_etapa_nova_e_rejeitam_etapa_antiga(self):
+        with patch.object(painel.CRM_CLIENT,"change",return_value={"id":"crm-a"}) as change, patch.object(painel,"dados_pipeline",return_value={}):
+            painel.move_pipeline_dados("a","MENSAGEM 2")
+            change.assert_called_once_with("a","mensagem_2")
+            with self.assertRaises(ValueError):painel.move_pipeline_dados("a","novo_tiktok")
+            change.assert_called_once()

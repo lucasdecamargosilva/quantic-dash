@@ -595,6 +595,26 @@ def fila(status=None, busca=None, responsavel=None, chatid=None):
     return out
 
 
+PIPELINE_REMOTE_STATUS = {"MENSAGEM 1":"mensagem_1", "MENSAGEM 2":"mensagem_2", "MENSAGEM 3":"mensagem_3",
+                          "INTERESSADO":"interessado", "TESTE GRÁTIS":"testando", "CONVERTIDO":"fechou", "PERDIDO":"perdida"}
+
+def dados_pipeline(chatid):
+    data = CRM_CLIENT.details(chatid)
+    row = con().execute("SELECT status,ultimo_de,oculto FROM leads WHERE chatid=?", (chatid,)).fetchone()
+    atual = "_ocultos" if row and row["oculto"] else row["status"] if row and row["status"] in STATUS else "_sem_resposta" if row and row["ultimo_de"] == "nos" else ""
+    data["pipeline"] = {"status": atual, "etapas": {s:s.title() for s in STATUS}}
+    return data
+
+def move_pipeline_dados(chatid, status):
+    if status not in PIPELINE_REMOTE_STATUS:
+        raise ValueError("Selecione uma etapa do Pipeline Atendimento.")
+    CRM_CLIENT.change(chatid, PIPELINE_REMOTE_STATUS[status])
+    c = con()
+    c.execute("UPDATE leads SET oculto=0 WHERE chatid=?", (chatid,))
+    c.commit()
+    return dados_pipeline(chatid)
+
+
 def salva_plano_fechado(chatid, plano, valor_centavos):
     if plano not in {p["nome"] for p in PLANOS}:
         raise ValueError("Selecione um plano válido.")
@@ -1691,7 +1711,7 @@ function desenhaCRM(d){
   const rascunho=box.querySelector('.crm-note-input')?.value||'';
   const lead=d.lead;
   box.innerHTML='<div class="crm-head"><div class="crm-heading"><span class="crm-eyebrow">QUANTIC DASH</span>'+
-    '<span class="crm-title">Oportunidade no CRM</span></div></div>'+
+    '<span class="crm-title">Pipeline Atendimento · principal</span></div></div>'+
     '<div class="crm-controls"></div>';
   const head=box.querySelector('.crm-head'), controls=box.querySelector('.crm-controls');
   if(!lead){
@@ -1700,10 +1720,12 @@ function desenhaCRM(d){
     b.onclick=()=>salvaCRM('/api/crm/registrar'); controls.appendChild(b); return;
   }
   const stage=document.createElement('label'); stage.className='crm-stage-control';
-  stage.appendChild(document.createTextNode('Etapa'));
-  const select=document.createElement('select'); select.dataset.saved=lead.status; select.className='crm-select'; select.setAttribute('aria-label','Etapa no CRM');
-  for(const [value,label] of Object.entries(d.etapas)){
-    const option=new Option(label,value); option.selected=value===lead.status; select.add(option);
+  stage.appendChild(document.createTextNode('Etapa no Pipeline Atendimento'));
+  const atual=d.pipeline?.status??'';
+  const select=document.createElement('select'); select.dataset.saved=atual; select.className='crm-select'; select.setAttribute('aria-label','Etapa no Pipeline Atendimento');
+  if(!Object.hasOwn(d.pipeline?.etapas||{},atual)){const option=new Option(atual==='_ocultos'?'Removidos':atual==='_sem_resposta'?'Sem resposta':'Esperando',atual);option.disabled=true;option.selected=true;select.add(option);}
+  for(const [value,label] of Object.entries(d.pipeline?.etapas||{})){
+    const option=new Option(label,value); option.selected=value===atual; select.add(option);
   }
   select.onchange=()=>salvaCRM('/api/crm/etapa',select.value);
   stage.appendChild(select); head.appendChild(stage);
@@ -2132,7 +2154,7 @@ class H(BaseHTTPRequestHandler):
                     pass
                 return
             if p.path == "/api/crm":
-                return self._send(200, json.dumps(CRM_CLIENT.details(q["chatid"][0]), ensure_ascii=False))
+                return self._send(200, json.dumps(dados_pipeline(q["chatid"][0]), ensure_ascii=False))
             if p.path == "/api/prontos":
                 return self._send(200, json.dumps(
                     {"audios": AUDIOS, "textos": TEXTOS, "combos": COMBOS,
@@ -2231,9 +2253,12 @@ class H(BaseHTTPRequestHandler):
                     if self.path.endswith("/observacao"):
                         note = CRM_CLIENT.add_note(d["chatid"], d.get("texto"))
                         return self._send(200, json.dumps({"ok": True, "note": note}, ensure_ascii=False))
-                    lead = (CRM_CLIENT.change(d["chatid"], d["status"])
-                            if self.path.endswith("/etapa") else CRM_CLIENT.ensure(d["chatid"], create=True))
-                    return self._send(200, json.dumps({"lead": lead, "etapas": ETAPAS}, ensure_ascii=False))
+                    if self.path.endswith("/etapa"):
+                        data = move_pipeline_dados(d["chatid"], d["status"])
+                    else:
+                        CRM_CLIENT.ensure(d["chatid"], create=True)
+                        data = dados_pipeline(d["chatid"])
+                    return self._send(200, json.dumps(data, ensure_ascii=False))
                 except Exception as e:
                     return self._send(400, json.dumps({"erro": str(e)[:200]}, ensure_ascii=False))
             if self.path == "/api/status":
