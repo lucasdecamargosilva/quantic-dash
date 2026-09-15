@@ -86,3 +86,6 @@
  .traffic-dashboard .traffic-header-controls .traffic-period-bar { flex:1 1 100%; }
  .traffic-dashboard .traffic-header-controls .traffic-period { width:100%; }
 }
+
+.traffic-dashboard .traffic-header-controls { flex:0 1 360px; }
+.traffic-dashboard .traffic-header-controls .traffic-period-bar { flex:1 1 300px; }
