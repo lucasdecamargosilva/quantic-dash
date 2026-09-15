@@ -99,3 +99,9 @@
  .traffic-dashboard .traffic-header-controls { overflow-x:auto; max-width:100%; }
  .traffic-dashboard .traffic-header-controls .traffic-period { min-width:450px; }
 }
+
+.traffic-kpi[data-tone="money"]{--kpi-color:var(--color-emerald,#10b981)}
+.traffic-kpi[data-tone="click"]{--kpi-color:var(--color-cyan,#06b6d4)}
+.traffic-kpi[data-tone="leads"]{--kpi-color:var(--color-violet,#7c3aed)}
+.traffic-kpi[data-tone="target"]{--kpi-color:var(--color-amber,#f59e0b)}
+.traffic-dashboard .traffic-kpi{background:color-mix(in srgb,var(--kpi-color) 10%,var(--color-raised));border-color:color-mix(in srgb,var(--kpi-color) 25%,var(--color-edge-subtle))}
