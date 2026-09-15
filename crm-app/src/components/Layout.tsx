@@ -5,23 +5,6 @@ import logoProvouLevouEscuro from "../assets/provou-levou-logo-escuro.png";
 
 const NAV_ITEMS = [
   {
-    to: "/testes-gratis",
-    label: "Testes grátis",
-    icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v4M11 1v4M2 7h12M5 10h2" /></svg>,
-  },
-  {
-    to: "/",
-    label: "Dashboard",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="1" y="1" width="6" height="6" rx="1.5" />
-        <rect x="9" y="1" width="6" height="3" rx="1.5" />
-        <rect x="9" y="6" width="6" height="9" rx="1.5" />
-        <rect x="1" y="9" width="6" height="6" rx="1.5" />
-      </svg>
-    ),
-  },
-  {
     to: "/pipeline",
     label: "Pipeline",
     icon: (
@@ -39,6 +22,23 @@ const NAV_ITEMS = [
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M2 2.5h12v8H7l-3.5 3v-3H2z" />
         <path d="M5 6.5h6M5 8.5h4" />
+      </svg>
+    ),
+  },
+  {
+    to: "/testes-gratis",
+    label: "Testes grátis",
+    icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v4M11 1v4M2 7h12M5 10h2" /></svg>,
+  },
+  {
+    to: "/",
+    label: "Dashboard",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="1" y="1" width="6" height="6" rx="1.5" />
+        <rect x="9" y="1" width="6" height="3" rx="1.5" />
+        <rect x="9" y="6" width="6" height="9" rx="1.5" />
+        <rect x="1" y="9" width="6" height="6" rx="1.5" />
       </svg>
     ),
   },
