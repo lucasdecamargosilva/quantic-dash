@@ -3,8 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#10112b">
-  <title>Entrar · Painel de Prospecção</title>
+  <meta name="theme-color" content="#08080b">
+  <title>Entrar · Provou Levou</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #252744; }
     * { box-sizing: border-box; }
@@ -40,12 +43,29 @@
     .help { margin-top: 29px; color: #9291a3; font-size: 12px; line-height: 1.5; text-align: center; }
     @media (max-width: 850px) { .layout { grid-template-columns: 1fr; } .intro { min-height: 225px; padding: 30px; } .intro-copy { padding: 0; } .intro-copy h1 { font-size: 34px; margin: 20px 0 8px; } .intro-copy p, .intro-foot, .eyebrow { display: none; } .form-area { padding: 38px 24px 60px; } .card-top { margin-bottom: 24px; } }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    body { background:#faf9f5; color:#0f1116; }
+    h1,h2 { font-family:Manrope,Inter,sans-serif; }
+    .intro { background:radial-gradient(ellipse at 85% 5%,rgba(124,58,237,.22),transparent 55%),#08080b; }
+    .brand img { display:block; width:230px; height:auto; object-fit:contain; }
+    .eyebrow { color:#a78bfa; }
+    .intro-copy p { color:#c7c4ce; }
+    .intro-foot { color:#94a3b8; }
+    h2 { color:#0f1116; font-weight:800; }
+    .subtitle,.help { color:#6b7280; }
+    input { border-color:rgba(15,17,22,.12); border-radius:8px; background:#fdfcfb; color:#0f1116; }
+    input:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,.12); }
+    .submit { background:#7c3aed; border-radius:8px; box-shadow:0 4px 12px rgba(124,58,237,.15); }
+    .submit:hover { background:#6d28d9; }
+    .show,.card-top { color:#7c3aed; }
+    .dot { background:#7c3aed; }
+    button:focus-visible { outline:2px solid #7c3aed; outline-offset:4px; }
+    @media(max-width:850px) { .brand img { width:190px; } }
   </style>
 </head>
 <body>
   <main class="layout">
     <section class="intro" aria-label="Painel de Prospecção">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span> Quantic Dash</div>
+      <div class="brand"><img src="/branding/provou-levou-logo.png" alt="Provou Levou" width="230" height="61"></div>
       <div class="intro-copy">
         <div class="eyebrow">Provou Levou · Comercial</div>
         <h1>Boas conversas começam aqui.</h1>
