@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useGoalConfig } from "./SharedGoals";
 import logoProvouLevouClaro from "../assets/provou-levou-logo-claro.png";
 import logoProvouLevouEscuro from "../assets/provou-levou-logo-escuro.png";
 
@@ -38,11 +39,6 @@ const NAV_ITEMS = [
     ),
   },
   {
-    to: "/testes-gratis",
-    label: "Desempenho de aquisição",
-    icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v4M11 1v4M2 7h12M5 10h2" /></svg>,
-  },
-  {
     to: "/trafego-pago",
     label: "Tráfego pago",
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>,
@@ -61,6 +57,7 @@ function getInitialTheme(): Theme {
 
 export default function Layout() {
   const location = useLocation();
+  const {canEdit:isLucas}=useGoalConfig();
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [navOpen, setNavOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
@@ -163,7 +160,7 @@ export default function Layout() {
 
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter(item=>item.to!=="/trafego-pago"||isLucas).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

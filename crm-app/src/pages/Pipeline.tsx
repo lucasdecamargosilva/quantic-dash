@@ -4,9 +4,7 @@ import { applyCustomLeadStatuses, persistLeadStatus } from "../lib/lead-status";
 import type { Lead, LeadStatus, Categoria } from "../types";
 import { PIPELINE_STATUSES, STATUS_LABELS, STATUS_HEX, CATEGORIAS, CATEGORIA_LABELS } from "../types";
 import LeadModal from "../components/LeadModal";
-import DesempenhoResponsaveis from "../components/DesempenhoResponsaveis";
 import FonteLogo from "../components/FonteLogo";
-import LeadsPorEtapaModal from "../components/LeadsPorEtapaModal";
 import {
   DndContext,
   DragOverlay,
@@ -162,7 +160,6 @@ export default function Pipeline() {
   const [filtroCategoria, setFiltroCategoria] = useState<Categoria | "todas">("todas");
   const [filtroFonte, setFiltroFonte] = useState<string>("todas");
   // Etapa selecionada para o popup "leads por etapa"
-  const [etapaSelecionada, setEtapaSelecionada] = useState<LeadStatus | null>(null);
   const [busca, setBusca] = useState<string>("");
 
   // Sensores: desktop (mouse) ativa em 5px; mobile (touch) exige hold de 500ms
@@ -389,119 +386,6 @@ export default function Pipeline() {
           {activeLead ? <CardOverlay lead={activeLead} /> : null}
         </DragOverlay>
       </DndContext>
-
-      {/* Total de leads por etapa — colunas comparativas (desktop) / cards (mobile) */}
-      <div className="px-4 lg:px-8 pt-6 lg:pt-8 pb-2">
-        <div className="flex items-center gap-3 mb-4">
-          <h3 className="text-[13px] font-bold text-bright tracking-tight uppercase">
-            Total de Leads por Etapa
-          </h3>
-          <span className="text-[11px] text-dim tabular-nums ml-auto">
-            {totalActive} ativo{totalActive !== 1 ? "s" : ""}
-          </span>
-        </div>
-
-        {/* Mobile: cards coloridos (igual ao Dashboard) */}
-        <div className="lg:hidden grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2 mb-2">
-          {PIPELINE_STATUSES.map((s, i) => {
-            const n = grouped[s]?.length ?? 0;
-            const hex = STATUS_HEX[s];
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setEtapaSelecionada(s)}
-                className="stagger-in bg-raised border border-edge-subtle rounded-lg p-3 text-center hover:border-violet/40 transition-colors cursor-pointer"
-                style={{ animationDelay: `${i * 25}ms` }}
-              >
-                <div className="w-2 h-2 rounded-full mx-auto mb-1.5" style={{ background: hex }} />
-                <p className="text-[8px] text-dim uppercase tracking-widest leading-tight min-h-[18px]">
-                  {STATUS_LABELS[s]}
-                </p>
-                <p className="text-base font-bold mt-1 tabular-nums" style={{ color: hex }}>
-                  {n}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Desktop: gráfico de colunas verticais (mantido como estava) */}
-        <div
-          className="hidden lg:block rounded-[14px] px-6 py-6"
-          style={{
-            background: "var(--color-card-glass)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid var(--color-card-border)",
-          }}
-        >
-          {(() => {
-            const max = Math.max(1, ...PIPELINE_STATUSES.map((s) => grouped[s]?.length ?? 0));
-            const CHART_H = 220;
-            return (
-              <div
-                className="grid items-end gap-3"
-                style={{
-                  gridTemplateColumns: `repeat(${PIPELINE_STATUSES.length}, minmax(0, 1fr))`,
-                  height: CHART_H + 70,
-                }}
-              >
-                {PIPELINE_STATUSES.map((s, i) => {
-                  const n = grouped[s]?.length ?? 0;
-                  const pct = totalActive > 0 ? ((n / totalActive) * 100).toFixed(0) : "0";
-                  const hex = STATUS_HEX[s];
-                  const h = Math.round((n / max) * CHART_H);
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setEtapaSelecionada(s)}
-                      className="stagger-in flex flex-col items-center justify-end h-full hover:opacity-80 transition-opacity cursor-pointer bg-transparent border-none p-0"
-                      style={{ animationDelay: `${i * 35}ms` }}
-                    >
-                      <span
-                        className="text-[11px] font-bold tabular-nums mb-1"
-                        style={{ color: hex }}
-                      >
-                        {n}
-                      </span>
-                      <div
-                        className="w-full rounded-t-md transition-all duration-700 ease-out"
-                        style={{
-                          height: `${h}px`,
-                          minHeight: n > 0 ? "4px" : "1px",
-                          background: `linear-gradient(180deg, ${hex}, ${hex}66)`,
-                          boxShadow: n > 0 ? `0 0 14px ${hex}33` : "none",
-                        }}
-                      />
-                      <span
-                        className="text-[9px] font-semibold uppercase tracking-wider mt-2 text-center leading-tight"
-                        style={{ color: "var(--color-text-dim, #6b7280)" }}
-                      >
-                        {STATUS_LABELS[s]}
-                      </span>
-                      <span className="text-[9px] tabular-nums text-dim mt-0.5">{pct}%</span>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* Desempenho por responsavel */}
-      <DesempenhoResponsaveis leads={leads} />
-
-      {/* Popup — leads de uma etapa */}
-      {etapaSelecionada && (
-        <LeadsPorEtapaModal
-          status={etapaSelecionada}
-          leads={leads}
-          onClose={() => setEtapaSelecionada(null)}
-        />
-      )}
 
       {selectedId && (
         <LeadModal leadId={selectedId} onClose={() => setSelectedId(null)} onUpdated={fetchLeads} />

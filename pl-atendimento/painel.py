@@ -18,6 +18,7 @@ import base64
 import hashlib
 from crm_bridge import CRM, ETAPAS
 from live_events import EventHub, LiveEvents
+from metas_config import read_goals, save_goals
 import io
 import json
 import os
@@ -2096,6 +2097,9 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps({**SYNC, "crm": CRM_CLIENT.sync_status, "events": dict(LIVE_EVENTS.status)}, ensure_ascii=False))
             if p.path == "/api/contagem":
                 return self._send(200, json.dumps(contagem(), ensure_ascii=False))
+            if p.path == "/api/metas/config":
+                return self._send(200, json.dumps({"goals": read_goals(DB),
+                    "canEdit": self.headers.get("X-Prospeccao-User") == "lucas"}, ensure_ascii=False))
             if p.path == "/api/metas/conversas":
                 return self._send(200, json.dumps(metas_conversas(
                     (q.get("since") or [""])[0], (q.get("until") or [""])[0]), ensure_ascii=False))
@@ -2144,6 +2148,18 @@ class H(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or 0)
             bruto = self.rfile.read(n).decode("utf-8") if n else ""
             d = json.loads(bruto) if bruto.strip() else {}   # /api/atualizar vai sem corpo
+            if self.path == "/api/metas/config":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    goals = save_goals(DB, self.headers.get("X-Prospeccao-User"), d)
+                    return self._send(200, json.dumps({"goals": goals, "canEdit": True}))
+                except PermissionError as e:
+                    return self._send(403, json.dumps({"erro": str(e)}))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}))
             if self.path in ("/api/mensagem/editar", "/api/mensagem/excluir"):
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (

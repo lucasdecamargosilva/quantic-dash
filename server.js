@@ -48,6 +48,10 @@ function metaError(res, error) {
 
 // Insights agregados (totais + breakdown opcional por dia)
 // Query: ?since=YYYY-MM-DD&until=YYYY-MM-DD&breakdown=daily
+app.use('/api/meta', (req, res, next) => autenticaProspeccao(req, res, () => {
+    if (req.headers['x-prospeccao-user'] !== 'lucas') return res.status(403).json({error:'Acesso exclusivo do Lucas.'});
+    next();
+}));
 app.get('/api/meta/insights', async (req, res) => {
     if (!META_ACCESS_TOKEN || !META_AD_ACCOUNT_ID) {
         return res.status(500).json({ error: 'META_ACCESS_TOKEN ou META_AD_ACCOUNT_ID não configurados' });
@@ -189,7 +193,7 @@ if (fs.existsSync(LUCAS_AUTH_FILE)) {
 const PROSPECCAO_ACCOUNTS = loadAccounts(PROSPECCAO_ENV);
 const PROSPECCAO_SESSION_SECRET = process.env.PROSPECCAO_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const loginAttempts = new Map();
-const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|metas\/conversas|midia|conversa|crm(?:\/.*)?|ocultar|status|responsavel|enviar|mensagem\/(?:editar|excluir)|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
+const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|metas\/(?:conversas|config)|midia|conversa|crm(?:\/.*)?|ocultar|status|responsavel|enviar|mensagem\/(?:editar|excluir)|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
 
 function origemProspeccaoValida(req) {
     const origem = req.headers.origin;
