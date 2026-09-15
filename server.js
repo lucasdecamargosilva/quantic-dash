@@ -20,6 +20,10 @@ const CHATWOOT_USER_ID = process.env.CHATWOOT_USER_ID || 1;
 // Configurações do Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://quantic-supabase.k5jwra.easypanel.host';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || (() => {
+    try { return fs.readFileSync('/run/secrets/supabase_service_key', 'utf8').trim(); }
+    catch (_) { return ''; }
+})();
 
 // Configurações do Meta Marketing API (Facebook Ads)
 const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
@@ -186,6 +190,30 @@ function autenticaProspeccao(req, res, next) {
     if (req.path === '/prospeccao/' || req.path === '/prospeccao') return res.redirect(303, '/prospeccao/login');
     return res.status(401).json({ error: 'Faça login para acessar o painel.' });
 }
+
+// Dados comerciais que não devem ser liberados diretamente pela chave pública
+// do navegador. A mesma sessão do painel de prospecção protege esta leitura.
+app.get('/api/commercial-insights', autenticaProspeccao, async (req, res) => {
+    const since = String(req.query.since || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(since)) return res.status(400).json({ error: 'Período inválido.' });
+    if (!SUPABASE_SERVICE_KEY) return res.status(503).json({ error: 'Leitura comercial não configurada.' });
+    const headers = { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` };
+    const read = (table, params) => axios.get(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${table}`, {
+        headers, params, timeout: 15000,
+    }).then(response => response.data);
+    try {
+        const [stores, ads, payments] = await Promise.all([
+            read('provou_levou_stores', { select: 'id,name,company,email,phone,status,platform,implementation_date,created_at', order: 'created_at.desc', limit: 1000 }),
+            read('meta_ads_criativos', { select: 'dia,ad_name,leads,spend', dia: `gte.${since}`, limit: 5000 }),
+            read('pagamentos_clientes', { select: 'store_id,tipo,data_pagamento,valor', order: 'data_pagamento.asc', limit: 5000 }),
+        ]);
+        res.setHeader('Cache-Control', 'private, max-age=30');
+        res.json({ stores, ads, payments });
+    } catch (error) {
+        console.error('Erro ao carregar indicadores comerciais:', error?.response?.status || error.message);
+        res.status(502).json({ error: 'Não foi possível consultar os indicadores comerciais.' });
+    }
+});
 
 app.get('/prospeccao/login', (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
