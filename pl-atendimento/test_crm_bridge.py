@@ -177,6 +177,12 @@ class BridgeTest(unittest.TestCase):
         self.assertEqual(note['lead_id'], self.rows[0]['id'])
         self.assertIn('updated_at', self.rows[0])
 
+    def test_message_stages_remain_manual_and_sync_to_chat(self):
+        for n in (1, 2, 3):
+            saved = self.crm.change(self.cid, f'mensagem_{n}')
+            self.assertEqual(f'mensagem_{n}', saved['status'])
+            self.assertEqual(f'MENSAGEM {n}', self.db.execute('SELECT status FROM leads WHERE chatid=?', (self.cid,)).fetchone()['status'])
+
     def test_empty_note_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'Digite uma observação'):
             self.crm.add_note(self.cid, '   ')
