@@ -1125,6 +1125,10 @@ textarea:focus{border-color:var(--roxo)}.rapidos{border:1px solid var(--linha);p
  .vazio-inicio{min-height:35vh}.responsavel-select{max-width:100%}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 .cliente-acoes .cliente-link{margin-left:0}
+header{flex-wrap:nowrap;align-items:center;padding-bottom:12px}
+header>.filtros{order:0;flex:1 1 0;min-width:0;width:auto;padding:0}
+header>#btAtualizar,header>#btSair{flex:0 0 auto;white-space:nowrap}
+header>#sync{flex:0 0 auto}
 </style></head><body>
 <div class="notificacoes" id="notificacoes" aria-live="polite"></div>
 <header>

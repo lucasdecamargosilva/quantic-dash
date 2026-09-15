@@ -58,7 +58,7 @@ function getInitialTheme(): Theme {
 export default function Layout() {
   const location = useLocation();
   const {canEdit:isLucas}=useGoalConfig();
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [theme] = useState<Theme>(getInitialTheme);
   const [navOpen, setNavOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
 
@@ -67,7 +67,6 @@ export default function Layout() {
     localStorage.setItem("quantic-crm-theme", theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const closeNav = () => setNavOpen(false);
   const logoProvouLevou = theme === "light" ? logoProvouLevouClaro : logoProvouLevouEscuro;
   // Compensa diferença de aspect ratio entre os dois PNGs (claro 5.73:1, escuro 3.78:1)
@@ -122,36 +121,6 @@ export default function Layout() {
             alt="Provou Levou"
             className={`flex-1 min-w-0 ${logoSize.sidebar} object-contain object-left ${navCollapsed ? "lg:hidden" : ""}`}
           />
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            title={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
-            className={`flex items-center justify-center w-8 h-8 rounded-md transition-all ${navCollapsed ? "lg:hidden" : ""}`}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--color-edge-subtle)",
-              color: "var(--color-muted)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--color-active-bg)";
-              e.currentTarget.style.color = "var(--color-violet)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--color-muted)";
-            }}
-          >
-            {theme === "dark" ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            )}
-          </button>
           <button onClick={() => setNavCollapsed(v => !v)} aria-label={navCollapsed ? "Expandir menu" : "Recolher menu"} title={navCollapsed ? "Expandir menu" : "Recolher menu"} className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-md border border-edge-subtle text-muted hover:bg-active-bg hover:text-violet-light lg:flex">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d={navCollapsed ? "m9 18 6-6-6-6" : "m15 18-6-6 6-6"}/></svg>
           </button>
