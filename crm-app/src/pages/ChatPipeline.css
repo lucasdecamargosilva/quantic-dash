@@ -19,3 +19,5 @@
 .pipeline-open-chat{display:block;margin:14px 0;padding:11px 14px;border-radius:8px;background:var(--color-violet);color:white;text-align:center;font-weight:600}
 
 .pipeline-sale-form{display:grid;gap:16px}.pipeline-sale-form small{font-size:12px;color:var(--color-muted)}.pipeline-sale-badge{display:block;margin-top:8px;font-size:11px;color:var(--color-emerald);font-weight:600}
+
+.pipeline-register-sale{display:flex;align-items:center;justify-content:center;gap:9px}.pipeline-register-sale svg{flex-shrink:0;color:var(--color-emerald)}
