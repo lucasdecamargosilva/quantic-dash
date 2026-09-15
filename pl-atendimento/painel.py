@@ -1129,10 +1129,16 @@ header{flex-wrap:nowrap;align-items:center;padding-bottom:12px}
 header>.filtros{order:0;flex:1 1 0;min-width:0;width:auto;padding:0}
 header>#btAtualizar,header>#btSair{flex:0 0 auto;white-space:nowrap}
 header>#sync{flex:0 0 auto}
+header>.filtro-responsavel{order:0;flex:0 0 auto;padding:0;white-space:nowrap;margin:0}
+header>.filtro-responsavel select{width:135px;flex:0 0 auto}
+@media(max-width:600px){header>.filtro-responsavel{font-size:11px;gap:4px}header>.filtro-responsavel select{width:105px}}
 </style></head><body>
 <div class="notificacoes" id="notificacoes" aria-live="polite"></div>
 <header>
   <div class="filtros" id="filtros"></div>
+    <label class="filtro-responsavel" for="filtroResponsavel"><span data-icon="user"></span>Responsável
+      <select id="filtroResponsavel" onchange="setResponsavelFiltro(this.value)"><option value="">Todos</option></select>
+    </label>
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
           style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora"><span data-icon="refresh"></span>Atualizar</button>
 
@@ -1153,9 +1159,7 @@ header>#sync{flex:0 0 auto}
         aria-label="Buscar por nome ou telefone" oninput="agendaBusca(this.value)" onkeydown="if(event.key==='Escape')limpaBusca()">
       <button class="busca-limpar" id="buscaLimpar" onclick="limpaBusca()" aria-label="Limpar pesquisa" hidden>✕</button>
     </div>
-    <label class="filtro-responsavel" for="filtroResponsavel"><span data-icon="user"></span>Responsável
-      <select id="filtroResponsavel" onchange="setResponsavelFiltro(this.value)"><option value="">Todos</option></select>
-    </label>
+
     <div class="lista" id="lista"></div>
   </div>
   <div id="painel" class="painel"><div class="vazio vazio-inicio"><span class="avatar" data-icon="chat"></span>
