@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Objecoes from "./pages/Objecoes";
 import Metas from "./pages/Metas";
 import Atendimento from "./pages/Atendimento";
+import TrafegoPago from "./pages/TrafegoPago";
 import TestesGratis from "./pages/TestesGratis";
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/testes-gratis" element={<TestesGratis />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/objecoes" element={<Objecoes />} />
+          <Route path="/trafego-pago" element={<TrafegoPago />} />
           <Route path="/metas" element={<Metas />} />
           <Route path="/atendimento" element={<Atendimento />} />
           {/* Compat: rota antiga /dashboard ainda funciona */}

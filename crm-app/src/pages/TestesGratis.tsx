@@ -4,11 +4,13 @@ import { applyCustomLeadStatuses } from "../lib/lead-status";
 import type { Lead } from "../types";
 import LeadModal from "../components/LeadModal";
 import "./TestesGratis.css";
+import PeriodFilter from "../components/PeriodFilter";
+import { inPeriod, saoPauloDay, shiftDay } from "../lib/period";
 
 type Filter = "todos" | "ativos" | "expirados" | "sem-data";
 type IconName = "users" | "clock" | "alert" | "search" | "refresh" | "arrow" | "store" | "target" | "chart" | "spark" | "check";
 
-type LandingLead = { created_at: string; utm_content: string | null; utm_term: string | null };
+
 type LeadRecord = Lead & { whatsapp?: string | null; plataforma?: string | null };
 type TrialRow = { key: string; name: string; phone: string; email: string; platform: string; start: string | null; end: string | null; remaining: number | null; progress: number; lead: LeadRecord | null };
 
@@ -43,7 +45,8 @@ function Bar({ value, max, tone = "violet" }: { value: number; max: number; tone
 
 export default function TestesGratis() {
   const [leads, setLeads] = useState<LeadRecord[]>([]);
-  const [landingLeads, setLandingLeads] = useState<LandingLead[]>([]);
+  const [from, setFrom] = useState(() => shiftDay(saoPauloDay(), -29));
+  const [to, setTo] = useState(saoPauloDay);
   const [filter, setFilter] = useState<Filter>("todos");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -62,13 +65,8 @@ export default function TestesGratis() {
         allLeads.push(...(response.data ?? []));
         if (!response.data || response.data.length < 1000) break;
       }
-      const cutoff30 = shiftDate(currentToday, -29);
-      const [normalized, landingResult] = await Promise.all([
-        applyCustomLeadStatuses(allLeads),
-        supabase.from("landing_leads").select("created_at,utm_content,utm_term").gte("created_at", cutoff30 + "T00:00:00Z").limit(5000),
-      ]);
-      if (landingResult.error) throw landingResult.error;
-      setLeads(normalized); setLandingLeads(landingResult.data ?? []); setToday(currentToday);
+      const normalized = await applyCustomLeadStatuses(allLeads);
+      setLeads(normalized); setToday(currentToday);
     } catch { setError("Não foi possível carregar os indicadores. Clique em Atualizar para tentar novamente."); }
     finally { setLoading(false); }
   }
@@ -83,44 +81,32 @@ export default function TestesGratis() {
 
   const data = useMemo(() => {
     const cutoff7 = shiftDate(today, -6), cutoff30 = shiftDate(today, -29), monthStart = today.slice(0, 7) + "-01";
-    const customTrials = leads.filter(lead => TRIAL_STATUSES.includes(lead.status));
+    const customTrials = leads.filter(lead => TRIAL_STATUSES.includes(lead.status) && inPeriod(lead.teste_gratis_em, from, to));
     const trialRows: TrialRow[] = customTrials.map(lead => {
-      const start = dateOnly(lead.teste_gratis_em) || dateOnly(lead.created_at), end = start ? shiftDate(start, 7) : null;
+      const start = dateOnly(lead.teste_gratis_em), end = start ? shiftDate(start, 7) : null;
       const remaining = end ? Math.round((Date.parse(end) - Date.parse(today)) / DAY) : null;
       const elapsed = start ? Math.max(0, Math.round((Date.parse(today) - Date.parse(start)) / DAY)) : 0;
       return { key: "lead-" + lead.id, name: lead.nome_loja || lead.instagram || "Lead sem nome", phone: lead.telefone || lead.whatsapp || "", email: lead.email || "", platform: lead.plataforma || "", start, end, remaining, progress: Math.min(100, elapsed / 7 * 100), lead };
     });
     trialRows.sort((a, b) => (a.end || "9999").localeCompare(b.end || "9999"));
 
-    const trials7 = trialRows.filter(row => row.start && row.start >= cutoff7).length;
-    const trials30 = trialRows.filter(row => row.start && row.start >= cutoff30).length;
-    const trialsMonth = trialRows.filter(row => row.start && row.start >= monthStart).length;
+    const trials7 = leads.filter(lead => inPeriod(lead.teste_gratis_em, cutoff7, today)).length;
+    const trials30 = leads.filter(lead => inPeriod(lead.teste_gratis_em, from, to)).length;
+    const trialsMonth = leads.filter(lead => inPeriod(lead.teste_gratis_em, monthStart, today)).length;
     const closed = leads.filter(lead => lead.status === "fechou");
-    const closed7 = closed.filter(lead => dateOnly(lead.updated_at)! >= cutoff7).length;
-    const closed30 = closed.filter(lead => dateOnly(lead.updated_at)! >= cutoff30).length;
-    const leads30 = leads.filter(lead => dateOnly(lead.created_at)! >= cutoff30);
-    const channelMap = new Map<string, number>();
-    leads30.forEach(lead => { const key = lead.fonte_oportunidade || "Não informado"; channelMap.set(key, (channelMap.get(key) || 0) + 1); });
-    const channels = [...channelMap].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 6);
-    const creativeMap = new Map<string, number>();
-    landingLeads.forEach(item => {
-      const content = (item.utm_content || "").trim(), term = (item.utm_term || "").trim();
-      const name = /criativo|video/i.test(content) ? content : /criativo|video/i.test(term) ? term.replace(/^\[|\]$/g, "") : "";
-      if (name && !name.includes("{{")) creativeMap.set(name, (creativeMap.get(name) || 0) + 1);
-    });
-    const creatives = [...creativeMap].map(([name, leads]) => ({ name, leads })).sort((a, b) => b.leads - a.leads).slice(0, 6);
-    const weeklyGoal = roundFive(Math.max(trials7, trials30 / 4.3));
+    const closed7 = closed.filter(lead => inPeriod(lead.updated_at, cutoff7, today)).length;
+    const closed30 = closed.filter(lead => inPeriod(lead.updated_at, from, to)).length;
+    const leads30 = leads.filter(lead => inPeriod(lead.created_at, from, to));
+    const weeklyGoal = roundFive(Math.max(trials7, leads.filter(lead => inPeriod(lead.teste_gratis_em, cutoff30, today)).length / 4.3));
     const monthlyGoal = weeklyGoal * 4;
-    return { trialRows, trials7, trials30, trialsMonth, closed7, closed30, leads30: leads30.length, channels, creatives, weeklyGoal, monthlyGoal };
-  }, [landingLeads, leads, today]);
+    return { trialRows, trials7, trials30, trialsMonth, closed7, closed30, leads30: leads30.length, weeklyGoal, monthlyGoal };
+  }, [leads, today, from, to]);
 
   const category = (row: TrialRow): Filter => row.remaining === null ? "sem-data" : row.remaining <= 0 ? "expirados" : "ativos";
   const count = (key: Filter) => key === "todos" ? data.trialRows.length : data.trialRows.filter(row => category(row) === key).length;
   const visible = data.trialRows.filter(row => (filter === "todos" || category(row) === filter) && `${row.name} ${row.phone} ${row.email}`.toLowerCase().includes(query.toLowerCase().trim()));
   const conversion30 = pct(data.closed30, data.trials30);
   const leadToTrial30 = pct(data.trials30, data.leads30);
-  const maxChannel = data.channels[0]?.value || 1, maxCreative = data.creatives[0]?.leads || 1;
-  const suggestedClients = Math.round(data.monthlyGoal * conversion30 / 100);
   const statusLabel = (row: TrialRow) => row.remaining === null ? "Sem data" : row.remaining <= 0 ? row.remaining === 0 ? "Expira hoje" : `Expirou há ${-row.remaining}d` : `${row.remaining}d restantes`;
   const initials = (name: string) => name.split(/\s+/).slice(0, 2).map(word => word[0]).join("").toUpperCase();
   const summary: { key: Filter; label: string; icon: IconName; tone: string; box: string }[] = [
@@ -133,28 +119,25 @@ export default function TestesGratis() {
   return <div className="trial-dashboard min-h-full px-4 py-6 leading-relaxed sm:px-6 lg:px-8 lg:py-8">
     <header className="relative overflow-hidden rounded-2xl border border-violet/15 bg-raised/80 px-5 py-6 lg:px-7">
       <div className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-violet/10 blur-3xl" />
-      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-violet/20 bg-violet/10 text-violet-light"><Icon name="chart" className="h-6 w-6" /></span><div><p className="mb-1 text-[13px] font-semibold uppercase tracking-[.12em] text-violet-light">Visão comercial</p><h1 className="text-2xl font-bold tracking-tight text-bright lg:text-[30px]">Aquisição, testes e conversão</h1><p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-muted">Veja de onde chegam os leads, quais criativos performam e quantos testes avançam para fechamento no CRM.</p></div></div>
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-violet/20 bg-violet/10 text-violet-light"><Icon name="chart" className="h-6 w-6" /></span><div><p className="mb-1 text-[13px] font-semibold uppercase tracking-[.12em] text-violet-light">Visão comercial</p><h1 className="text-2xl font-bold tracking-tight text-bright lg:text-[30px]">Aquisição, testes e conversão</h1><p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-muted">Acompanhe entradas, testes e fechamentos no período selecionado.</p></div></div>
         <button onClick={load} disabled={loading} className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-edge bg-surface px-4 py-2.5 text-[15px] font-semibold text-sub hover:border-violet/30 hover:text-bright disabled:opacity-50"><Icon name="refresh" className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />{loading ? "Atualizando" : "Atualizar dados"}</button></div>
     </header>
 
+    <PeriodFilter from={from} to={to} onChange={(start,end)=>{setFrom(start);setTo(end)}} />
     {error && <p role="alert" className="mt-4 rounded-lg border border-rose/20 bg-rose/10 px-4 py-3 text-[15px] text-rose">{error}</p>}
     <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {[{ label: "Leads recebidos", value: data.leads30, detail: "últimos 30 dias", icon: "users" as IconName, tone: "text-violet-light" }, { label: "Entraram em teste", value: data.trials7, detail: `${data.trials30} nos últimos 30 dias`, icon: "clock" as IconName, tone: "text-cyan" }, { label: "Fechados no CRM", value: data.closed30, detail: `${data.closed7} nos últimos 7 dias`, icon: "check" as IconName, tone: "text-emerald" }, { label: "Conversão operacional", value: `${conversion30.toFixed(1)}%`, detail: "fechamentos ÷ testes em 30 dias", icon: "target" as IconName, tone: "text-amber" }].map(item => <article key={item.label} className="card-lift rounded-2xl border border-edge-subtle bg-raised/70 shadow-sm p-5"><div className="flex items-center justify-between"><span className={`grid h-11 w-11 place-items-center rounded-lg border border-edge ${item.tone}`}><Icon name={item.icon}/></span><strong className={`text-4xl font-bold tabular-nums ${item.tone}`}>{loading ? "—" : item.value}</strong></div><p className="mt-3 text-[15px] font-semibold text-bright">{item.label}</p><p className="mt-1 text-sm text-muted">{item.detail}</p></article>)}
+      {[{ label: "Leads recebidos", value: data.leads30, detail: "no período selecionado", icon: "users" as IconName, tone: "text-violet-light" }, { label: "Entraram em teste", value: data.trials30, detail: "inícios registrados no período", icon: "clock" as IconName, tone: "text-cyan" }, { label: "Fechados no CRM", value: data.closed30, detail: "última atualização no período · provisório", icon: "check" as IconName, tone: "text-emerald" }, { label: "Razão fechamentos / testes", value: `${conversion30.toFixed(1)}%`, detail: "fechamentos ÷ testes no período", icon: "target" as IconName, tone: "text-amber" }].map(item => <article key={item.label} className="card-lift rounded-2xl border border-edge-subtle bg-raised/70 shadow-sm p-5"><div className="flex items-center justify-between"><span className={`grid h-11 w-11 place-items-center rounded-lg border border-edge ${item.tone}`}><Icon name={item.icon}/></span><strong className={`text-4xl font-bold tabular-nums ${item.tone}`}>{loading ? "—" : item.value}</strong></div><p className="mt-3 text-[15px] font-semibold text-bright">{item.label}</p><p className="mt-1 text-sm text-muted">{item.detail}</p></article>)}
     </section>
 
     <section className="mt-5 grid gap-4 xl:grid-cols-[1.35fr_.9fr]">
-      <article className="rounded-2xl border border-edge-subtle bg-raised/70 shadow-sm p-5 lg:p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[13px] font-semibold uppercase tracking-[.1em] text-violet-light">Funil dos últimos 30 dias</p><h2 className="mt-1 text-lg font-bold text-bright">Da entrada ao fechamento no CRM</h2></div><span className="rounded-full border border-cyan/20 bg-cyan/10 px-2.5 py-1 text-sm font-semibold text-cyan">{leadToTrial30.toFixed(1)}% dos leads testaram</span></div>
+      <article className="rounded-2xl border border-edge-subtle bg-raised/70 shadow-sm p-5 lg:p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[13px] font-semibold uppercase tracking-[.1em] text-violet-light">Movimento no período</p><h2 className="mt-1 text-lg font-bold text-bright">Da entrada ao fechamento no CRM</h2></div><span className="rounded-full border border-cyan/20 bg-cyan/10 px-2.5 py-1 text-sm font-semibold text-cyan">{leadToTrial30.toFixed(1)}% · testes / entradas</span></div>
         <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">{[{ label: "Leads", value: data.leads30, detail: "recebidos", tone: "text-violet-light" }, { label: "Testes", value: data.trials30, detail: "iniciados", tone: "text-cyan" }, { label: "Clientes", value: data.closed30, detail: "fechados no CRM", tone: "text-emerald" }].map((item, index) => <div key={item.label} className="contents"><div className="rounded-xl border border-edge-subtle bg-surface/55 p-4 text-center"><p className={`text-4xl font-bold tabular-nums ${item.tone}`}>{item.value}</p><p className="mt-1 text-[15px] font-semibold text-bright">{item.label}</p><p className="mt-1 text-[13px] text-muted">{item.detail}</p></div>{index < 2 && <Icon name="arrow" className="mx-auto h-4 w-4 rotate-90 text-muted sm:rotate-0" />}</div>)}</div>
       </article>
-      <article className="relative overflow-hidden rounded-xl border border-violet/20 bg-gradient-to-br from-violet/10 to-raised p-5 lg:p-6"><Icon name="spark" className="absolute right-5 top-5 h-5 w-5 text-violet-light"/><p className="text-[13px] font-semibold uppercase tracking-[.1em] text-violet-light">Meta sugerida pelo ritmo atual</p><div className="mt-4 flex items-end gap-2"><strong className="text-4xl font-bold text-bright">{data.weeklyGoal}</strong><span className="pb-1 text-[15px] text-muted">testes por semana</span></div><p className="mt-2 text-sm leading-relaxed text-muted">A equipe fez {data.trials7} testes nos últimos 7 dias. A meta mensal correspondente é <b className="text-bright">{data.monthlyGoal} testes</b>, com potencial de cerca de <b className="text-emerald">{suggestedClients} novos clientes</b> no ritmo atual de conversão.</p><div className="mt-4"><div className="mb-1.5 flex justify-between text-[13px] text-muted"><span>Realizado neste mês</span><span>{data.trialsMonth} de {data.monthlyGoal}</span></div><Bar value={data.trialsMonth} max={data.monthlyGoal}/></div></article>
+      <article className="relative overflow-hidden rounded-xl border border-violet/20 bg-gradient-to-br from-violet/10 to-raised p-5 lg:p-6"><Icon name="spark" className="absolute right-5 top-5 h-5 w-5 text-violet-light"/><p className="text-[13px] font-semibold uppercase tracking-[.1em] text-violet-light">Meta sugerida pelo ritmo atual</p><div className="mt-4 flex items-end gap-2"><strong className="text-4xl font-bold text-bright">{data.weeklyGoal}</strong><span className="pb-1 text-[15px] text-muted">testes por semana</span></div><p className="mt-2 text-sm leading-relaxed text-muted">A equipe fez {data.trials7} testes nos últimos 7 dias. A meta mensal correspondente é <b className="text-bright">{data.monthlyGoal} testes</b>. A referência é o ritmo registrado pela equipe.</p><div className="mt-4"><div className="mb-1.5 flex justify-between text-[13px] text-muted"><span>Realizado neste mês</span><span>{data.trialsMonth} de {data.monthlyGoal}</span></div><Bar value={data.trialsMonth} max={data.monthlyGoal}/></div></article>
     </section>
 
-    <section className="mt-5 grid gap-4 xl:grid-cols-2">
-      <article className="rounded-2xl border border-edge-subtle bg-raised/70 shadow-sm p-5"><div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-lg border border-violet/20 bg-violet/10 text-violet-light"><Icon name="chart"/></span><div><h2 className="text-lg font-bold text-bright">Canais que mais trazem leads</h2><p className="text-sm text-muted">Leads cadastrados nos últimos 30 dias</p></div></div><div className="mt-5 space-y-4">{data.channels.map(item => <div key={item.name}><div className="mb-1.5 flex justify-between text-sm"><span className="font-medium text-sub">{item.name}</span><strong className="text-bright">{item.value}</strong></div><Bar value={item.value} max={maxChannel}/></div>)}</div></article>
-      <article className="rounded-2xl border border-edge-subtle bg-raised/70 shadow-sm p-5"><div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-lg border border-cyan/20 bg-cyan/10 text-cyan"><Icon name="spark"/></span><div><h2 className="text-lg font-bold text-bright">Criativos que mais geram leads</h2><p className="text-sm text-muted">Leads rastreados pelas campanhas e landing pages nos últimos 30 dias</p></div></div><div className="mt-5 space-y-4">{data.creatives.map(item => <div key={item.name}><div className="mb-1.5 flex items-center justify-between gap-3 text-sm"><span className="min-w-0 break-words font-medium text-sub" title={item.name}>{item.name}</span><b className="shrink-0 text-bright">{item.leads} leads</b></div><Bar value={item.leads} max={maxCreative} tone="cyan"/></div>)}{!data.creatives.length && <p className="py-6 text-center text-sm text-muted">Sem criativo identificado no período.</p>}</div></article>
-    </section>
-
-    <section className="mt-5 overflow-hidden rounded-2xl border border-edge-subtle bg-raised/70 shadow-sm"><div className="flex flex-col gap-4 border-b border-edge-subtle p-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-lg font-bold text-bright">Todos os clientes em teste grátis</h2><p className="mt-1 text-sm text-muted">Reúne os clientes atualmente cadastrados na etapa de teste grátis do CRM.</p></div><label className="relative block w-full lg:w-80"><Icon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"/><input type="search" aria-label="Buscar cliente" placeholder="Buscar nome, telefone ou e-mail" value={query} onChange={event => setQuery(event.target.value)} className="w-full rounded-lg border border-edge-subtle bg-surface py-2.5 pl-9 pr-3 text-[15px] outline-none placeholder:text-muted focus:border-violet/35"/></label></div>
+    <p className="mt-4 text-sm text-muted">Testes contam a data de início, inclusive de quem já saiu da etapa. Fechamentos usam a última atualização de leads em “Fechou”: a data própria de fechamento ainda não existe. A razão entre os totais do período é operacional e não representa conversão de uma mesma turma de testes. Registros sem data de início não entram no período. A sugestão de meta usa o ritmo recente e não muda com o filtro.</p>
+    <section className="mt-5 overflow-hidden rounded-2xl border border-edge-subtle bg-raised/70 shadow-sm"><div className="flex flex-col gap-4 border-b border-edge-subtle p-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-lg font-bold text-bright">Todos os clientes em teste grátis</h2><p className="mt-1 text-sm text-muted">Estoque atual: clientes ainda na etapa de teste, com início registrado no período selecionado.</p></div><label className="relative block w-full lg:w-80"><Icon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"/><input type="search" aria-label="Buscar cliente" placeholder="Buscar nome, telefone ou e-mail" value={query} onChange={event => setQuery(event.target.value)} className="w-full rounded-lg border border-edge-subtle bg-surface py-2.5 pl-9 pr-3 text-[15px] outline-none placeholder:text-muted focus:border-violet/35"/></label></div>
       <div className="flex flex-wrap gap-2 border-b border-edge-subtle px-4 py-3">{summary.map(item => <button key={item.key} onClick={() => setFilter(item.key)} className={`inline-flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition ${filter === item.key ? `${item.box} ${item.tone}` : "border-edge-subtle text-muted hover:bg-surface"}`}><Icon name={item.icon} className="h-4 w-4"/>{item.label}<b>{count(item.key)}</b></button>)}</div>
       {loading ? <div className="grid gap-3 p-4"><div className="h-16 animate-pulse rounded-lg bg-surface"/><div className="h-16 animate-pulse rounded-lg bg-surface"/></div> : <><div className="hidden overflow-x-auto 2xl:block"><table className="w-full min-w-[1080px] text-left"><thead className="bg-surface/50 text-[13px] uppercase tracking-[.15em] text-muted"><tr><th className="px-5 py-3">Cliente</th><th className="px-5 py-3">Período</th><th className="px-5 py-3">Progresso</th><th className="px-5 py-3">Situação</th><th className="px-5 py-3">Origem</th><th className="px-5 py-3 text-right">Ação</th></tr></thead><tbody className="divide-y divide-edge-subtle">{visible.map(row => <tr key={row.key} className="transition hover:bg-surface/35"><td className="px-5 py-4"><div className="flex items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-violet/15 bg-violet/10 text-sm font-bold text-violet-light">{initials(row.name)}</span><div><strong className="text-[15px] text-bright">{row.name}</strong><p className="mt-1 text-[13px] text-muted">{row.phone || row.email || "Contato não informado"}</p></div></div></td><td className="px-5 py-4 text-sm text-sub">{row.start ? formatDate(row.start) : "—"}<span className="mx-2 text-muted">→</span>{row.end ? formatDate(row.end) : "—"}</td><td className="px-5 py-4"><div className="w-36"><div className="mb-1 flex justify-between text-[13px] text-muted"><span>7 dias</span><span>{Math.round(row.progress)}%</span></div><Bar value={row.progress} max={100} tone="cyan"/></div></td><td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[13px] font-semibold ${!row.lead ? "border-amber/20 bg-amber/10 text-amber" : row.remaining !== null && row.remaining <= 0 ? "border-rose/20 bg-rose/10 text-rose" : "border-cyan/20 bg-cyan/10 text-cyan"}`}>{statusLabel(row)}</span></td><td className="px-5 py-4 text-sm capitalize text-muted">{row.platform || row.lead?.fonte_oportunidade || "—"}</td><td className="px-5 py-4 text-right">{row.lead ? <button onClick={() => setSelected(row.lead!.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-edge-subtle px-3 py-2 text-sm font-semibold text-violet-light hover:border-violet/30">Abrir <Icon name="arrow" className="h-4 w-4"/></button> : <span className="text-[13px] text-amber">Vinculação pendente</span>}</td></tr>)}</tbody></table></div>
         <div className="grid gap-4 p-4 sm:grid-cols-2 2xl:hidden">{visible.map(row => <article key={row.key} className="rounded-xl border border-edge-subtle bg-surface/45 p-4"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-violet/10 text-sm font-bold text-violet-light">{initials(row.name)}</span><div className="min-w-0"><strong className="block break-words text-[15px] text-bright">{row.name}</strong><p className="mt-1 break-all text-[13px] text-muted">{row.phone || row.email || "Contato não informado"}</p></div></div><div className="mt-4 flex justify-between text-sm"><span className="text-muted">{row.start ? formatDate(row.start) : "Sem data"}</span><strong className={!row.lead ? "text-amber" : row.remaining !== null && row.remaining <= 0 ? "text-rose" : "text-cyan"}>{statusLabel(row)}</strong></div><div className="mt-2"><Bar value={row.progress} max={100} tone="cyan"/></div>{row.lead && <button onClick={() => setSelected(row.lead!.id)} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-violet/20 bg-violet/5 px-3 py-2.5 text-sm font-semibold text-violet-light">Abrir oportunidade <Icon name="arrow" className="h-4 w-4"/></button>}</article>)}</div>

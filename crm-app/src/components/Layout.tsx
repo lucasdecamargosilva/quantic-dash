@@ -5,6 +5,18 @@ import logoProvouLevouEscuro from "../assets/provou-levou-logo-escuro.png";
 
 const NAV_ITEMS = [
   {
+    to: "/metas",
+    label: "Metas",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="8" r="6.5" />
+        <circle cx="8" cy="8" r="3.5" />
+        <circle cx="8" cy="8" r="0.75" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+
+  {
     to: "/pipeline",
     label: "Pipeline",
     icon: (
@@ -31,15 +43,9 @@ const NAV_ITEMS = [
     icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v4M11 1v4M2 7h12M5 10h2" /></svg>,
   },
   {
-    to: "/metas",
-    label: "Metas",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="8" cy="8" r="6.5" />
-        <circle cx="8" cy="8" r="3.5" />
-        <circle cx="8" cy="8" r="0.75" fill="currentColor" stroke="none" />
-      </svg>
-    ),
+    to: "/trafego-pago",
+    label: "Tráfego pago",
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>,
   },
 
 ];
