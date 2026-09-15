@@ -137,6 +137,40 @@ app.use((req, res, next) => {
     next();
 });
 
+// Desempenho diário por anúncio armazenado no Supabase.
+// Retorna somente métricas comerciais necessárias ao painel; a chave de serviço
+// permanece no servidor. O intervalo é limitado para evitar consultas amplas.
+app.get('/api/meta/creatives', async (req, res) => {
+    const serviceKey = process.env.SUPABASE_KEY;
+    const since = String(req.query.since || '');
+    const until = String(req.query.until || '');
+    const validDay = /^\d{4}-\d{2}-\d{2}$/;
+    if (!serviceKey) return res.status(500).json({ error: 'Fonte de investimento não configurada' });
+    if (!validDay.test(since) || !validDay.test(until)) {
+        return res.status(400).json({ error: 'since e until são obrigatórios (YYYY-MM-DD)' });
+    }
+    const fromTime = Date.parse(`${since}T12:00:00Z`);
+    const toTime = Date.parse(`${until}T12:00:00Z`);
+    const rangeDays = Math.round((toTime - fromTime) / 86400000) + 1;
+    if (!Number.isFinite(rangeDays) || rangeDays < 1 || rangeDays > 93) {
+        return res.status(400).json({ error: 'O período deve ter entre 1 e 93 dias' });
+    }
+    try {
+        const endpoint = `${SUPABASE_URL}/rest/v1/meta_ads_criativos`;
+        const r = await axios.get(endpoint, {
+            params: {
+                select: 'dia,account_id,campaign_name,adset_name,ad_id,ad_name,spend,impressions,clicks,link_clicks,landing_page_views,leads',
+                and: `(dia.gte.${since},dia.lte.${until})`,
+                order: 'dia.asc',
+                limit: '10000'
+            },
+            headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+            timeout: 15000
+        });
+        res.json({ data: r.data });
+    } catch (e) { metaError(res, e); }
+});
+
 // 2a-ter. Painel de prospecção — processo Python interno protegido por acesso próprio.
 // A credencial anterior continua válida; usuários adicionais têm senha própria.
 // Configure somente hashes no ambiente do serviço, nunca no Git.
