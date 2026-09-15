@@ -1136,6 +1136,7 @@ header>#sync{flex:0 0 auto}
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
           style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora"><span data-icon="refresh"></span>Atualizar</button>
 
+  <button class="btn sec" id="btSair" type="button" onclick="sair()" hidden><span data-icon="logout"></span>Sair</button>
   <span class="tag" id="sync"><span class="pulso"></span> ao vivo</span>
 </header>
 <div class="wrap">
@@ -1213,6 +1214,16 @@ function aplicaTema(t){
 }
 function viraTema(){ aplicaTema(document.documentElement.dataset.tema==='claro'?'escuro':'claro'); }
 aplicaTema(localStorage.getItem('pl_tema') || 'claro');   // padrao: claro
+document.getElementById('btSair').hidden=window.self!==window.top || !location.pathname.startsWith('/prospeccao');
+async function sair(){
+  const botao=document.getElementById('btSair');
+  botao.disabled=true; botao.textContent='Saindo…';
+  try{
+    const resposta=await fetch('/prospeccao/logout',{method:'POST',credentials:'same-origin'});
+    if(!resposta.ok) throw new Error('Falha ao sair');
+    location.replace('/prospeccao/login');
+  }catch(e){botao.disabled=false;botao.textContent='Tentar sair';}
+}
 function esc(s){return (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function cls(s){return (s||'').split(' ')[0]}
 
