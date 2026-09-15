@@ -41,16 +41,6 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
-  {
-    to: "/leads",
-    label: "Leads",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="8" cy="5" r="3" />
-        <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-      </svg>
-    ),
-  },
 
 ];
 

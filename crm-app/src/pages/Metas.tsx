@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MetasResponsavel from "../components/MetasResponsavel";
 import { supabase } from "../lib/supabase";
 
 type Store = {
@@ -56,8 +57,7 @@ const PLAN_VALUES: Record<string, number> = {
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function currentMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }).slice(0, 7);
 }
 
 function monthLabel(month: string) {
@@ -284,6 +284,8 @@ export default function Metas() {
           <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} className="rounded-lg border border-edge-subtle bg-surface px-3 py-2 text-[12px] font-medium normal-case tracking-normal text-text outline-none focus:border-violet/40" />
         </label>
       </header>
+
+      <MetasResponsavel month={month} />
 
       <section className="mt-6 rounded-xl border border-edge-subtle bg-raised/70 p-5 lg:p-6">
         <div className="grid gap-6 xl:grid-cols-[minmax(220px,.7fr)_minmax(620px,1.6fr)] xl:items-end">
