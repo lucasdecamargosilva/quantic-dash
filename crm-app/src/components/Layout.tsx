@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useGoalConfig } from "./SharedGoals";
 import logoProvouLevouClaro from "../assets/provou-levou-logo-claro.png";
@@ -56,7 +56,6 @@ function getInitialTheme(): Theme {
 }
 
 export default function Layout() {
-  const location = useLocation();
   const {canEdit:isLucas}=useGoalConfig();
   const [theme] = useState<Theme>(getInitialTheme);
   const [navOpen, setNavOpen] = useState(false);
@@ -77,8 +76,8 @@ export default function Layout() {
   // pra que o "provou levou." apareça do mesmo tamanho visual em ambos os temas.
   const logoSize =
     theme === "light"
-      ? { sidebar: "h-8", topBar: "h-6", footer: "h-5" }
-      : { sidebar: "h-11", topBar: "h-8", footer: "h-7" };
+      ? { sidebar: "h-8", topBar: "h-6" }
+      : { sidebar: "h-11", topBar: "h-8" };
 
   return (
     <div className="crm-shell flex h-screen text-text" style={{ background: "transparent" }}>
@@ -192,11 +191,6 @@ export default function Layout() {
           <img src={logoProvouLevou} alt="Provou Levou" className={`${logoSize.topBar} object-contain`} />
         </div>
         <Outlet />
-        {location.pathname !== "/atendimento" && (
-          <footer className="py-6 px-4 lg:px-8 flex items-center justify-center">
-            <img src={logoProvouLevou} alt="Provou Levou" className={`${logoSize.footer} object-contain opacity-50`} />
-          </footer>
-        )}
       </main>
     </div>
   );
