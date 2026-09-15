@@ -31,18 +31,6 @@ const NAV_ITEMS = [
     icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v4M11 1v4M2 7h12M5 10h2" /></svg>,
   },
   {
-    to: "/",
-    label: "Dashboard",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="1" y="1" width="6" height="6" rx="1.5" />
-        <rect x="9" y="1" width="6" height="3" rx="1.5" />
-        <rect x="9" y="6" width="6" height="9" rx="1.5" />
-        <rect x="1" y="9" width="6" height="6" rx="1.5" />
-      </svg>
-    ),
-  },
-  {
     to: "/metas",
     label: "Metas",
     icon: (
