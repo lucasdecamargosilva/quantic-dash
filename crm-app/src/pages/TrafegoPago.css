@@ -1,0 +1,63 @@
+/* Typography, surfaces and radii shared with Provou Levou's merchant dashboard. */
+.traffic-dashboard {
+  --color-base: #08080b;
+  --color-raised: #131318;
+  --color-surface: #19191f;
+  --color-edge-subtle: rgba(255,255,255,.06);
+  --color-bright: #edebe7;
+  --color-sub: #c7c4ce;
+  --color-muted: #94a3b8;
+  --color-violet: #7c3aed;
+  --color-violet-light: #a78bfa;
+  background: var(--color-base);
+  color: var(--color-bright);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  font-feature-settings: "kern" 1, "calt" 1, "ss01" 1, "cv11" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.traffic-dashboard :is(button, input, select, table, svg text) { font-family: inherit; }
+.traffic-dashboard :is(h1,h2,h3) {
+  font-family: Manrope, Inter, sans-serif;
+  letter-spacing: -.025em;
+  line-height: 1.35;
+}
+.traffic-dashboard h1 { font-size: 28px; font-weight: 800; }
+.traffic-dashboard h2 { font-size: 15px; font-weight: 700; }
+.traffic-dashboard > section > section,
+.traffic-dashboard > section[aria-label] {
+  border-radius: 14px;
+  background: var(--color-raised);
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.traffic-dashboard th { font-size: 11px; font-weight: 500; letter-spacing: .04em; }
+.traffic-dashboard td { font-size: 12px; padding-top: 14px; padding-bottom: 14px; vertical-align: top; }
+.traffic-dashboard :is(input,select) { height: 40px; border-radius: 8px; font-size: 12px; }
+.traffic-dashboard :is(button,summary,input,select):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-violet) 50%, transparent);
+  outline-offset: 2px;
+}
+.traffic-dashboard > section[aria-label] > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.traffic-dashboard > section[aria-label] > div > span { display: none; }
+.traffic-dashboard > section[aria-label] label { min-width: 0; }
+.traffic-dashboard > section[aria-label] button { min-height: 32px; }
+.traffic-dashboard > section[aria-label] > div > div { align-self: end; width: fit-content; }
+.traffic-dashboard .daily-spend { min-width: 160px; text-align: left; }
+.traffic-dashboard .daily-spend summary { cursor: pointer; color: var(--color-violet-light); margin-top: 8px; padding: 5px 0; font-weight: 500; }
+.traffic-dashboard .daily-spend dl { max-height: 200px; overflow-y: auto; margin-top: 8px; }
+.traffic-dashboard .daily-spend dl > div { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; border-bottom: 1px solid var(--color-edge-subtle); font-variant-numeric: tabular-nums; }
+[data-theme="light"] .traffic-dashboard {
+  --color-base: #faf9f5;
+  --color-raised: #fdfcfb;
+  --color-surface: #fcfbf8;
+  --color-edge-subtle: rgba(15,17,22,.08);
+  --color-bright: #0f1116;
+  --color-sub: #45424e;
+  --color-muted: #6b7280;
+  --color-violet-light: #7c3aed;
+}
+@media (max-width: 639px) {
+  .traffic-dashboard > section[aria-label] > div { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .traffic-dashboard h1 { font-size: 24px; }
+}
