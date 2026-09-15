@@ -134,10 +134,10 @@ class DisparoMassaTest(unittest.TestCase):
             painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Oi", "Dione")
             painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Tudo bem?", "Lucas")
 
-        registro = painel.con().execute("SELECT responsavel FROM conversas_iniciadas").fetchall()
-        self.assertEqual(["Dione"], [r["responsavel"] for r in registro])
+        registro = painel.con().execute("SELECT responsavel FROM atendimentos_iniciados ORDER BY responsavel").fetchall()
+        self.assertEqual(["Dione", "Lucas"], [r["responsavel"] for r in registro])
 
-    def test_metas_contam_atribuicao_na_data_certa_sem_duplicar(self):
+    def test_atribuicao_nao_conta_e_primeiro_envio_conta_sem_duplicar(self):
         # First message predates the assignment and must not date the metric.
         c = painel.con()
         c.execute("INSERT INTO mensagens(messageid,chatid,ts,from_me) VALUES(?,?,?,1)",
@@ -148,6 +148,10 @@ class DisparoMassaTest(unittest.TestCase):
             painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
             painel.atribui_responsavel("a@s.whatsapp.net", None)
             painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
+        self.assertEqual([], painel.metas_conversas("2026-09-14", "2026-09-14"))
+        with patch.object(painel.time, "time", return_value=1789434000), patch.object(painel, "uz"):
+            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Oi", "Dione")
+            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Tudo bem?", "Dione")
         self.assertEqual([{"responsavel":"Dione","dia":"2026-09-14","total":1}],
                          painel.metas_conversas("2026-09-14", "2026-09-14"))
         self.assertEqual([], painel.metas_conversas("2026-08-01", "2026-08-31"))
@@ -157,7 +161,7 @@ class DisparoMassaTest(unittest.TestCase):
             painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
             painel.atribui_responsavel("a@s.whatsapp.net", "Lucas")
         totais = {r["responsavel"]:r["total"] for r in painel.metas_conversas("2026-09-14", "2026-09-14")}
-        self.assertEqual({"Dione":1,"Lucas":1}, totais)
+        self.assertEqual({}, totais)
 
     def test_conversa_com_envio_historico_nao_e_atribuida_novamente(self):
         c = painel.con()
@@ -172,7 +176,7 @@ class DisparoMassaTest(unittest.TestCase):
             painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Retorno", "Dione")
 
         hoje = time.strftime("%Y-%m-%d", time.localtime())
-        self.assertEqual([], painel.metas_conversas(hoje, hoje))
+        self.assertEqual([{"responsavel":"Dione","dia":hoje,"total":1}], painel.metas_conversas(hoje, hoje))
 
     def test_falha_no_envio_nao_registra_conversa_iniciada(self):
         with patch.object(painel, "uz", side_effect=RuntimeError("falhou")):

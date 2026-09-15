@@ -202,11 +202,30 @@ def cria_banco():
     CREATE TABLE IF NOT EXISTS conversas_iniciadas (
       chatid TEXT PRIMARY KEY, ts INTEGER NOT NULL, responsavel TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS ix_conversa_inicio_ts ON conversas_iniciadas(ts, responsavel);
+    CREATE TABLE IF NOT EXISTS planos_fechados (
+      chatid TEXT PRIMARY KEY, lead_id TEXT, plano TEXT NOT NULL, valor_centavos INTEGER NOT NULL,
+      fechado_em TEXT NOT NULL, atualizado_em TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS atendimentos_iniciados (
+      chatid TEXT NOT NULL, responsavel TEXT NOT NULL, ts INTEGER NOT NULL,
+      PRIMARY KEY (chatid, responsavel));
+    CREATE INDEX IF NOT EXISTS ix_atendimento_inicio ON atendimentos_iniciados(ts,responsavel);
     CREATE TABLE IF NOT EXISTS conversas_atribuidas (
       chatid TEXT NOT NULL, responsavel TEXT NOT NULL, ts INTEGER NOT NULL,
       PRIMARY KEY (chatid, responsavel));
     CREATE INDEX IF NOT EXISTS ix_conversa_atribuida_ts ON conversas_atribuidas(ts, responsavel);
     """)
+    c.execute("CREATE TABLE IF NOT EXISTS metricas_migracoes (nome TEXT PRIMARY KEY)")
+    if not c.execute("SELECT 1 FROM metricas_migracoes WHERE nome='primeiro_envio_v1'").fetchone():
+        c.execute("INSERT OR IGNORE INTO atendimentos_iniciados(chatid,responsavel,ts) "
+                  "SELECT chatid,responsavel,ts FROM conversas_iniciadas")
+        c.execute("INSERT INTO atendimentos_iniciados(chatid,responsavel,ts) "
+                  "SELECT m.chatid,'Lucas',MIN(CASE WHEN m.ts>100000000000 THEN m.ts/1000 ELSE m.ts END) "
+                  "FROM mensagens m JOIN conversas_atribuidas a ON a.chatid=m.chatid AND a.responsavel='Lucas' "
+                  "WHERE m.from_me=1 AND m.ts>0 "
+                  "AND date(CASE WHEN m.ts>100000000000 THEN m.ts/1000 ELSE m.ts END,'unixepoch','-3 hours')<'2026-09-14' "
+                  "GROUP BY m.chatid ON CONFLICT(chatid,responsavel) DO UPDATE SET ts=MIN(ts,excluded.ts)")
+        c.execute("INSERT INTO metricas_migracoes(nome) VALUES('primeiro_envio_v1')")
+    c.commit()
     CRM_CLIENT.setup()
     # migracao: bancos criados antes do "remover da fila" nao tem essa coluna
     if "oculto" not in [r[1] for r in c.execute("PRAGMA table_info(leads)")]:
@@ -561,18 +580,37 @@ def fila(status=None, busca=None, responsavel=None, chatid=None):
     if responsavel:
         linhas = [r for r in linhas if (not r["responsavel"] if responsavel == "_sem_responsavel"
                                        else r["responsavel"] == responsavel)]
+    vendas = {r["chatid"]: dict(r) for r in c.execute("SELECT * FROM planos_fechados")}
     out = []
     for r in linhas:
         u = c.execute("SELECT tipo,texto,segundos FROM mensagens WHERE chatid=? AND excluida=0"
                       " ORDER BY ts DESC LIMIT 1", (r["chatid"],)).fetchone()
         dt = quando(r["ultimo_ts"])
         out.append({"chatid": r["chatid"], "fone": r["fone"], "nome": r["nome"],
-                    "status": r["status"], "responsavel": r["responsavel"],
+                    "status": r["status"], "responsavel": r["responsavel"], "venda": vendas.get(r["chatid"]),
                     "ultimo_ts": r["ultimo_ts"], "quando": dt.strftime("%d/%m %H:%M"),
                     "ha": humano(dt),
                     "ultima": (u["texto"] if u and u["texto"]
                                else rotulo(u["tipo"], u["segundos"]) if u else "")})
     return out
+
+
+def salva_plano_fechado(chatid, plano, valor_centavos):
+    if plano not in {p["nome"] for p in PLANOS}:
+        raise ValueError("Selecione um plano válido.")
+    if type(valor_centavos) is not int or not 1 <= valor_centavos <= 100000000:
+        raise ValueError("Informe um valor de mensalidade válido.")
+    with CRM_CLIENT.chat_lock(chatid):
+        lead = CRM_CLIENT.change(chatid, "fechou")
+        agora = datetime.now(BRT).isoformat()
+        c = con()
+        c.execute("INSERT INTO planos_fechados(chatid,lead_id,plano,valor_centavos,fechado_em,atualizado_em) "
+                  "VALUES(?,?,?,?,?,?) ON CONFLICT(chatid) DO UPDATE SET lead_id=excluded.lead_id, "
+                  "plano=excluded.plano,valor_centavos=excluded.valor_centavos,atualizado_em=excluded.atualizado_em",
+                  (chatid,lead["id"],plano,valor_centavos,agora,agora))
+        c.execute("UPDATE leads SET oculto=0 WHERE chatid=?", (chatid,))
+        c.commit()
+        return {"ok": True}
 
 
 def recebidas_recentes(limite=50):
@@ -734,21 +772,29 @@ def registra_inicio(chatid, responsavel):
     try:
         c.execute("INSERT OR IGNORE INTO conversas_iniciadas(chatid,ts,responsavel) VALUES(?,?,?)",
                   (chatid, int(time.time()), responsavel))
+        c.execute("INSERT OR IGNORE INTO atendimentos_iniciados(chatid,responsavel,ts) VALUES(?,?,?)",
+                  (chatid, responsavel, int(time.time())))
         c.commit()
     finally:
         c.close()
 
 
 def envia_texto(chatid, fone, texto, responsavel):
-    c = sqlite3.connect(DB, timeout=30)
-    try:
-        primeiro_envio = bool(chatid) and not c.execute(
-            "SELECT 1 FROM mensagens WHERE chatid=? AND from_me=1 LIMIT 1", (chatid,)).fetchone()
-    finally:
-        c.close()
     resposta = uz("/send/text", {"number": fone, "text": texto})
-    if primeiro_envio:
-        registra_inicio(chatid, responsavel)
+    registra_inicio(chatid, responsavel)
+    return resposta
+
+
+def envia_midia_atendimento(acao, fone, responsavel, teste=False):
+    resposta = acao()
+    if not teste:
+        c = sqlite3.connect(DB, timeout=30)
+        try:
+            lead = c.execute("SELECT chatid FROM leads WHERE fone=?", (fone,)).fetchone()
+        finally:
+            c.close()
+        if lead:
+            registra_inicio(lead[0], responsavel)
     return resposta
 
 
@@ -760,7 +806,7 @@ def metas_conversas(since, until):
         c.row_factory = sqlite3.Row
         rows = c.execute(
             "SELECT responsavel, date(ts,'unixepoch','-3 hours') dia, count(*) total "
-            "FROM conversas_atribuidas WHERE date(ts,'unixepoch','-3 hours') BETWEEN ? AND ? "
+            "FROM atendimentos_iniciados WHERE date(ts,'unixepoch','-3 hours') BETWEEN ? AND ? "
             "GROUP BY responsavel, dia ORDER BY dia", (since, until)).fetchall()
     finally:
         c.close()
@@ -2197,6 +2243,11 @@ class H(BaseHTTPRequestHandler):
                     return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
                 mapping = {"INTERESSADO": "interessado", "TESTE GRÁTIS": "testando",
                            "CONVERTIDO": "fechou", "PERDIDO": "perdida"}
+                if d["status"] == "CONVERTIDO" and "plano" in d:
+                    try:
+                        return self._send(200, json.dumps(salva_plano_fechado(d["chatid"], d["plano"], d.get("valor_centavos"))))
+                    except (ValueError, RuntimeError) as e:
+                        return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 CRM_CLIENT.change(d["chatid"], mapping[d["status"]])
                 return self._send(200, json.dumps({"ok": True}))
             if self.path == "/api/responsavel":
@@ -2247,15 +2298,15 @@ class H(BaseHTTPRequestHandler):
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/catalogo":
-                return self._fundo(lambda: manda_catalogo(d["fone"]))
+                return self._fundo(lambda: envia_midia_atendimento(lambda: manda_catalogo(d["fone"]), d["fone"], nome_responsavel(self.headers.get("X-Prospeccao-User"))))
             if self.path == "/api/catalogo/video":
-                return self._fundo(lambda: manda_video_catalogo(d["fone"]))
+                return self._fundo(lambda: envia_midia_atendimento(lambda: manda_video_catalogo(d["fone"]), d["fone"], nome_responsavel(self.headers.get("X-Prospeccao-User"))))
             if self.path == "/api/audio":
                 a = next((x for x in AUDIOS if x["id"] == d["id"]), None)
-                return self._fundo(lambda: manda_audio(d["fone"], a))
+                return self._fundo(lambda: envia_midia_atendimento(lambda: manda_audio(d["fone"], a), d["fone"], nome_responsavel(self.headers.get("X-Prospeccao-User"))))
             if self.path == "/api/gravado":
                 fone = MEU_NUMERO if d.get("teste") else d["fone"]
-                uz("/send/media", {"number": fone, "type": "ptt", "file": d["b64"]})
+                envia_midia_atendimento(lambda: uz("/send/media", {"number": fone, "type": "ptt", "file": d["b64"]}), fone, nome_responsavel(self.headers.get("X-Prospeccao-User")), bool(d.get("teste")))
                 print("  -> áudio gravado (%s) para %s" % (d.get("seg", "?"), fone))
                 return self._send(200, json.dumps({"ok": True, "para": fone}))
             if self.path == "/api/combo":
@@ -2267,7 +2318,7 @@ class H(BaseHTTPRequestHandler):
                     for aid in combo["audios"]:
                         a = next((x for x in AUDIOS if x["id"] == aid), None)
                         try:
-                            manda_audio(fone, a)
+                            envia_midia_atendimento(lambda: manda_audio(fone, a), fone, nome_responsavel(self.headers.get("X-Prospeccao-User")))
                             st["enviados"].append(a["rotulo"])
                         except Exception as e:
                             st.update({"estado": "erro", "erro": str(e)[:150]})

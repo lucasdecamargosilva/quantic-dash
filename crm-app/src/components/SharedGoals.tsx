@@ -4,7 +4,7 @@ import { inPeriod, shiftDay } from "../lib/period";
 type Values = {conversations:number|null;trials:number|null;closed:number|null};
 export type Goals = Record<string,{weekly:Values;monthly:Values}>;
 const empty = ():Values=>({conversations:null,trials:null,closed:null});
-const labels = {conversations:"Conversas iniciadas",trials:"Clientes em teste grátis",closed:"Clientes convertidos"};
+const labels = {conversations:"Atendimentos iniciados",trials:"Clientes em teste grátis",closed:"Clientes convertidos"};
 export function useGoalConfig() {
   const [goals,setGoals]=useState<Goals>({});
   const [canEdit,setCanEdit]=useState(false);
