@@ -566,7 +566,7 @@ def fila(status=None, busca=None, responsavel=None):
         dt = quando(r["ultimo_ts"])
         out.append({"chatid": r["chatid"], "fone": r["fone"], "nome": r["nome"],
                     "status": r["status"], "responsavel": r["responsavel"],
-                    "quando": dt.strftime("%d/%m %H:%M"),
+                    "ultimo_ts": r["ultimo_ts"], "quando": dt.strftime("%d/%m %H:%M"),
                     "ha": humano(dt),
                     "ultima": (u["texto"] if u and u["texto"]
                                else rotulo(u["tipo"], u["segundos"]) if u else "")})
@@ -1137,7 +1137,7 @@ header>#sync{flex:0 0 auto}
           style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora"><span data-icon="refresh"></span>Atualizar</button>
 
   <button class="btn sec" id="btSair" type="button" onclick="sair()" hidden><span data-icon="logout"></span>Sair</button>
-  <span class="tag" id="sync"><span class="pulso"></span> ao vivo</span>
+  <span id="sync" style="display:none" aria-hidden="true"></span>
 </header>
 <div class="wrap">
   <div class="lista-col">
