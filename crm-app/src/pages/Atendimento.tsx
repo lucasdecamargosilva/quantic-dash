@@ -1,6 +1,8 @@
 import { useState } from "react";
 
-const ATENDIMENTO_URL = "http://127.0.0.1:8781";
+// Usa o proxy autenticado do próprio Quantic Dash. Um endereço 127.0.0.1 no
+// navegador aponta para o computador do usuário e deixa o Atendimento offline.
+const ATENDIMENTO_URL = "/prospeccao/";
 
 export default function Atendimento() {
   const [loaded, setLoaded] = useState(false);
