@@ -38,11 +38,15 @@
   outline: 3px solid color-mix(in srgb, var(--color-violet) 50%, transparent);
   outline-offset: 2px;
 }
-.traffic-dashboard > section[aria-label] > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.traffic-dashboard > section[aria-label] > div { display: grid; grid-template-columns: repeat(3,minmax(100px,1fr)) 138px 140px 140px; gap: 8px; }
 .traffic-dashboard > section[aria-label] > div > span { display: none; }
 .traffic-dashboard > section[aria-label] label { min-width: 0; }
 .traffic-dashboard > section[aria-label] button { min-height: 32px; }
 .traffic-dashboard > section[aria-label] > div > div { align-self: end; width: fit-content; }
+.traffic-dashboard > section[aria-label] :is(input,select) { height: 36px; min-height: 36px; padding-inline: 8px; }
+@media (max-width: 1099px) {
+  .traffic-dashboard > section[aria-label] > div { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
 .traffic-dashboard .daily-spend { min-width: 160px; text-align: left; }
 .traffic-dashboard .daily-spend summary { cursor: pointer; color: var(--color-violet-light); margin-top: 8px; padding: 5px 0; font-weight: 500; }
 .traffic-dashboard .daily-spend dl { max-height: 200px; overflow-y: auto; margin-top: 8px; }
