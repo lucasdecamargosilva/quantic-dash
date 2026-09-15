@@ -1560,7 +1560,7 @@ async function abrir(i){
           </select><span class="responsavel-erro" id="responsavelErro" role="status"></span>
         </div>
         <div class="tag cliente-meta">${icone('phone')}${esc(d.fone)} · ${icone('clock')} última ${esc(p.ha)} (${esc(p.quando)})</div></div>
-      <div class="cliente-acoes"><a class="btn sec cliente-link" href="https://wa.me/${esc(d.fone)}" target="_blank" rel="noopener">${icone('chat')}WhatsApp ↗</a>
+      <div class="cliente-acoes">
       <button class="btn sec cliente-link" id="btDadosLead" onclick="toggleDadosLead()" aria-expanded="false" aria-controls="leadDrawer">${icone('user')} Dados do lead</button></div>
     </div>
     <div class="chat" id="chat">${bolhas(d.linhas)}${bolhasPend(d.linhas)}</div>
