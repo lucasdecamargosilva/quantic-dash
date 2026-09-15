@@ -465,7 +465,7 @@ def sincroniza():
             # o status e do usuario: nunca sobrescreve num sync
             c.execute(
                 "INSERT INTO leads(chatid,fone,nome,status,ultimo_ts,ultimo_de,atualizado)"
-                " VALUES(?,?,?,'INTERESSADO',?,?,?)"
+                " VALUES(?,?,?,'SEM ETAPA',?,?,?)"
                 " ON CONFLICT(chatid) DO UPDATE SET nome=excluded.nome, fone=excluded.fone,"
                 " ultimo_ts=excluded.ultimo_ts, ultimo_de=excluded.ultimo_de,"
                 " atualizado=excluded.atualizado WHERE excluded.ultimo_ts >= COALESCE(leads.ultimo_ts,0)",
@@ -618,7 +618,7 @@ def contagem():
     sem_resposta_responsavel = {}
     for r in c.execute(
         "SELECT COALESCE(NULLIF(TRIM(responsavel),''),'') responsavel, "
-        "COALESCE(status,'INTERESSADO') etapa, COUNT(*) n, "
+        "COALESCE(status,'SEM ETAPA') etapa, COUNT(*) n, "
         "SUM(CASE WHEN ultimo_de='nos' AND status NOT IN ('CONVERTIDO','PERDIDO') THEN 1 ELSE 0 END) sem_resposta FROM leads "
         "WHERE COALESCE(oculto,0)=0" + SEM_SUPORTE + " GROUP BY 1,2"):
         por_responsavel.setdefault(r["responsavel"], {})[r["etapa"]] = r["n"]
@@ -654,7 +654,7 @@ def conversa(chatid):
                        "hora": quando(m["ts"]).strftime("%d/%m %H:%M"),
                        "texto": t, "audio": aud, "tipo": m["tipo"], "editada": bool(m["editada"]),
                        "midia": bool(m["file_url"] and m["tipo"] in TIPOS_MIDIA)})
-    return {"linhas": linhas, "status": lead["status"] if lead else "INTERESSADO",
+    return {"linhas": linhas, "status": lead["status"] if lead else "SEM ETAPA",
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
             "nome": lead["nome"] if lead else "", "fone": lead["fone"] if lead else "",
             "responsavel": lead["responsavel"] if lead else None,

@@ -118,7 +118,7 @@ class CRM:
     def reflect_local(self, chatid, lead):
         """Os filtros locais acompanham a etapa confirmada, inclusive encerramentos."""
         status = {'testando': 'TESTE GRÁTIS', 'teste_catalogo_7_dias': 'TESTE GRÁTIS', 'fechou': 'CONVERTIDO',
-                  'perdida': 'PERDIDO', 'descartado': 'PERDIDO'}.get(lead['status'], 'INTERESSADO')
+                  'perdida': 'PERDIDO', 'descartado': 'PERDIDO', 'interessado': 'INTERESSADO'}.get(lead['status'], 'SEM ETAPA')
         c = self.connect()
         c.execute('UPDATE leads SET status=? WHERE chatid=?', (status, chatid))
         c.commit()
@@ -178,7 +178,7 @@ class CRM:
                 self.request('leads', {'on_conflict': 'instagram'}, 'POST', {
                     'instagram': handle, 'nome_loja': local['nome'] or local['fone'],
                     'telefone': local['fone'], 'status': {'CONVERTIDO': 'fechou', 'PERDIDO': 'perdida',
-                        'TESTE GRÁTIS': 'testando'}.get(local['status'], 'meta' if ad else 'respondeu'),
+                        'TESTE GRÁTIS': 'testando', 'INTERESSADO': 'interessado'}.get(local['status'], 'meta' if ad else 'respondeu'),
                     'fonte_oportunidade': 'Meta' if ad else 'WhatsApp',
                     'notas': 'Registrado pelo PL Atendimento. Instagram não informado.' +
                              ('\nMensagem de entrada: ' + ad if ad else ''),

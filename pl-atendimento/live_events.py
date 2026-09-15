@@ -74,7 +74,7 @@ def ingest(connect, payload):
             (mid, cid, ts, int(me), msg.get('messageType'), (msg.get('text') or '').strip(),
              msg.get('fileURL') or content.get('URL') or content.get('url'), content.get('seconds'))).rowcount
         c.execute("INSERT INTO leads(chatid,fone,nome,status,ultimo_ts,ultimo_de,atualizado) "
-            "VALUES(?,?,?,'INTERESSADO',?,?,?) ON CONFLICT(chatid) DO UPDATE SET "
+            "VALUES(?,?,?,'SEM ETAPA',?,?,?) ON CONFLICT(chatid) DO UPDATE SET "
             "nome=excluded.nome,fone=excluded.fone,ultimo_ts=excluded.ultimo_ts,"
             "ultimo_de=excluded.ultimo_de,atualizado=excluded.atualizado "
             "WHERE excluded.ultimo_ts >= COALESCE(leads.ultimo_ts,0)",

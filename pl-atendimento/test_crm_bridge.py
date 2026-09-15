@@ -12,7 +12,7 @@ class BridgeTest(unittest.TestCase):
         self.db.executescript('CREATE TABLE leads(chatid TEXT, fone TEXT, nome TEXT, status TEXT, oculto INTEGER, ultimo_ts INTEGER);'
                              'CREATE TABLE mensagens(chatid TEXT, texto TEXT, from_me INTEGER, ts INTEGER);')
         self.cid = '5511987654321@s.whatsapp.net'
-        self.db.execute('INSERT INTO leads VALUES (?,?,?,?,0,1)', (self.cid, '5511987654321', 'Loja', 'INTERESSADO'))
+        self.db.execute('INSERT INTO leads VALUES (?,?,?,?,0,1)', (self.cid, '5511987654321', 'Loja', 'SEM ETAPA'))
         self.db.execute('INSERT INTO mensagens VALUES (?,?,0,1)', (self.cid, 'Oi! Gostaria de saber mais sobre o Provou Catálogo!'))
         self.crm = CRM(lambda: self.db)
         self.crm.setup()
@@ -56,6 +56,13 @@ class BridgeTest(unittest.TestCase):
             for row in rows:
                 row.update(body)
         return [dict(r) for r in rows]
+
+    def test_unqualified_remote_stages_do_not_imply_interest(self):
+        for status in ('novo', 'respondeu', 'meta', 'dm_enviada'):
+            self.crm.reflect_local(self.cid, {'status': status})
+            self.assertEqual('SEM ETAPA', self.db.execute('SELECT status FROM leads').fetchone()[0])
+        self.crm.reflect_local(self.cid, {'status': 'interessado'})
+        self.assertEqual('INTERESSADO', self.db.execute('SELECT status FROM leads').fetchone()[0])
 
     def test_chat_lock_does_not_wait_for_phone_scan(self):
         completed = threading.Event()
