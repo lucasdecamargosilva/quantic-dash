@@ -1129,13 +1129,10 @@ textarea:focus{border-color:var(--roxo)}.rapidos{border:1px solid var(--linha);p
 <div class="notificacoes" id="notificacoes" aria-live="polite"></div>
 <header>
   <div class="marca"><img class="marca-logo claro" src="/prospeccao-logo-claro.png" alt="Provou Levou" width="168" height="40">
-    <img class="marca-logo escuro" src="/prospeccao-logo-escuro.png" alt="" width="168" height="40"><h1>Prospecção</h1></div>
+    <img class="marca-logo escuro" src="/prospeccao-logo-escuro.png" alt="" width="168" height="40"></div>
   <div class="filtros" id="filtros"></div>
-  <a class="btn crm-link" href="https://crm.quanticsolutions.com.br/crm/pipeline" target="_blank" rel="noopener" title="Abrir o Pipeline do CRM em uma nova aba"><span data-icon="pipeline"></span>Ir para o CRM <span aria-hidden="true">↗</span></a>
-  <a class="btn sec crm-link" style="margin-left:0" href="https://crm.quanticsolutions.com.br/crm/testes-gratis" target="_blank" rel="noopener"><span data-icon="calendar"></span>Clientes em teste grátis</a>
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
           style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora"><span data-icon="refresh"></span>Atualizar</button>
-  <button class="btn sec" id="tema" onclick="viraTema()" aria-label="Alternar tema" title="Alternar tema" style="padding:6px 11px;font-size:13px">🌙</button>
   <button class="btn sec" id="btSair" type="button" onclick="sair()"
           style="padding:6px 11px;font-size:13px;white-space:nowrap" hidden><span data-icon="logout"></span>Sair</button>
   <span class="tag" id="sync"><span class="pulso"></span> ao vivo</span>
@@ -1211,7 +1208,6 @@ function tagResponsavel(nome){return icone('user')+'<span>'+esc(nome||'Sem respo
 
 function aplicaTema(t){
   document.documentElement.dataset.tema=t;
-  document.getElementById('tema').innerHTML = icone(t==='claro'?'moon':'sun');
   localStorage.setItem('pl_tema',t);
 }
 function viraTema(){ aplicaTema(document.documentElement.dataset.tema==='claro'?'escuro':'claro'); }

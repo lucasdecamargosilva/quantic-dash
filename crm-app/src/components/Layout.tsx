@@ -202,32 +202,6 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* Voltar para Financeiro */}
-        <a
-          href="/custos.html"
-          className={`mx-3 mb-3 flex items-center justify-center gap-2 rounded-md px-3 py-2.5 text-[12px] font-semibold transition-all ${navCollapsed ? "lg:px-2" : ""}`}
-          title="Voltar para Financeiro"
-          style={{
-            background: "rgba(6, 182, 212, 0.06)",
-            color: "var(--color-cyan)",
-            border: "1px solid rgba(6, 182, 212, 0.18)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(6, 182, 212, 0.14)";
-            e.currentTarget.style.borderColor = "rgba(6, 182, 212, 0.3)";
-            e.currentTarget.style.color = "var(--color-bright)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(6, 182, 212, 0.06)";
-            e.currentTarget.style.borderColor = "rgba(6, 182, 212, 0.18)";
-            e.currentTarget.style.color = "var(--color-cyan)";
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M10 4L6 8l4 4" />
-          </svg>
-          <span className={navCollapsed ? "lg:hidden" : ""}>Voltar para Financeiro</span>
-        </a>
       </aside>
 
       {/* Main */}
