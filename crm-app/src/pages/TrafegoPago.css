@@ -89,3 +89,13 @@
 
 .traffic-dashboard .traffic-header-controls { flex:0 1 360px; }
 .traffic-dashboard .traffic-header-controls .traffic-period-bar { flex:1 1 300px; }
+
+.traffic-dashboard .traffic-header-controls { flex:0 1 590px; }
+.traffic-dashboard .traffic-header-controls .traffic-period-bar { min-width:0; flex:1 1 auto; }
+.traffic-dashboard .traffic-header-controls .traffic-period { display:flex; align-items:flex-end; width:100%; gap:8px; }
+.traffic-dashboard .traffic-header-controls .traffic-period > div:first-child { flex-shrink:0; height:36px; }
+.traffic-dashboard .traffic-header-controls .traffic-dates { flex:1; min-width:240px; }
+@media(max-width:639px) {
+ .traffic-dashboard .traffic-header-controls { overflow-x:auto; max-width:100%; }
+ .traffic-dashboard .traffic-header-controls .traffic-period { min-width:450px; }
+}
