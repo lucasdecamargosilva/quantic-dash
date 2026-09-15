@@ -1128,8 +1128,6 @@ textarea:focus{border-color:var(--roxo)}.rapidos{border:1px solid var(--linha);p
 </style></head><body>
 <div class="notificacoes" id="notificacoes" aria-live="polite"></div>
 <header>
-  <div class="marca"><img class="marca-logo claro" src="/prospeccao-logo-claro.png" alt="Provou Levou" width="168" height="40">
-    <img class="marca-logo escuro" src="/prospeccao-logo-escuro.png" alt="" width="168" height="40"></div>
   <div class="filtros" id="filtros"></div>
   <button class="btn sec" id="btAtualizar" onclick="atualiza()"
           style="padding:6px 11px;font-size:13px" title="Buscar mensagens novas agora"><span data-icon="refresh"></span>Atualizar</button>
