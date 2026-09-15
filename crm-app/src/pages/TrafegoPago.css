@@ -38,7 +38,10 @@
   outline: 3px solid color-mix(in srgb, var(--color-violet) 50%, transparent);
   outline-offset: 2px;
 }
-.traffic-dashboard > section[aria-label] > div { display: grid; grid-template-columns: repeat(3,minmax(100px,1fr)) minmax(288px,1.5fr); gap: 8px; }
+.traffic-dashboard > section[aria-label] > div { display: grid; grid-template-columns: repeat(3,minmax(100px,1fr)); gap: 8px; }
+.traffic-dashboard .traffic-period-bar { display:flex; justify-content:flex-end; margin-top:16px; }
+.traffic-dashboard .traffic-period-bar .traffic-period { display:grid; gap:8px; width:min(100%, 540px); }
+.traffic-dashboard .traffic-period-bar label { min-width:0; }
 .traffic-dashboard > section[aria-label] > div > span { display: none; }
 .traffic-dashboard > section[aria-label] label { min-width: 0; }
 .traffic-dashboard > section[aria-label] button { min-height: 32px; }
