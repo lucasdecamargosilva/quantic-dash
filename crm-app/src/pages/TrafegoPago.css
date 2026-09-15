@@ -73,7 +73,7 @@
 }
 
 .traffic-dashboard .traffic-header { align-items: flex-end; }
-.traffic-dashboard .traffic-header > div:first-child { flex: 1 0 100%; }
+
 .traffic-dashboard .traffic-header-controls { display:flex; align-items:flex-end; gap:12px; flex:1 1 620px; min-width:0; }
 .traffic-dashboard .traffic-header-filters { flex:1 1 320px; min-width:0; }
 .traffic-dashboard .traffic-header-filters > div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }

@@ -34,7 +34,7 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
         if (isDragging) return;
         onClick();
       }}
-      className={`relative overflow-hidden bg-surface border rounded-lg p-3 group transition-all duration-200 ${
+      className={`lead-card relative overflow-hidden bg-surface border rounded-lg p-3 group transition-all duration-200 ${
         lead.ponto_positivo ? "border-emerald/40" : "border-edge-subtle"
       } ${
         isDragging
@@ -116,7 +116,7 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[230px] flex flex-col border-r border-edge-subtle last:border-r-0 transition-all duration-200 ${
+      className={`pipeline-column flex-1 min-w-[230px] flex flex-col border-r border-edge-subtle last:border-r-0 transition-all duration-200 ${
         isOver ? "bg-violet/[0.04]" : ""
       }`}
       style={isOver ? { boxShadow: "inset 0 0 0 1px rgba(139, 92, 246, 0.2)" } : {}}
@@ -253,7 +253,7 @@ export default function Pipeline() {
   }
 
   return (
-    <div className="min-h-full flex flex-col">
+    <div className="pipeline-page min-h-full flex flex-col">
       {/* Header */}
       <div className="px-4 lg:px-8 pt-4 lg:pt-7 pb-5 flex flex-col lg:flex-row lg:items-end lg:justify-between border-b border-edge-subtle gap-4 lg:gap-6">
         <div>

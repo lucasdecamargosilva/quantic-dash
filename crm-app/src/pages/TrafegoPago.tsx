@@ -58,7 +58,6 @@ export default function TrafegoPago(){
   ];
   return <div className="traffic-dashboard min-h-full p-3 sm:p-4 lg:p-5">
     <header className="traffic-header flex flex-wrap items-center justify-between gap-3 border-b border-edge-subtle pb-3">
-      <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-violet/15 text-violet-light"><Icon name="chart"/></span><div><h1 className="text-2xl font-bold tracking-tight text-bright">Tráfego pago</h1><p className="text-xs text-muted">Performance das campanhas e criativos</p></div></div>
       <div className="flex flex-wrap items-center gap-2"><span className="inline-flex h-10 items-center gap-2 rounded-lg border border-edge-subtle bg-raised px-3 text-xs text-sub"><Icon name="meta" className="h-5 w-5 text-cyan"/><b>Meta Ads</b><span className="text-muted">ativa</span></span><span className="inline-flex h-10 items-center gap-2 rounded-lg border border-edge-subtle bg-raised px-3 text-xs text-muted"><span className="h-2 w-2 rounded-full bg-emerald"/>1 plataforma conectada</span></div>
       <div className="traffic-header-controls">
 

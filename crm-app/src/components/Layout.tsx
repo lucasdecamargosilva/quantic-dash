@@ -77,7 +77,7 @@ export default function Layout() {
       : { sidebar: "h-11", topBar: "h-8", footer: "h-7" };
 
   return (
-    <div className="flex h-screen text-text" style={{ background: "transparent" }}>
+    <div className="crm-shell flex h-screen text-text" style={{ background: "transparent" }}>
       {/* Backdrop do drawer (apenas mobile, quando aberto) */}
       {navOpen && (
         <div
@@ -100,17 +100,6 @@ export default function Layout() {
           borderRight: "1px solid var(--color-sidebar-border)",
         }}
       >
-        {/* Gradient line na borda direita (purple → cyan) */}
-        <div
-          aria-hidden="true"
-          className="absolute top-0 right-0 w-px h-full pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(180deg, var(--color-violet), transparent 30%, transparent 70%, var(--color-cyan))",
-            opacity: 0.3,
-          }}
-        />
-
         {/* Brand header */}
         <div
           className={`flex h-[72px] items-center gap-2 ${navCollapsed ? "lg:justify-center lg:px-2" : "px-5"}`}
@@ -148,7 +137,7 @@ export default function Layout() {
                   ? {
                       background: "var(--color-active-bg)",
                       color: "var(--color-bright)",
-                      boxShadow: "inset 0 0 20px var(--color-violet-wash)",
+                      boxShadow: "none",
                     }
                   : { color: "var(--color-muted)" }
               }
@@ -158,7 +147,7 @@ export default function Layout() {
                   <span
                     style={{
                       color: isActive ? "var(--color-violet)" : "currentColor",
-                      filter: isActive ? "drop-shadow(0 0 4px var(--color-active-glow))" : "none",
+                      filter: "none",
                       display: "inline-flex",
                     }}
                   >

@@ -1,12 +1,11 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
 
 /* Tokens alinhados com o dashboard financeiro (Quantic) — DARK (default) */
 @theme {
-  --color-base: #05060b;
-  --color-raised: #0c0e17;
-  --color-surface: #12151f;
-  --color-panel: #1a1d28;
+  --color-base: #08080b;
+  --color-raised: #131318;
+  --color-surface: #19191f;
+  --color-panel: #1d1d24;
   --color-edge: rgba(255, 255, 255, 0.08);
   --color-edge-subtle: rgba(255, 255, 255, 0.04);
   --color-dim: rgba(255, 255, 255, 0.32);
@@ -14,7 +13,7 @@
   --color-sub: rgba(255, 255, 255, 0.75);
   --color-text: rgba(255, 255, 255, 0.85);
   --color-bright: rgba(255, 255, 255, 0.95);
-  --color-violet: #8b5cf6;
+  --color-violet: #7c3aed;
   --color-violet-light: #a78bfa;
   --color-violet-deep: #6d28d9;
   --color-violet-wash: #8b5cf610;
@@ -25,25 +24,25 @@
   --color-cyan-light: #22d3ee;
 
   /* Surfaces específicas (sidebar, cards, modals) — auto-resolve por tema */
-  --color-sidebar: rgba(8, 10, 18, 0.95);
+  --color-sidebar: #0e0e12;
   --color-sidebar-border: rgba(255, 255, 255, 0.04);
-  --color-card-glass: rgba(12, 14, 23, 0.85);
+  --color-card-glass: #131318;
   --color-card-border: rgba(255, 255, 255, 0.05);
-  --color-modal-bg: rgba(10, 12, 20, 0.97);
+  --color-modal-bg: #131318;
   --color-modal-border: rgba(255, 255, 255, 0.08);
   --color-active-bg: rgba(139, 92, 246, 0.08);
   --color-active-glow: rgba(139, 92, 246, 0.4);
 
-  --font-sans: 'Sora', 'Outfit', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
   --font-serif: 'Instrument Serif', Georgia, serif;
 }
 
 /* === LIGHT MODE === */
 [data-theme="light"] {
-  --color-base: #f5f7fa;
-  --color-raised: #ffffff;
-  --color-surface: #f1f5f9;
-  --color-panel: #e2e8f0;
+  --color-base: #faf9f5;
+  --color-raised: #fdfcfb;
+  --color-surface: #fcfbf8;
+  --color-panel: #eeede9;
   --color-edge: rgba(15, 23, 42, 0.1);
   --color-edge-subtle: rgba(15, 23, 42, 0.06);
   --color-dim: rgba(15, 23, 42, 0.4);
@@ -233,3 +232,23 @@ body {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
+
+/* Shared merchant dashboard appearance across CRM routes. */
+body, [data-theme="light"] body { background-image:none; font-size:14px; }
+h1,h2,h3 { font-family:Manrope,Inter,sans-serif; letter-spacing:-.025em; }
+h1 { font-size:28px; font-weight:800; }
+:root { --color-muted:#94a3b8; --color-dim:#8b929f; --color-bright:#edebe7; --color-sub:#c7c4ce; }
+[data-theme="light"] { --color-muted:#6b7280; --color-dim:#737782; --color-bright:#0f1116; --color-sub:#45424e; --color-sidebar:#fdfcfb; }
+button,input,select,textarea { font-family:inherit; }
+:is(button,a,input,select,textarea):focus-visible { outline:2px solid var(--color-violet); outline-offset:3px; }
+button:disabled { opacity:.5; cursor:not-allowed; }
+.crm-shell nav a { border-radius:8px; min-height:40px; border-left:0; }
+.crm-shell nav a:hover { background:var(--color-active-bg); }
+.crm-shell nav a[aria-current="page"] { color:var(--color-violet-light)!important; font-weight:600; }
+.pipeline-page .lead-card { background:var(--color-raised); border-radius:12px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+.pipeline-page .lead-card:hover { border-color:color-mix(in srgb,var(--color-violet) 35%,var(--color-edge)); box-shadow:0 4px 12px rgba(0,0,0,.08); }
+.pipeline-page .pipeline-column { background:var(--color-surface); border-radius:14px; border:1px solid var(--color-edge-subtle); }
+.pipeline-page .pipeline-scroll { gap:12px; padding:16px; }
+.pipeline-page input,.pipeline-page select { border-radius:8px; min-height:36px; }
+.pipeline-page h1 { font-size:28px; }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
