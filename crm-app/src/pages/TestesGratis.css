@@ -1,0 +1,21 @@
+/* Merchant dashboard typography, scoped to the commercial overview. */
+@font-face {
+  font-family: "Provou Helvetica";
+  src: url("/crm/fonts/helveticanowdisplay-medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+.trial-dashboard {
+  font-family: "Provou Helvetica", Inter, system-ui, sans-serif;
+  font-size: 15px;
+}
+.trial-dashboard button, .trial-dashboard input { min-height: 44px; }
+.trial-dashboard button:focus-visible, .trial-dashboard input:focus-visible {
+  outline: 2px solid #9353ff;
+  outline-offset: 3px;
+}
+.trial-dashboard td { vertical-align: middle; }
+@media (max-width: 639px) {
+  .trial-dashboard h1 { font-size: 26px; line-height: 1.2; }
+  .trial-dashboard h2 { line-height: 1.35; }
+}
