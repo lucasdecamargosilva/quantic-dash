@@ -1602,11 +1602,7 @@ async function abrir(i){
         `<tr><td>${esc(p.nome)}</td><td>${esc(p.preco)}</td><td>${esc(p.fotos)}</td><td>${esc(p.por_prova)}</td></tr>`).join('')}</tbody></table></div>
       <div class="obs">Sem custo de instalação · integração no mesmo dia · 7 dias grátis.</div>
     </div>
-    <section class="responsaveis-grafico" aria-labelledby="graficoResponsaveisTitulo">
-      <div class="grafico-cabecalho"><h2 id="graficoResponsaveisTitulo">${icone('pipeline')}Leads por responsável</h2><span class="grafico-total" id="graficoResponsaveisTotal">…</span></div>
-      <p class="grafico-escopo">Total da prospecção · independente dos filtros</p>
-      <div id="graficoResponsaveis"><span class="tag">Carregando distribuição…</span></div>
-    </section></div>
+</div>
     <div class="drawer-fundo" id="drawerFundo" hidden onclick="toggleDadosLead(false)"></div>
     <aside class="lead-drawer" id="leadDrawer" aria-label="Dados do lead" hidden>
       <div class="drawer-head"><h2>${icone('user')} Dados do lead</h2><button class="btn sec drawer-fechar" id="fechaDadosLead" onclick="toggleDadosLead(false)" aria-label="Fechar dados do lead">✕</button></div>
