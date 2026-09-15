@@ -134,11 +134,30 @@ class DisparoMassaTest(unittest.TestCase):
             painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Oi", "Dione")
             painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Tudo bem?", "Lucas")
 
-        hoje = time.strftime("%Y-%m-%d", time.localtime())
-        self.assertEqual(
-            [{"responsavel": "Dione", "dia": hoje, "total": 1}],
-            painel.metas_conversas(hoje, hoje),
-        )
+        registro = painel.con().execute("SELECT responsavel FROM conversas_iniciadas").fetchall()
+        self.assertEqual(["Dione"], [r["responsavel"] for r in registro])
+
+    def test_metas_contam_atribuicao_na_data_certa_sem_duplicar(self):
+        # First message predates the assignment and must not date the metric.
+        c = painel.con()
+        c.execute("INSERT INTO mensagens(messageid,chatid,ts,from_me) VALUES(?,?,?,1)",
+                  ("antiga", "a@s.whatsapp.net", 1786380230557))
+        c.commit()
+        with patch.object(painel.time, "time", return_value=1789434000):
+            painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
+            painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
+            painel.atribui_responsavel("a@s.whatsapp.net", None)
+            painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
+        self.assertEqual([{"responsavel":"Dione","dia":"2026-09-14","total":1}],
+                         painel.metas_conversas("2026-09-14", "2026-09-14"))
+        self.assertEqual([], painel.metas_conversas("2026-08-01", "2026-08-31"))
+
+    def test_troca_de_responsavel_preserva_historico(self):
+        with patch.object(painel.time, "time", return_value=1789434000):
+            painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
+            painel.atribui_responsavel("a@s.whatsapp.net", "Lucas")
+        totais = {r["responsavel"]:r["total"] for r in painel.metas_conversas("2026-09-14", "2026-09-14")}
+        self.assertEqual({"Dione":1,"Lucas":1}, totais)
 
     def test_conversa_com_envio_historico_nao_e_atribuida_novamente(self):
         c = painel.con()

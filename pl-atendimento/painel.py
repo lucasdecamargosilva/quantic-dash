@@ -201,6 +201,10 @@ def cria_banco():
     CREATE TABLE IF NOT EXISTS conversas_iniciadas (
       chatid TEXT PRIMARY KEY, ts INTEGER NOT NULL, responsavel TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS ix_conversa_inicio_ts ON conversas_iniciadas(ts, responsavel);
+    CREATE TABLE IF NOT EXISTS conversas_atribuidas (
+      chatid TEXT NOT NULL, responsavel TEXT NOT NULL, ts INTEGER NOT NULL,
+      PRIMARY KEY (chatid, responsavel));
+    CREATE INDEX IF NOT EXISTS ix_conversa_atribuida_ts ON conversas_atribuidas(ts, responsavel);
     """)
     CRM_CLIENT.setup()
     # migracao: bancos criados antes do "remover da fila" nao tem essa coluna
@@ -697,9 +701,15 @@ def atribui_responsavel(chatid, responsavel):
         raise ValueError("Responsável inválido.")
     responsavel = responsavel or None
     c = con()
+    anterior = c.execute("SELECT responsavel FROM leads WHERE chatid=?", (chatid,)).fetchone()
+    if not anterior:
+        raise ValueError("Conversa não encontrada.")
     cur = c.execute("UPDATE leads SET responsavel=? WHERE chatid=?", (responsavel, chatid))
     if not cur.rowcount:
         raise ValueError("Conversa não encontrada.")
+    if responsavel and anterior["responsavel"] != responsavel:
+        c.execute("INSERT OR IGNORE INTO conversas_atribuidas(chatid,responsavel,ts) VALUES(?,?,?)",
+                  (chatid, responsavel, int(time.time())))
     c.commit()
     UI_EVENTS.publish()
     return responsavel
@@ -747,7 +757,7 @@ def metas_conversas(since, until):
         c.row_factory = sqlite3.Row
         rows = c.execute(
             "SELECT responsavel, date(ts,'unixepoch','-3 hours') dia, count(*) total "
-            "FROM conversas_iniciadas WHERE date(ts,'unixepoch','-3 hours') BETWEEN ? AND ? "
+            "FROM conversas_atribuidas WHERE date(ts,'unixepoch','-3 hours') BETWEEN ? AND ? "
             "GROUP BY responsavel, dia ORDER BY dia", (since, until)).fetchall()
     finally:
         c.close()
