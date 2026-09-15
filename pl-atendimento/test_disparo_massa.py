@@ -129,6 +129,40 @@ class DisparoMassaTest(unittest.TestCase):
         self.assertEqual("a Dione", painel.nome_vendedor("dione"))
         self.assertEqual("o Lucas", painel.nome_vendedor("lucas"))
 
+    def test_primeiro_envio_registra_uma_conversa_para_o_responsavel(self):
+        with patch.object(painel, "uz"):
+            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Oi", "Dione")
+            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Tudo bem?", "Lucas")
+
+        hoje = time.strftime("%Y-%m-%d", time.localtime())
+        self.assertEqual(
+            [{"responsavel": "Dione", "dia": hoje, "total": 1}],
+            painel.metas_conversas(hoje, hoje),
+        )
+
+    def test_conversa_com_envio_historico_nao_e_atribuida_novamente(self):
+        c = painel.con()
+        c.execute(
+            "INSERT INTO mensagens(messageid,chatid,ts,from_me,tipo,texto,file_url,segundos) "
+            "VALUES(?,?,?,?,?,?,?,?)",
+            ("historica", "a@s.whatsapp.net", 1, 1, "text", "Olá", "", 0),
+        )
+        c.commit()
+
+        with patch.object(painel, "uz"):
+            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Retorno", "Dione")
+
+        hoje = time.strftime("%Y-%m-%d", time.localtime())
+        self.assertEqual([], painel.metas_conversas(hoje, hoje))
+
+    def test_falha_no_envio_nao_registra_conversa_iniciada(self):
+        with patch.object(painel, "uz", side_effect=RuntimeError("falhou")):
+            with self.assertRaisesRegex(RuntimeError, "falhou"):
+                painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Oi", "Dione")
+
+        hoje = time.strftime("%Y-%m-%d", time.localtime())
+        self.assertEqual([], painel.metas_conversas(hoje, hoje))
+
     def test_catalogo_envia_duas_mensagens_e_video_por_ultimo(self):
         chamadas = []
 

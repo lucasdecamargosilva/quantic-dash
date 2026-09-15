@@ -141,7 +141,7 @@ app.use((req, res, next) => {
 // Retorna somente métricas comerciais necessárias ao painel; a chave de serviço
 // permanece no servidor. O intervalo é limitado para evitar consultas amplas.
 app.get('/api/meta/creatives', async (req, res) => {
-    const serviceKey = process.env.SUPABASE_KEY;
+    const serviceKey = process.env.META_DATA_SERVICE_KEY || (fs.existsSync('/data/prospeccao/meta-data-key') ? fs.readFileSync('/data/prospeccao/meta-data-key', 'utf8').trim() : process.env.SUPABASE_KEY);
     const since = String(req.query.since || '');
     const until = String(req.query.until || '');
     const validDay = /^\d{4}-\d{2}-\d{2}$/;
@@ -152,8 +152,8 @@ app.get('/api/meta/creatives', async (req, res) => {
     const fromTime = Date.parse(`${since}T12:00:00Z`);
     const toTime = Date.parse(`${until}T12:00:00Z`);
     const rangeDays = Math.round((toTime - fromTime) / 86400000) + 1;
-    if (!Number.isFinite(rangeDays) || rangeDays < 1 || rangeDays > 93) {
-        return res.status(400).json({ error: 'O período deve ter entre 1 e 93 dias' });
+    if (!Number.isFinite(rangeDays) || rangeDays < 1 || rangeDays > 186) {
+        return res.status(400).json({ error: 'O período consultado deve ter entre 1 e 186 dias, incluindo a comparação anterior' });
     }
     try {
         const endpoint = `${SUPABASE_URL}/rest/v1/meta_ads_criativos`;
@@ -189,7 +189,7 @@ if (fs.existsSync(LUCAS_AUTH_FILE)) {
 const PROSPECCAO_ACCOUNTS = loadAccounts(PROSPECCAO_ENV);
 const PROSPECCAO_SESSION_SECRET = process.env.PROSPECCAO_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const loginAttempts = new Map();
-const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|midia|conversa|crm(?:\/.*)?|ocultar|status|responsavel|enviar|mensagem\/(?:editar|excluir)|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
+const PROSPECCAO_API = /^\/api\/(recebidas|fila|disparo|envio|contagem|metas\/conversas|midia|conversa|crm(?:\/.*)?|ocultar|status|responsavel|enviar|mensagem\/(?:editar|excluir)|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|sync|sugestao|events)(?:\?|$)/;
 
 function origemProspeccaoValida(req) {
     const origem = req.headers.origin;

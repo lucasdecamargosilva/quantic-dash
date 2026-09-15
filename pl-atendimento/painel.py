@@ -198,6 +198,9 @@ def cria_banco():
       ultimo_ts INTEGER, ultimo_de TEXT, atualizado TEXT, responsavel TEXT);
     CREATE INDEX IF NOT EXISTS ix_lead_ts ON leads(ultimo_ts);
     CREATE TABLE IF NOT EXISTS transcricoes (url TEXT PRIMARY KEY, texto TEXT);
+    CREATE TABLE IF NOT EXISTS conversas_iniciadas (
+      chatid TEXT PRIMARY KEY, ts INTEGER NOT NULL, responsavel TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS ix_conversa_inicio_ts ON conversas_iniciadas(ts, responsavel);
     """)
     CRM_CLIENT.setup()
     # migracao: bancos criados antes do "remover da fila" nao tem essa coluna
@@ -706,6 +709,51 @@ def nome_vendedor(usuario):
     return "a Dione" if (usuario or "").strip().lower() == "dione" else "o Lucas"
 
 
+def nome_responsavel(usuario):
+    return "Dione" if (usuario or "").strip().lower() == "dione" else "Lucas"
+
+
+def registra_inicio(chatid, responsavel):
+    """Registra uma única vez quem realizou o primeiro envio da conversa."""
+    if not chatid or not responsavel:
+        return
+    c = sqlite3.connect(DB, timeout=30)
+    try:
+        c.execute("INSERT OR IGNORE INTO conversas_iniciadas(chatid,ts,responsavel) VALUES(?,?,?)",
+                  (chatid, int(time.time()), responsavel))
+        c.commit()
+    finally:
+        c.close()
+
+
+def envia_texto(chatid, fone, texto, responsavel):
+    c = sqlite3.connect(DB, timeout=30)
+    try:
+        primeiro_envio = bool(chatid) and not c.execute(
+            "SELECT 1 FROM mensagens WHERE chatid=? AND from_me=1 LIMIT 1", (chatid,)).fetchone()
+    finally:
+        c.close()
+    resposta = uz("/send/text", {"number": fone, "text": texto})
+    if primeiro_envio:
+        registra_inicio(chatid, responsavel)
+    return resposta
+
+
+def metas_conversas(since, until):
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", since or "") or not re.match(r"^\d{4}-\d{2}-\d{2}$", until or ""):
+        raise ValueError("Período inválido.")
+    c = sqlite3.connect(DB, timeout=30)
+    try:
+        c.row_factory = sqlite3.Row
+        rows = c.execute(
+            "SELECT responsavel, date(ts,'unixepoch','-3 hours') dia, count(*) total "
+            "FROM conversas_iniciadas WHERE date(ts,'unixepoch','-3 hours') BETWEEN ? AND ? "
+            "GROUP BY responsavel, dia ORDER BY dia", (since, until)).fetchall()
+    finally:
+        c.close()
+    return [dict(r) for r in rows]
+
+
 def mensagens_abordagem(nome, vendedor):
     limpo = (nome or "").strip()
     primeiro = "" if not limpo or re.match(r"^\+?\d", limpo) else re.sub(r"[,:;]+$", "", limpo.split()[0])
@@ -713,7 +761,7 @@ def mensagens_abordagem(nome, vendedor):
             ABORDAGEM_SEGUNDA]
 
 
-def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas"):
+def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas", responsavel="Lucas"):
     """Valida os alvos e envia a mensagem escolhida a cada conversa em segundo plano."""
     if not isinstance(chatids, list):
         raise ValueError("Selecione pelo menos uma conversa.")
@@ -755,7 +803,7 @@ def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas"):
                 mensagens = (mensagens_abordagem(alvo["nome"], vendedor)
                              if modo == "abordagem" else [texto])
                 for mensagem in mensagens:
-                    uz("/send/text", {"number": alvo["fone"], "text": mensagem})
+                    envia_texto(alvo["chatid"], alvo["fone"], mensagem, responsavel)
                     resultado["mensagens_enviadas"] += 1
                 resultado["ok"] = True
                 estado["enviados"] += 1
@@ -1731,7 +1779,7 @@ async function enviar(){
       const item={chatid:conversa,tipo:'texto',texto:t,estado:'enviando',t:Date.now()};
       pendentes.push(item); desenhaChat(ultimasLinhas);   // aparece na hora
       const d=await (await fetch('/api/enviar',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({fone,texto:t})})).json();
+        body:JSON.stringify({chatid:conversa,fone,texto:t})})).json();
       if(!d.eid){ item.estado='erro'; item.erro=d.erro||'falhou'; desenhaChat(ultimasLinhas); erro=item.erro; break; }
       const r=await segue(d.eid,item);
       if(r.estado==='erro'){ erro=r.erro||'falhou'; break; }
@@ -2038,6 +2086,9 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps({**SYNC, "crm": CRM_CLIENT.sync_status, "events": dict(LIVE_EVENTS.status)}, ensure_ascii=False))
             if p.path == "/api/contagem":
                 return self._send(200, json.dumps(contagem(), ensure_ascii=False))
+            if p.path == "/api/metas/conversas":
+                return self._send(200, json.dumps(metas_conversas(
+                    (q.get("since") or [""])[0], (q.get("until") or [""])[0]), ensure_ascii=False))
             if p.path == "/api/fila":
                 return self._send(200, json.dumps(fila((q.get("status") or [None])[0],
                                                        (q.get("busca") or [None])[0],
@@ -2151,17 +2202,19 @@ class H(BaseHTTPRequestHandler):
                     return self._send(200, json.dumps({"erro": str(e)[:120]},
                                                       ensure_ascii=False))
             if self.path == "/api/enviar":
-                return self._fundo(lambda: uz("/send/text",
-                                              {"number": d["fone"], "text": d["texto"]}))
+                usuario = self.headers.get("X-Prospeccao-User")
+                return self._fundo(lambda: envia_texto(d.get("chatid"), d["fone"], d["texto"],
+                                                       nome_responsavel(usuario)))
             if self.path == "/api/disparo":
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
                         origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
                     return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
                 try:
+                    usuario = self.headers.get("X-Prospeccao-User")
                     eid = inicia_disparo_massa(
                         d.get("chatids"), d.get("texto"), d.get("modo"),
-                        nome_vendedor(self.headers.get("X-Prospeccao-User")))
+                        nome_vendedor(usuario), nome_responsavel(usuario))
                     return self._send(200, json.dumps({"ok": True, "eid": eid}))
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
