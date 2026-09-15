@@ -114,7 +114,7 @@
           const data = await response.json().catch(() => ({}));
           throw new Error(data.error || 'Não foi possível entrar. Tente novamente.');
         }
-        window.location.replace('/prospeccao/');
+        window.location.replace('/crm/pipeline');
       } catch (err) {
         error.textContent = err.message;
         submit.disabled = false;

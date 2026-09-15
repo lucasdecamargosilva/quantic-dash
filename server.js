@@ -227,7 +227,7 @@ function autenticaProspeccao(req, res, next) {
 
 app.get('/prospeccao/login', (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
-    if (usuarioDaSessao(req)) return res.redirect('/prospeccao/');
+    if (usuarioDaSessao(req)) return res.redirect('/crm/pipeline');
     res.sendFile(path.join(__dirname, 'prospeccao-login.html'));
 });
 
