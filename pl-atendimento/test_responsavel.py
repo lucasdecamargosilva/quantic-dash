@@ -92,3 +92,14 @@ class ResponsavelTest(unittest.TestCase):
         painel.atribui_responsavel("d", "Lucas")
         self.assertEqual({"Lucas": 1, "Dione": 2, "": 0},
                          {r["responsavel"]: r["total"] for r in painel.contagem()["_responsaveis"]})
+
+    def test_metas_usam_responsavel_atual_do_atendimento(self):
+        painel.cria_banco()
+        c=painel.con()
+        c.execute("INSERT INTO leads(chatid,nome,responsavel) VALUES('a','Loja','Dione')")
+        c.execute("INSERT INTO crm_links(chatid,lead_id) VALUES('a','crm-a')")
+        c.commit()
+        self.assertEqual([{'lead_id':'crm-a','responsavel':'Dione'}],painel.responsaveis_metas())
+        c.execute("UPDATE leads SET responsavel=NULL WHERE chatid='a'")
+        c.commit()
+        self.assertEqual([{'lead_id':'crm-a','responsavel':None}],painel.responsaveis_metas())

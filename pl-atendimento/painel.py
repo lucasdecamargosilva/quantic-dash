@@ -755,6 +755,12 @@ ABORDAGEM_SEGUNDA = "Antes de iniciarmos, você vende em loja online, física, W
 RESPONSAVEIS = ("Lucas", "Dione")
 
 
+def responsaveis_metas():
+    """Mesmo responsável exibido no Pipeline Atendimento, vinculado ao ID do CRM."""
+    return [dict(r) for r in con().execute(
+        "SELECT k.lead_id,l.responsavel FROM crm_links k JOIN leads l ON l.chatid=k.chatid")]
+
+
 def atribui_responsavel(chatid, responsavel):
     if not isinstance(chatid, str) or not chatid.strip():
         raise ValueError("Conversa inválida.")
@@ -2169,6 +2175,8 @@ class H(BaseHTTPRequestHandler):
             if p.path == "/api/metas/config":
                 return self._send(200, json.dumps({"goals": read_goals(DB),
                     "canEdit": self.headers.get("X-Prospeccao-User") == "lucas"}, ensure_ascii=False))
+            if p.path == "/api/metas/responsaveis":
+                return self._send(200, json.dumps(responsaveis_metas(), ensure_ascii=False))
             if p.path == "/api/metas/conversas":
                 return self._send(200, json.dumps(metas_conversas(
                     (q.get("since") or [""])[0], (q.get("until") or [""])[0]), ensure_ascii=False))
