@@ -529,10 +529,12 @@ def normaliza_busca(valor):
     return " ".join("".join(c for c in valor if not unicodedata.combining(c)).casefold().split())
 
 
-def fila(status=None, busca=None, responsavel=None):
+def fila(status=None, busca=None, responsavel=None, chatid=None):
     c = con()
     busca = str(busca or "").strip()
-    if busca:
+    if chatid:
+        linhas = c.execute("SELECT * FROM leads WHERE chatid=?", (chatid,)).fetchall()
+    elif busca:
         linhas = c.execute("SELECT * FROM leads WHERE COALESCE(oculto,0)=0"
                            + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
         termo = normaliza_busca(busca)
@@ -1283,8 +1285,10 @@ async function abreConversaNotificada(chatid,aviso){
   if(i>=0) abrir(i); aviso.remove();
 }
 
+let conversaDestino=new URLSearchParams(location.search).get("chatid");
 async function carrega(){
   const pedido=++buscaSeq, params=new URLSearchParams();
+  if(conversaDestino) params.set('chatid',conversaDestino);
   if(busca) params.set('busca',busca); else if(filtro) params.set('status',filtro);
   if(filtroResponsavel) params.set('responsavel',filtroResponsavel);
   const r=await fetch('/api/fila'+(params.size?'?'+params.toString():''));
@@ -1316,10 +1320,12 @@ async function carrega(){
 }
 
 function agendaBusca(valor){
+  conversaDestino=null;
   busca=valor.trim(); document.getElementById('buscaLimpar').hidden=!busca;
   clearTimeout(buscaTimer); buscaTimer=setTimeout(carrega,220);
 }
 function limpaBusca(recarregar=true){
+  conversaDestino=null;
   busca=''; clearTimeout(buscaTimer);
   const campo=document.getElementById('busca'); if(campo){campo.value='';campo.focus()}
   const limpar=document.getElementById('buscaLimpar'); if(limpar)limpar.hidden=true;
@@ -1413,8 +1419,8 @@ async function filtros(){
       ({'':'chat','_sem_resposta':'clock','INTERESSADO':'user','TESTE GRÁTIS':'calendar','CONVERTIDO':'check','PERDIDO':'logout','_ocultos':'logout'})[v]||'tag')}${esc(r)}
        <b>${n[k]||0}</b></button>`).join('');
 }
-function setFiltro(v){ filtro=v; limpaBusca(false); filtros(); carrega(); }
-function setResponsavelFiltro(v){filtroResponsavel=v;carrega();}
+function setFiltro(v){ conversaDestino=null; filtro=v; limpaBusca(false); filtros(); carrega(); }
+function setResponsavelFiltro(v){conversaDestino=null;filtroResponsavel=v;carrega();}
 let dadosGraficoResponsaveis=null;
 function desenhaGraficoResponsaveis(dados){
   dadosGraficoResponsaveis=dados;
@@ -1955,6 +1961,7 @@ async function atualiza(){
     (prontos.responsaveis||[]).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')+
     '<option value="_sem_responsavel">Sem responsável</option>';
   await filtros(); await carrega();
+  if(conversaDestino){const i=pend.findIndex(p=>p.chatid===conversaDestino);if(i>=0)await abrir(i);else document.getElementById("painel").textContent="Conversa não encontrada.";}
   await buscaNotificacoes(false); conectaEventos(); })();
 
 let eventosTelaAtivos=false, atualizacaoEvento=null;
@@ -2100,7 +2107,8 @@ class H(BaseHTTPRequestHandler):
             if p.path == "/api/fila":
                 return self._send(200, json.dumps(fila((q.get("status") or [None])[0],
                                                        (q.get("busca") or [None])[0],
-                                                       (q.get("responsavel") or [None])[0]),
+                                                       (q.get("responsavel") or [None])[0],
+                                                       (q.get("chatid") or [None])[0]),
                                                   ensure_ascii=False))
             if p.path == "/api/recebidas":
                 return self._send(200, json.dumps(
