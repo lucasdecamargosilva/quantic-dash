@@ -235,7 +235,7 @@ export default function Pipeline() {
 
   const grouped = PIPELINE_STATUSES.reduce(
     (acc, s) => {
-      acc[s] = leadsFiltrados.filter((l) => l.status === s);
+      acc[s] = leadsFiltrados.filter((l) => l.status === s || (s === "novo" && l.status === "novo_tiktok"));
       return acc;
     },
     {} as Record<LeadStatus, Lead[]>

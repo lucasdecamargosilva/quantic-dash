@@ -88,7 +88,6 @@ export type LeadStatus =
 
 export const LEAD_STATUSES: LeadStatus[] = [
   "novo",
-  "novo_tiktok",
   "dm_enviada",
   "mensagem_1",
   "mensagem_2",
@@ -117,7 +116,6 @@ export const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "t
 
 export const PIPELINE_STATUSES: LeadStatus[] = [
   "novo",
-  "novo_tiktok",
   "dm_enviada",
   "mensagem_1",
   "mensagem_2",
