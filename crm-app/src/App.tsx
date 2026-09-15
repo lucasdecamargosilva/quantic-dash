@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
+import ChatPipeline from "./pages/ChatPipeline";
 import Pipeline from "./pages/Pipeline";
 import Leads from "./pages/Leads";
 import Dashboard from "./pages/Dashboard";
@@ -15,7 +16,8 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/pipeline" element={<ChatPipeline />} />
+          <Route path="/pipeline/anterior" element={<Pipeline />} />
           <Route path="/testes-gratis" element={<TestesGratis />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/objecoes" element={<Objecoes />} />

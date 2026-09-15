@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { applyCustomLeadStatuses, persistLeadStatus } from "../lib/lead-status";
@@ -257,7 +258,8 @@ export default function Pipeline() {
       {/* Header */}
       <div className="px-4 lg:px-8 pt-4 lg:pt-7 pb-5 flex flex-col lg:flex-row lg:items-end lg:justify-between border-b border-edge-subtle gap-4 lg:gap-6">
         <div>
-          <h1 className="text-[22px] font-bold text-bright tracking-tight">Pipeline</h1>
+          <h1 className="text-[22px] font-bold text-bright tracking-tight">Pipeline anterior</h1>
+          <Link to="/pipeline" className="text-xs text-violet-light">Voltar ao pipeline principal</Link>
           <p className="text-dim text-xs mt-1.5 tracking-wide">
             {totalActive} lead{totalActive !== 1 ? "s" : ""} ativo{totalActive !== 1 ? "s" : ""}
             {descartados.length > 0 && (

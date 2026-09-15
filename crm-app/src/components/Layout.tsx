@@ -67,6 +67,10 @@ export default function Layout() {
     localStorage.setItem("quantic-crm-theme", theme);
   }, [theme]);
 
+  const [loggingOut,setLoggingOut]=useState(false);
+  const [logoutError,setLogoutError]=useState("");
+  async function logout(){setLoggingOut(true);setLogoutError("");try{const r=await fetch("/prospeccao/logout",{method:"POST",credentials:"same-origin"});if(!r.ok)throw new Error();window.location.replace("/prospeccao/login")}catch{setLogoutError("Não foi possível sair. Tente novamente.");setLoggingOut(false)}}
+
   const closeNav = () => setNavOpen(false);
   const logoProvouLevou = theme === "light" ? logoProvouLevouClaro : logoProvouLevouEscuro;
   // Compensa diferença de aspect ratio entre os dois PNGs (claro 5.73:1, escuro 3.78:1)
@@ -160,6 +164,7 @@ export default function Layout() {
           ))}
         </nav>
 
+        <div className="border-t border-edge-subtle p-3"><button onClick={()=>{void logout()}} disabled={loggingOut} title="Sair" aria-label="Sair" className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted hover:bg-active-bg hover:text-violet-light"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5M21 12H9"/></svg><span className={navCollapsed?"lg:hidden":""}>{loggingOut?"Saindo…":"Sair"}</span></button>{logoutError&&<p role="alert" className="text-xs text-rose">{logoutError}</p>}</div>
       </aside>
 
       {/* Main */}
