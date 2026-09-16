@@ -22,8 +22,8 @@ class DisparoMassaTest(unittest.TestCase):
             "INSERT INTO leads(chatid,fone,nome,status,ultimo_ts,ultimo_de,atualizado) "
             "VALUES(?,?,?,?,?,?,?)",
             [
-                ("a@s.whatsapp.net", "5511000000001", "Loja A", "INTERESSADO", 1, "lead", ""),
-                ("b@s.whatsapp.net", "5511000000002", "Loja B", "INTERESSADO", 2, "lead", ""),
+                ("5511000000001@s.whatsapp.net", "5511000000001", "Loja A", "INTERESSADO", 1, "lead", ""),
+                ("5511000000002@s.whatsapp.net", "5511000000002", "Loja B", "INTERESSADO", 2, "lead", ""),
             ],
         )
         c.commit()
@@ -49,7 +49,7 @@ class DisparoMassaTest(unittest.TestCase):
 
         with patch.object(painel, "uz", side_effect=envia) as mock_uz:
             eid = painel.inicia_disparo_massa(
-                ["a@s.whatsapp.net", "a@s.whatsapp.net", "b@s.whatsapp.net"], "  Olá  "
+                ["5511000000001@s.whatsapp.net", "5511000000001@s.whatsapp.net", "5511000000002@s.whatsapp.net"], "  Olá  "
             )
             estado = self.wait(eid)
 
@@ -66,7 +66,7 @@ class DisparoMassaTest(unittest.TestCase):
 
     def test_rejeita_mensagem_vazia_e_limite(self):
         with self.assertRaisesRegex(ValueError, "mensagem"):
-            painel.inicia_disparo_massa(["a@s.whatsapp.net"], "  ")
+            painel.inicia_disparo_massa(["5511000000001@s.whatsapp.net"], "  ")
         with self.assertRaisesRegex(ValueError, "limite"):
             painel.inicia_disparo_massa(
                 ["%d@s.whatsapp.net" % i for i in range(painel.MAX_DISPARO_MASSA + 1)], "Olá"
@@ -75,7 +75,7 @@ class DisparoMassaTest(unittest.TestCase):
     def test_abordagem_personaliza_nome_e_remetente_em_duas_mensagens(self):
         chamadas = []
         c = painel.con()
-        c.execute("UPDATE leads SET nome=? WHERE chatid=?", ("Maria Silva", "b@s.whatsapp.net"))
+        c.execute("UPDATE leads SET nome=? WHERE chatid=?", ("Maria Silva", "5511000000002@s.whatsapp.net"))
         c.commit()
 
         def envia(path, body):
@@ -83,7 +83,7 @@ class DisparoMassaTest(unittest.TestCase):
 
         with patch.object(painel, "uz", side_effect=envia):
             eid = painel.inicia_disparo_massa(
-                ["a@s.whatsapp.net", "b@s.whatsapp.net"], "prévia", "abordagem", "a Dione"
+                ["5511000000001@s.whatsapp.net", "5511000000002@s.whatsapp.net"], "prévia", "abordagem", "a Dione"
             )
             estado = self.wait(eid)
 
@@ -102,7 +102,7 @@ class DisparoMassaTest(unittest.TestCase):
 
     def test_abordagem_sem_nome_e_falha_na_segunda_mensagem(self):
         c = painel.con()
-        c.execute("UPDATE leads SET nome=? WHERE chatid=?", ("5511000000001", "a@s.whatsapp.net"))
+        c.execute("UPDATE leads SET nome=? WHERE chatid=?", ("5511000000001", "5511000000001@s.whatsapp.net"))
         c.commit()
         chamadas = []
 
@@ -112,7 +112,7 @@ class DisparoMassaTest(unittest.TestCase):
                 raise RuntimeError("instância desconectada")
 
         with patch.object(painel, "uz", side_effect=envia):
-            eid = painel.inicia_disparo_massa(["a@s.whatsapp.net"], "", "abordagem", "o Lucas")
+            eid = painel.inicia_disparo_massa(["5511000000001@s.whatsapp.net"], "", "abordagem", "o Lucas")
             estado = self.wait(eid)
 
         self.assertEqual("Oi, aqui é o Lucas, da Provou Levou.", chamadas[0])
@@ -123,7 +123,7 @@ class DisparoMassaTest(unittest.TestCase):
 
     def test_rejeita_modelo_desconhecido(self):
         with self.assertRaisesRegex(ValueError, "Modelo"):
-            painel.inicia_disparo_massa(["a@s.whatsapp.net"], "Olá", "desconhecido")
+            painel.inicia_disparo_massa(["5511000000001@s.whatsapp.net"], "Olá", "desconhecido")
 
     def test_nome_da_abordagem_segue_login(self):
         self.assertEqual("a Dione", painel.nome_vendedor("dione"))
@@ -131,8 +131,8 @@ class DisparoMassaTest(unittest.TestCase):
 
     def test_primeiro_envio_registra_uma_conversa_para_o_responsavel(self):
         with patch.object(painel, "uz"):
-            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Oi", "Dione")
-            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Tudo bem?", "Lucas")
+            painel.envia_texto("5511000000001@s.whatsapp.net", "5511000000001", "Oi", "Dione")
+            painel.envia_texto("5511000000001@s.whatsapp.net", "5511000000001", "Tudo bem?", "Lucas")
 
         registro = painel.con().execute("SELECT responsavel FROM atendimentos_iniciados ORDER BY responsavel").fetchall()
         self.assertEqual(["Dione", "Lucas"], [r["responsavel"] for r in registro])
@@ -141,25 +141,25 @@ class DisparoMassaTest(unittest.TestCase):
         # First message predates the assignment and must not date the metric.
         c = painel.con()
         c.execute("INSERT INTO mensagens(messageid,chatid,ts,from_me) VALUES(?,?,?,1)",
-                  ("antiga", "a@s.whatsapp.net", 1786380230557))
+                  ("antiga", "5511000000001@s.whatsapp.net", 1786380230557))
         c.commit()
         with patch.object(painel.time, "time", return_value=1789434000):
-            painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
-            painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
-            painel.atribui_responsavel("a@s.whatsapp.net", None)
-            painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
+            painel.atribui_responsavel("5511000000001@s.whatsapp.net", "Dione")
+            painel.atribui_responsavel("5511000000001@s.whatsapp.net", "Dione")
+            painel.atribui_responsavel("5511000000001@s.whatsapp.net", None)
+            painel.atribui_responsavel("5511000000001@s.whatsapp.net", "Dione")
         self.assertEqual([], painel.metas_conversas("2026-09-14", "2026-09-14"))
         with patch.object(painel.time, "time", return_value=1789434000), patch.object(painel, "uz"):
-            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Oi", "Dione")
-            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Tudo bem?", "Dione")
+            painel.envia_texto("5511000000001@s.whatsapp.net", "5511000000001", "Oi", "Dione")
+            painel.envia_texto("5511000000001@s.whatsapp.net", "5511000000001", "Tudo bem?", "Dione")
         self.assertEqual([{"responsavel":"Dione","dia":"2026-09-14","total":1}],
                          painel.metas_conversas("2026-09-14", "2026-09-14"))
         self.assertEqual([], painel.metas_conversas("2026-08-01", "2026-08-31"))
 
     def test_troca_de_responsavel_preserva_historico(self):
         with patch.object(painel.time, "time", return_value=1789434000):
-            painel.atribui_responsavel("a@s.whatsapp.net", "Dione")
-            painel.atribui_responsavel("a@s.whatsapp.net", "Lucas")
+            painel.atribui_responsavel("5511000000001@s.whatsapp.net", "Dione")
+            painel.atribui_responsavel("5511000000001@s.whatsapp.net", "Lucas")
         totais = {r["responsavel"]:r["total"] for r in painel.metas_conversas("2026-09-14", "2026-09-14")}
         self.assertEqual({}, totais)
 
@@ -168,12 +168,12 @@ class DisparoMassaTest(unittest.TestCase):
         c.execute(
             "INSERT INTO mensagens(messageid,chatid,ts,from_me,tipo,texto,file_url,segundos) "
             "VALUES(?,?,?,?,?,?,?,?)",
-            ("historica", "a@s.whatsapp.net", 1, 1, "text", "Olá", "", 0),
+            ("historica", "5511000000001@s.whatsapp.net", 1, 1, "text", "Olá", "", 0),
         )
         c.commit()
 
         with patch.object(painel, "uz"):
-            painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Retorno", "Dione")
+            painel.envia_texto("5511000000001@s.whatsapp.net", "5511000000001", "Retorno", "Dione")
 
         hoje = time.strftime("%Y-%m-%d", time.localtime())
         self.assertEqual([{"responsavel":"Dione","dia":hoje,"total":1}], painel.metas_conversas(hoje, hoje))
@@ -181,7 +181,7 @@ class DisparoMassaTest(unittest.TestCase):
     def test_falha_no_envio_nao_registra_conversa_iniciada(self):
         with patch.object(painel, "uz", side_effect=RuntimeError("falhou")):
             with self.assertRaisesRegex(RuntimeError, "falhou"):
-                painel.envia_texto("a@s.whatsapp.net", "5511000000001", "Oi", "Dione")
+                painel.envia_texto("5511000000001@s.whatsapp.net", "5511000000001", "Oi", "Dione")
 
         hoje = time.strftime("%Y-%m-%d", time.localtime())
         self.assertEqual([], painel.metas_conversas(hoje, hoje))

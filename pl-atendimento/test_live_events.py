@@ -18,6 +18,13 @@ class LiveEventsTest(unittest.TestCase):
         self.assertFalse(ingest(lambda:self.db,self.payload))
         self.assertEqual(self.db.execute('SELECT count(*) FROM mensagens').fetchone()[0],1)
 
+    def test_metadata_cannot_replace_recipient_or_mix_contact_name(self):
+        self.payload['chat'].update(phone='5511888888888',wa_chatid='5511888888888@s.whatsapp.net',wa_name='Other contact')
+        ingest(lambda:self.db,self.payload)
+        phone,name=self.db.execute('SELECT fone,nome FROM leads').fetchone()
+        self.assertEqual(phone,self.cid.split('@')[0])
+        self.assertNotEqual(name,'Other contact')
+
     def test_older_event_preserves_position_stage_and_hidden(self):
         ingest(lambda:self.db,self.payload)
         self.db.execute("UPDATE leads SET status='TESTE GRÁTIS',oculto=1")

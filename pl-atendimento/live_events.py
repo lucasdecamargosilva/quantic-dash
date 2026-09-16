@@ -65,7 +65,10 @@ def ingest(connect, payload):
     if not isinstance(content, dict):
         content = {}
     me = bool(msg.get('fromMe'))
-    phone = re.sub(r'\D', '', chat.get('phone') or cid.split('@')[0])
+    # O identificador da mensagem é a autoridade; metadados não podem trocar o destinatário.
+    phone = cid.split('@')[0]
+    if chat.get('wa_chatid') and chat['wa_chatid'] != cid:
+        chat = {}
     name = chat.get('wa_name') or chat.get('name') or chat.get('wa_contactName') or (msg.get('senderName') if not me else '') or phone
     c = connect()
     with c:

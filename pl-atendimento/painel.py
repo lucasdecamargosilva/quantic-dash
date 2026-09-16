@@ -452,7 +452,8 @@ def sincroniza():
                                      "sort": "messageTimestamp", "limit": 60})
         except Exception:
             return None
-        ms = [m for m in (d.get("messages") or []) if m.get("status") != "Deleted"]
+        ms = [m for m in (d.get("messages") or []) if m.get("status") != "Deleted"
+              and (not m.get("chatid") or m["chatid"] == x["wa_chatid"])]
         ms.sort(key=lambda y: int(y["messageTimestamp"]))
         return (x, ms)
 
@@ -479,7 +480,7 @@ def sincroniza():
             if not ms:
                 continue
             ult = ms[-1]
-            fone = re.sub(r"\D", "", x.get("phone") or cid.split("@")[0])
+            fone = cid.split("@")[0] if cid.endswith('@s.whatsapp.net') else re.sub(r"\D", "", x.get("phone") or '')
             nome = x.get("wa_name") or x.get("name") or x.get("wa_contactName") or ""
             # o status e do usuario: nunca sobrescreve num sync
             c.execute(
@@ -714,7 +715,7 @@ def conversa(chatid):
                        "hora": quando(m["ts"]).strftime("%d/%m %H:%M"),
                        "texto": t, "audio": aud, "tipo": m["tipo"], "editada": bool(m["editada"]),
                        "midia": bool(m["file_url"] and m["tipo"] in TIPOS_MIDIA)})
-    return {"linhas": linhas, "status": lead["status"] if lead else "SEM ETAPA",
+    return {"chatid": chatid, "linhas": linhas, "status": lead["status"] if lead else "SEM ETAPA",
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
             "nome": lead["nome"] if lead else "", "fone": lead["fone"] if lead else "",
             "responsavel": lead["responsavel"] if lead else None,
@@ -816,6 +817,8 @@ def valida_destinatario(chatid, fone):
         c.close()
     if not lead or not lead[0] or not isinstance(fone, str) or fone != lead[0]:
         raise ValueError("O destinatário não corresponde à conversa aberta. Envio bloqueado; atualize o painel.")
+    if chatid.endswith('@s.whatsapp.net') and chatid.split('@')[0] != fone:
+        raise ValueError("Telefone incompatível com a identidade do WhatsApp. Envio bloqueado.")
     return lead[0]
 
 
@@ -1278,6 +1281,16 @@ function destinatarioAberto(){
     throw new Error('Aguarde a conversa carregar antes de enviar.');
   return conversaAberta;
 }
+function contextoChat(){return {chatid:selId,abertura:aberturaSeq};}
+function contextoAtual(ctx){return !!ctx.chatid && ctx.chatid===selId && ctx.abertura===aberturaSeq;}
+async function atualizaConversa(ctx=contextoChat()){
+  if(!ctx.chatid)return;
+  const r=await fetch('/api/conversa?chatid='+encodeURIComponent(ctx.chatid),{cache:'no-store'});
+  if(!r.ok)return;
+  const d=await r.json();
+  if(!contextoAtual(ctx)||d.chatid!==ctx.chatid)return;
+  desenhaChat(d.linhas);atualizaResponsavel(d.responsavel);
+}
 let pend=[], sel=null, selId=null, prontos={audios:[],textos:[],combos:[],status:[]},
     enviados=[], filtro='', filtroResponsavel='', busca='', buscaTimer=null, buscaSeq=0,
     selecionados=new Set(), disparoRodando=false;
@@ -1338,7 +1351,7 @@ async function salvaResponsavel(select){
   const cid=selId, anterior=select.dataset.saved||'', erro=document.getElementById('responsavelErro');
   select.disabled=true; if(erro) erro.textContent='';
   try{
-    const r=await fetch('/api/responsavel',{method:'POST',headers:{'Content-Type':'application/json'},
+const r=await fetch('/api/responsavel',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
       body:JSON.stringify({chatid:cid,responsavel:select.value})});
     const d=await r.json();
     if(!r.ok||!d.ok) throw new Error(d.erro||'Não foi possível salvar.');
@@ -1473,7 +1486,7 @@ async function disparaMassa(){
   disparoRodando=true; bt.disabled=true; document.getElementById('massaModelo').disabled=true;
   document.getElementById('massaTexto').disabled=true; st.innerHTML='<span class="spin"></span> preparando disparo…'; atualizaBulk();
   try{
-    const response=await fetch('/api/disparo',{method:'POST',headers:{'Content-Type':'application/json'},
+    const response=await fetch('/api/disparo',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
       body:JSON.stringify({chatids:ids,texto,modo})});
     const d=await response.json(); if(!response.ok||!d.eid) throw new Error(d.erro||'Não foi possível iniciar o disparo.');
     let fim=null;
@@ -1536,12 +1549,12 @@ let pendentes=[];
 function bolhasPend(linhas){
   const agora=Date.now();
   pendentes=pendentes.filter(x=>{
-    if(x.chatid!==selId) return false;
+    if(x.chatid!==selId) return agora-x.t < 300000;
     if(x.estado==='erro') return true;
     const achou=x.tipo==='texto' && linhas.some(l=>l.de!=='lead' && l.texto===x.texto);
     return !achou && (agora-x.t < 25000);
   });
-  return pendentes.map(x=>`<div class="bolha loja">${esc(x.texto)}
+  return pendentes.filter(x=>x.chatid===selId).map(x=>`<div class="bolha loja">${esc(x.texto)}
     <div class="meta">${x.estado==='erro'
       ? '<span class="err">falhou: '+esc(x.erro||'')+'</span>'
       : x.estado==='ok' ? '✓ enviada' : '🕗 enviando…'}</div></div>`).join('');
@@ -1570,22 +1583,21 @@ function iniciaEdicao(id){
 }
 async function acaoMensagem(acao,id,texto){
   if(mensagemEmAcao) return;
+  const ctx=contextoChat();
   if(acao==='excluir'&&!confirm('Excluir esta mensagem para todos no WhatsApp?')) return;
   mensagemEmAcao=id;
   const st=document.getElementById('st');
   if(st) st.textContent=acao==='editar'?'Editando mensagem…':'Excluindo mensagem…';
   try{
-    const r=await fetch('/api/mensagem/'+acao,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({chatid:selId,id,texto})});
+    const r=await fetch('/api/mensagem/'+acao,{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
+      body:JSON.stringify({chatid:ctx.chatid,id,texto})});
     const d=await r.json();
     if(!r.ok||!d.ok) throw new Error(d.erro||'Não foi possível alterar a mensagem.');
     if(st) st.innerHTML='<span class="ok">Mensagem '+(acao==='editar'?'editada':'excluída')+' ✓</span>';
   }catch(e){if(st) st.innerHTML='<span class="err">'+esc(e.message||'Falha ao alterar mensagem.')+'</span>';}
   finally{
-    mensagemEmAcao=null;editandoMensagem=null;
-    const cid=selId;
-    const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
-    if(r.ok&&selId===cid) desenhaChat((await r.json()).linhas);
+    mensagemEmAcao=null;
+    if(contextoAtual(ctx)){editandoMensagem=null;await atualizaConversa(ctx);}
   }
 }
 document.addEventListener('click',e=>{
@@ -1652,7 +1664,7 @@ async function abrirLead(lead){
   P.innerHTML='<div class="vazio"><span class="spin"></span> abrindo…</div>';
   const d=await (await fetch('/api/conversa?chatid='+encodeURIComponent(p.chatid))).json();
   if(selId!==p.chatid || abertura!==aberturaSeq) return;
-  if(d.fone!==p.fone){P.textContent='Os dados da conversa mudaram. Abra o lead novamente.';return;}
+  if(d.chatid!==p.chatid||d.fone!==p.fone){P.textContent='Os dados da conversa mudaram. Abra o lead novamente.';return;}
   conversaAberta=Object.freeze({...p,fone:d.fone,nome:d.nome});
   ultimasLinhas=d.linhas;
   P.innerHTML=`
@@ -1681,7 +1693,7 @@ async function abrirLead(lead){
         title="Prepara a mensagem com os valores dos sete planos para revisão">${icone('tag')} Planos</button>
       <button class="btn sec" onclick="poeTexto('reaquecer')">${icone('refresh')} Reaquecer</button>
     </div>
-    <label class="editor-label" for="txt">${icone('chat')} Sua mensagem</label>
+    <label class="editor-label" for="txt">${icone('chat')} Mensagem para ${esc(d.nome||d.fone)} · ${esc(d.fone)}</label>
     <textarea id="txt" data-chatid="${esc(p.chatid)}" placeholder="Digite sua mensagem…"></textarea>
     <div class="catalogo-rascunho" id="catalogoRascunho" hidden>
       <label for="catalogoTexto2">Segunda mensagem</label>
@@ -1812,7 +1824,7 @@ async function salvaCRM(path,status){
   const box=document.getElementById('crm');
   box.querySelectorAll('button,select').forEach(b=>b.disabled=true);
   try{
-    const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chatid,status})});
+    const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},body:JSON.stringify({chatid,status})});
     const d=await response.json(); if(!response.ok || d.erro) throw new Error(d.erro||'Não foi possível salvar no CRM');
     if(selId===chatid) desenhaCRM(d);
     carrega(); filtros();
@@ -1836,7 +1848,7 @@ async function salvaObservacao(event,form){
   form.querySelectorAll('button,textarea').forEach(el=>el.disabled=true);
   feedback.className='crm-feedback'; feedback.textContent='Salvando…';
   try{
-    const response=await fetch('/api/crm/observacao',{method:'POST',headers:{'Content-Type':'application/json'},
+    const response=await fetch('/api/crm/observacao',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
       body:JSON.stringify({chatid,texto})});
     const d=await response.json(); if(!response.ok || d.erro) throw new Error(d.erro||'Não foi possível salvar a observação');
     if(selId===chatid){ input.value=''; feedback.textContent='Observação salva no CRM.';desenhaNotas([d.note,...crmNotas].slice(0,20)); }
@@ -1858,7 +1870,7 @@ async function ocultar(oc){
   if(oc && !confirm('Remover "'+(p.nome||p.fone)+'" da fila?\n\n'
      +'Ela some do painel mesmo que mande mensagem nova. '
      +'Dá pra restaurar depois no filtro "Removidos".')) return;
-  await fetch('/api/ocultar',{method:'POST',headers:{'Content-Type':'application/json'},
+  await fetch('/api/ocultar',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
     body:JSON.stringify({chatid:p.chatid,oculto:oc})});
   st.innerHTML='<span class="ok">'+(oc?'removida da fila':'restaurada')+'</span>';
   selId=null; sel=null; conversaAberta=null; aberturaSeq++;
@@ -1867,7 +1879,7 @@ async function ocultar(oc){
     '<div class="vazio">'+(oc?'Conversa removida.':'Restaurada.')+' Escolha a próxima.</div>';
 }
 async function mudaStatus(s,b){
-  await fetch('/api/status',{method:'POST',headers:{'Content-Type':'application/json'},
+  await fetch('/api/status',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
     body:JSON.stringify({chatid:destinatarioAberto().chatid,status:s})});
   document.querySelectorAll('.sbtn').forEach(x=>x.classList.toggle('on',x===b));
   document.getElementById('st').innerHTML='<span class="ok">status: '+esc(s)+'</span>';
@@ -1893,7 +1905,7 @@ async function enviar(){
     for(const t of textos){
       const item={chatid:conversa,tipo:'texto',texto:t,estado:'enviando',t:Date.now()};
       pendentes.push(item); desenhaChat(ultimasLinhas);   // aparece na hora
-      const d=await (await fetch('/api/enviar',{method:'POST',headers:{'Content-Type':'application/json'},
+      const d=await (await fetch('/api/enviar',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
         body:JSON.stringify({chatid:conversa,fone,texto:t})})).json();
       if(!d.eid){ item.estado='erro'; item.erro=d.erro||'falhou'; desenhaChat(ultimasLinhas); erro=item.erro; break; }
       const r=await segue(d.eid,item);
@@ -1904,7 +1916,7 @@ async function enviar(){
       videoTentado=true;
       const item={chatid:conversa,tipo:'video',texto:'🎬 Vídeo do Provou Catálogo',estado:'enviando',t:Date.now()};
       pendentes.push(item); desenhaChat(ultimasLinhas);
-      const d=await (await fetch('/api/catalogo/video',{method:'POST',headers:{'Content-Type':'application/json'},
+      const d=await (await fetch('/api/catalogo/video',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
         body:JSON.stringify({chatid:conversa,fone})})).json();
       if(!d.eid){item.estado='erro';item.erro=d.erro||'falhou';desenhaChat(ultimasLinhas);erro=item.erro;}
       else{
@@ -1930,7 +1942,7 @@ async function mandaAudio(id,botao){
   const item={chatid:destinatario.chatid,tipo:'audio',texto:'🎧 '+a.rotulo+' ('+a.seg+'s)',
               estado:'enviando',t:Date.now()};
   pendentes.push(item); desenhaChat(ultimasLinhas);
-  const d=await (await fetch('/api/audio',{method:'POST',headers:{'Content-Type':'application/json'},
+  const d=await (await fetch('/api/audio',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
     body:JSON.stringify({chatid:destinatario.chatid,fone:destinatario.fone,id})})).json();
   botao.disabled=false;
   if(!d.eid){ item.estado='erro'; item.erro=d.erro||'falhou'; desenhaChat(ultimasLinhas); return; }
@@ -1943,7 +1955,7 @@ async function mandaAudio(id,botao){
 async function mandaCombo(id,botao){
   const p=destinatarioAberto(), st=document.getElementById('st'), c=prontos.combos.find(x=>x.id===id);
   botao.disabled=true; st.innerHTML='<span class="spin"></span> enviando '+c.audios.length+' áudios…';
-  const d=await (await fetch('/api/combo',{method:'POST',headers:{'Content-Type':'application/json'},
+  const d=await (await fetch('/api/combo',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
     body:JSON.stringify({chatid:p.chatid,fone:p.fone,id})})).json();
   if(!d.ok){ st.innerHTML='<span class="err">'+esc(d.erro)+'</span>'; botao.disabled=false; return; }
   for(let i=0;i<40;i++){
@@ -1986,6 +1998,7 @@ function proxima(){ descarta(); selId=null; sel=null; conversaAberta=null; abert
   document.getElementById('painel').innerHTML='<div class="vazio">Escolha a próxima.</div>'; }
 
 let rec=null,pedacos=[],t0=0,cron=null,blobGravado=null,audioUrl=null,gravadoEnviando=false;
+let gravacaoSeq=0,gravacaoContexto=null;
 function sincronizaGravador(){
   const gravando=rec&&rec.state==='recording', pronto=!!blobGravado;
   ['micChat'].forEach(id=>{const b=document.getElementById(id);if(b){b.innerHTML=gravando?icone('stop')+' Parar':icone('mic')+' Gravar';b.classList.toggle('rec',!!gravando);}});
@@ -1995,22 +2008,26 @@ function sincronizaGravador(){
 }
 async function toggleMic(){
   if(gravadoEnviando) return;
-  const st=document.getElementById('st'), chatid=selId;
   if(rec&&rec.state==='recording'){ rec.stop(); return; }
+  const st=document.getElementById('st'), ctx=contextoChat(), pedido=++gravacaoSeq;
   let stream;
   try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
   catch(e){ st.innerHTML='<span class="err">microfone: '+esc(e.name)+'</span>'; return; }
-  if(selId!==chatid){stream.getTracks().forEach(t=>t.stop());return;}
+  if(!contextoAtual(ctx)||pedido!==gravacaoSeq){stream.getTracks().forEach(t=>t.stop());return;}
   descarta(); pedacos=[]; blobGravado=null; rec=new MediaRecorder(stream);
-  rec.ondataavailable=e=>{ if(e.data.size) pedacos.push(e.data); };
+  const gravador=rec, partes=[], sessao=gravacaoSeq;
+  gravacaoContexto=ctx;
+  rec.ondataavailable=e=>{ if(e.data.size) partes.push(e.data); };
   rec.onstop=()=>{ clearInterval(cron); stream.getTracks().forEach(t=>t.stop());
-    blobGravado=new Blob(pedacos,{type:rec.mimeType||'audio/webm'});
+    if(!contextoAtual(ctx)||sessao!==gravacaoSeq)return;
+    blobGravado=new Blob(partes,{type:gravador.mimeType||'audio/webm'});
     audioUrl=URL.createObjectURL(blobGravado); sincronizaGravador(); };
   rec.start(); t0=Date.now(); sincronizaGravador();
   cron=setInterval(()=>{ const s=Math.floor((Date.now()-t0)/1000);
     ['tempoChat'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}); },200);
 }
 function descarta(){ blobGravado=null;
+  gravacaoSeq++;gravacaoContexto=null;
   clearInterval(cron);
   if(rec){rec.onstop=null;if(rec.state==='recording')rec.stop();rec.stream.getTracks().forEach(t=>t.stop());rec=null;}
   if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}
@@ -2018,8 +2035,10 @@ function descarta(){ blobGravado=null;
   sincronizaGravador(); }
 async function enviaGravado(teste){
   if(!blobGravado||gravadoEnviando) return;
-  gravadoEnviando=true;
+  if(!gravacaoContexto||!contextoAtual(gravacaoContexto)){descarta();return;}
   const destinatario=destinatarioAberto(), chatid=destinatario.chatid, fone=destinatario.fone, blob=blobGravado;
+  const ctx=contextoChat(),seg=document.getElementById('tempoChat').textContent;
+  gravadoEnviando=true;
   const st=document.getElementById('st');
   const botoes=['envAudChat','micChat','descAudChat'].map(id=>document.getElementById(id)).filter(Boolean);
   botoes.forEach(b=>b.disabled=true);
@@ -2028,10 +2047,9 @@ async function enviaGravado(teste){
   const b64=await new Promise((resolve,reject)=>{const fr=new FileReader();
     fr.onerror=()=>reject(new Error('Não foi possível ler o áudio.'));
     fr.onload=()=>resolve(fr.result.split(',')[1]); fr.readAsDataURL(blob);});
-  const seg=document.getElementById('tempoChat').textContent;
-  const d=await (await fetch('/api/gravado',{method:'POST',headers:{'Content-Type':'application/json'},
+  const d=await (await fetch('/api/gravado',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
     body:JSON.stringify({chatid,fone,b64,seg,teste})})).json();
-  if(selId!==chatid) return;
+  if(!contextoAtual(ctx)) return;
   if(d.ok){ st.innerHTML='<span class="ok">áudio enviado'+(teste?' pra você':'')+' ✓</span>';
     if(!teste){ enviados.push('áudio '+seg); descarta(); } }
   else st.innerHTML='<span class="err">'+esc(d.erro||'')+'</span>';
@@ -2050,11 +2068,7 @@ async function atualiza(){
   try{
     const d=await (await fetch('/api/atualizar',{method:'POST'})).json();
     await filtros(); await carrega();
-    if(selId){
-      const c=await (await fetch('/api/conversa?chatid='+encodeURIComponent(selId))).json();
-      const ch=document.getElementById('chat');
-      if(ch){ ch.innerHTML=bolhas(c.linhas); ch.scrollTop=9e9; }
-    }
+    await atualizaConversa();
     b.innerHTML = d.erro ? '<span class="err">erro</span>'
                 : d.novas ? '✅ '+d.novas+' nova(s)' : '✅ em dia';
   }catch(e){ b.innerHTML='<span class="err">falhou</span>'; }
@@ -2076,11 +2090,7 @@ async function atualizaPorEvento(){
     atualizacaoEvento=null;
     await Promise.all([carrega(),filtros(),buscaNotificacoes()]);
     if(!selId||!document.getElementById('chat')) return;
-    const cid=selId;
-    try{
-      const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
-      if(r.ok&&selId===cid){ const d=await r.json(); desenhaChat(d.linhas); atualizaResponsavel(d.responsavel); }
-    }catch(e){}
+    try{await atualizaConversa();}catch(e){}
   },40);
 }
 function conectaEventos(){
@@ -2094,12 +2104,9 @@ setInterval(()=>{ if(!eventosTelaAtivos){ carrega(); filtros(); buscaNotificacoe
 let chatAtualizando=false;
 setInterval(async()=>{
   if(eventosTelaAtivos||chatAtualizando||!selId||!document.getElementById('chat')||document.hidden) return;
-  const cid=selId; chatAtualizando=true;
+  const ctx=contextoChat(); chatAtualizando=true;
   try{
-    const r=await fetch('/api/conversa?chatid='+encodeURIComponent(cid));
-    if(!r.ok) return;
-    const d=await r.json();
-    if(selId===cid){ desenhaChat(d.linhas); atualizaResponsavel(d.responsavel); }
+    await atualizaConversa(ctx);
   }catch(e){}finally{chatAtualizando=false;}
 },1500);
 setInterval(async()=>{ const s=await (await fetch('/api/sync')).json();
@@ -2117,6 +2124,7 @@ class H(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", tipo)
         self.send_header("Content-Length", str(len(b)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(b)
 
@@ -2258,6 +2266,8 @@ class H(BaseHTTPRequestHandler):
             bruto = self.rfile.read(n).decode("utf-8") if n else ""
             d = json.loads(bruto) if bruto.strip() else {}   # /api/atualizar vai sem corpo
             if self.path in ("/api/enviar", "/api/catalogo", "/api/catalogo/video", "/api/audio", "/api/gravado", "/api/combo"):
+                if self.headers.get('X-Chat-UI-Version') != '20260916.2':
+                    return self._send(409, json.dumps({"ok":False,"erro":"Atualize esta página antes de enviar: uma correção de destinatário está disponível."}, ensure_ascii=False))
                 try:
                     d["fone"] = valida_destinatario(d.get("chatid"), d.get("fone"))
                 except ValueError as e:
