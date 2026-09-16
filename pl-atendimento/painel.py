@@ -805,7 +805,22 @@ def registra_inicio(chatid, responsavel):
         c.close()
 
 
+def valida_destinatario(chatid, fone):
+    """O telefone deve pertencer à conversa; nunca confiar na posição na fila."""
+    if not isinstance(chatid, str) or not chatid:
+        raise ValueError("Conversa não identificada. Atualize o painel antes de enviar.")
+    c = sqlite3.connect(DB, timeout=30)
+    try:
+        lead = c.execute("SELECT fone FROM leads WHERE chatid=?", (chatid,)).fetchone()
+    finally:
+        c.close()
+    if not lead or not lead[0] or not isinstance(fone, str) or fone != lead[0]:
+        raise ValueError("O destinatário não corresponde à conversa aberta. Envio bloqueado; atualize o painel.")
+    return lead[0]
+
+
 def envia_texto(chatid, fone, texto, responsavel):
+    fone = valida_destinatario(chatid, fone)
     resposta = uz("/send/text", {"number": fone, "text": texto})
     registra_inicio(chatid, responsavel)
     return resposta
@@ -1256,6 +1271,13 @@ header>.filtro-responsavel select{width:135px;flex:0 0 auto}
   </div>
 </dialog>
 <script>
+let conversaAberta=null, aberturaSeq=0;
+function destinatarioAberto(){
+  const campo=document.getElementById('txt');
+  if(!conversaAberta || conversaAberta.chatid!==selId || campo?.dataset.chatid!==selId)
+    throw new Error('Aguarde a conversa carregar antes de enviar.');
+  return conversaAberta;
+}
 let pend=[], sel=null, selId=null, prontos={audios:[],textos:[],combos:[],status:[]},
     enviados=[], filtro='', filtroResponsavel='', busca='', buscaTimer=null, buscaSeq=0,
     selecionados=new Set(), disparoRodando=false;
@@ -1371,9 +1393,9 @@ async function carrega(){
   pend.forEach((p,i)=>{
     const d=document.createElement('div');
     d.className='item'+(p.chatid===selId?' sel':'');
-    d.onclick=()=>abrir(i);
+    d.onclick=()=>abrirLead(p);
     d.tabIndex=0; d.setAttribute('aria-label','Abrir conversa com '+(p.nome||p.fone));
-    d.onkeydown=e=>{if(e.target===d&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrir(i);}};
+    d.onkeydown=e=>{if(e.target===d&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrirLead(p);}};
     d.innerHTML=`<input class="item-check" type="checkbox" aria-label="Selecionar ${esc(p.nome||p.fone)}"
       ${selecionados.has(p.chatid)?'checked':''} onclick="event.stopPropagation()"
       onchange="marca('${esc(p.chatid)}',this.checked)"><span class="avatar">${icone('user')}</span><div class="item-body">
@@ -1616,14 +1638,22 @@ function primeiroNome(nome){
 }
 
 async function abrir(i){
+  if(!pend[i])return;
+  return abrirLead(pend[i]);
+}
+async function abrirLead(lead){
+  const p={...lead}, abertura=++aberturaSeq;
+  conversaAberta=null;
   descarta();
   editandoMensagem=null;
-  sel=i; selId=pend[i].chatid; enviados=[]; ultimasLinhas=[];
-  document.querySelectorAll('.item').forEach((e,j)=>e.classList.toggle('sel',j===i));
-  const p=pend[i], P=document.getElementById('painel');
+  sel=pend.findIndex(x=>x.chatid===p.chatid); selId=p.chatid; enviados=[]; ultimasLinhas=[];
+  document.querySelectorAll('.item').forEach((e,j)=>e.classList.toggle('sel',j===sel));
+  const P=document.getElementById('painel');
   P.innerHTML='<div class="vazio"><span class="spin"></span> abrindo…</div>';
   const d=await (await fetch('/api/conversa?chatid='+encodeURIComponent(p.chatid))).json();
-  if(selId!==p.chatid) return;
+  if(selId!==p.chatid || abertura!==aberturaSeq) return;
+  if(d.fone!==p.fone){P.textContent='Os dados da conversa mudaram. Abra o lead novamente.';return;}
+  conversaAberta=Object.freeze({...p,fone:d.fone,nome:d.nome});
   ultimasLinhas=d.linhas;
   P.innerHTML=`
     <div class="conversa-conteudo">
@@ -1652,7 +1682,7 @@ async function abrir(i){
       <button class="btn sec" onclick="poeTexto('reaquecer')">${icone('refresh')} Reaquecer</button>
     </div>
     <label class="editor-label" for="txt">${icone('chat')} Sua mensagem</label>
-    <textarea id="txt" placeholder="Digite sua mensagem…"></textarea>
+    <textarea id="txt" data-chatid="${esc(p.chatid)}" placeholder="Digite sua mensagem…"></textarea>
     <div class="catalogo-rascunho" id="catalogoRascunho" hidden>
       <label for="catalogoTexto2">Segunda mensagem</label>
       <textarea id="catalogoTexto2"></textarea>
@@ -1824,21 +1854,21 @@ setInterval(()=>{
 },30000);
 
 async function ocultar(oc){
-  const p=pend[sel], st=document.getElementById('st');
+  const p=destinatarioAberto(), st=document.getElementById('st');
   if(oc && !confirm('Remover "'+(p.nome||p.fone)+'" da fila?\n\n'
      +'Ela some do painel mesmo que mande mensagem nova. '
      +'Dá pra restaurar depois no filtro "Removidos".')) return;
   await fetch('/api/ocultar',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({chatid:p.chatid,oculto:oc})});
   st.innerHTML='<span class="ok">'+(oc?'removida da fila':'restaurada')+'</span>';
-  selId=null; sel=null;
+  selId=null; sel=null; conversaAberta=null; aberturaSeq++;
   await carrega(); await filtros();
   document.getElementById('painel').innerHTML=
     '<div class="vazio">'+(oc?'Conversa removida.':'Restaurada.')+' Escolha a próxima.</div>';
 }
 async function mudaStatus(s,b){
   await fetch('/api/status',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({chatid:pend[sel].chatid,status:s})});
+    body:JSON.stringify({chatid:destinatarioAberto().chatid,status:s})});
   document.querySelectorAll('.sbtn').forEach(x=>x.classList.toggle('on',x===b));
   document.getElementById('st').innerHTML='<span class="ok">status: '+esc(s)+'</span>';
   carrega();
@@ -1853,7 +1883,7 @@ async function enviar(){
   }
   const textos=modo==='catalogo' ? [texto,segundo]
     : modo==='abordagem' ? texto.split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean) : [texto];
-  const conversa=selId, fone=pend[sel].fone;
+  const destinatario=destinatarioAberto(), conversa=destinatario.chatid, fone=destinatario.fone;
   campo.value=''; delete campo.dataset.modo;
   const rascunho=document.getElementById('catalogoRascunho');
   if(rascunho) rascunho.hidden=true;
@@ -1875,7 +1905,7 @@ async function enviar(){
       const item={chatid:conversa,tipo:'video',texto:'🎬 Vídeo do Provou Catálogo',estado:'enviando',t:Date.now()};
       pendentes.push(item); desenhaChat(ultimasLinhas);
       const d=await (await fetch('/api/catalogo/video',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({fone})})).json();
+        body:JSON.stringify({chatid:conversa,fone})})).json();
       if(!d.eid){item.estado='erro';item.erro=d.erro||'falhou';desenhaChat(ultimasLinhas);erro=item.erro;}
       else{
         const r=await segue(d.eid,item);
@@ -1894,13 +1924,14 @@ async function enviar(){
       enviadas+' mensagem'+(enviadas===1?'':'s')+' enviada'+(enviadas===1?'':'s')+' ✓')+'</span>';
 }
 async function mandaAudio(id,botao){
+  const destinatario=destinatarioAberto();
   const st=document.getElementById('st'), a=prontos.audios.find(x=>x.id===id);
   botao.disabled=true;
-  const item={chatid:selId,tipo:'audio',texto:'🎧 '+a.rotulo+' ('+a.seg+'s)',
+  const item={chatid:destinatario.chatid,tipo:'audio',texto:'🎧 '+a.rotulo+' ('+a.seg+'s)',
               estado:'enviando',t:Date.now()};
   pendentes.push(item); desenhaChat(ultimasLinhas);
   const d=await (await fetch('/api/audio',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({fone:pend[sel].fone,id})})).json();
+    body:JSON.stringify({chatid:destinatario.chatid,fone:destinatario.fone,id})})).json();
   botao.disabled=false;
   if(!d.eid){ item.estado='erro'; item.erro=d.erro||'falhou'; desenhaChat(ultimasLinhas); return; }
   botao.classList.add('enviado'); enviados.push(a.rotulo);
@@ -1910,10 +1941,10 @@ async function mandaAudio(id,botao){
     : '<span class="ok">enviado: '+esc(enviados.join(' → '))+'</span>';
 }
 async function mandaCombo(id,botao){
-  const p=pend[sel], st=document.getElementById('st'), c=prontos.combos.find(x=>x.id===id);
+  const p=destinatarioAberto(), st=document.getElementById('st'), c=prontos.combos.find(x=>x.id===id);
   botao.disabled=true; st.innerHTML='<span class="spin"></span> enviando '+c.audios.length+' áudios…';
   const d=await (await fetch('/api/combo',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({fone:p.fone,id})})).json();
+    body:JSON.stringify({chatid:p.chatid,fone:p.fone,id})})).json();
   if(!d.ok){ st.innerHTML='<span class="err">'+esc(d.erro)+'</span>'; botao.disabled=false; return; }
   for(let i=0;i<40;i++){
     await new Promise(r=>setTimeout(r,700));
@@ -1944,14 +1975,14 @@ function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   document.getElementById('catalogoRascunho').hidden=true; c.focus();
   const b=document.getElementById('ok'); if(b)b.innerHTML=icone('send')+' Aprovar e enviar'; }
 function poeAbordagem(){
-  const nome=primeiroNome(pend[sel]?.nome), c=document.getElementById('txt');
+  const nome=primeiroNome(destinatarioAberto().nome), c=document.getElementById('txt');
   c.value='Oi'+(nome?' '+nome:'')+', aqui é '+prontos.vendedor+', da Provou Levou.\n\n'
     +'Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?';
   document.getElementById('catalogoRascunho').hidden=true;
   c.dataset.modo='abordagem'; c.focus();
   document.getElementById('ok').innerHTML=icone('send')+' Aprovar e enviar 2 mensagens';
 }
-function proxima(){ descarta(); selId=null; sel=null; carrega();
+function proxima(){ descarta(); selId=null; sel=null; conversaAberta=null; aberturaSeq++; carrega();
   document.getElementById('painel').innerHTML='<div class="vazio">Escolha a próxima.</div>'; }
 
 let rec=null,pedacos=[],t0=0,cron=null,blobGravado=null,audioUrl=null,gravadoEnviando=false;
@@ -1988,7 +2019,7 @@ function descarta(){ blobGravado=null;
 async function enviaGravado(teste){
   if(!blobGravado||gravadoEnviando) return;
   gravadoEnviando=true;
-  const chatid=selId, fone=pend[sel].fone, blob=blobGravado;
+  const destinatario=destinatarioAberto(), chatid=destinatario.chatid, fone=destinatario.fone, blob=blobGravado;
   const st=document.getElementById('st');
   const botoes=['envAudChat','micChat','descAudChat'].map(id=>document.getElementById(id)).filter(Boolean);
   botoes.forEach(b=>b.disabled=true);
@@ -1999,7 +2030,7 @@ async function enviaGravado(teste){
     fr.onload=()=>resolve(fr.result.split(',')[1]); fr.readAsDataURL(blob);});
   const seg=document.getElementById('tempoChat').textContent;
   const d=await (await fetch('/api/gravado',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({fone,b64,seg,teste})})).json();
+    body:JSON.stringify({chatid,fone,b64,seg,teste})})).json();
   if(selId!==chatid) return;
   if(d.ok){ st.innerHTML='<span class="ok">áudio enviado'+(teste?' pra você':'')+' ✓</span>';
     if(!teste){ enviados.push('áudio '+seg); descarta(); } }
@@ -2226,6 +2257,11 @@ class H(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or 0)
             bruto = self.rfile.read(n).decode("utf-8") if n else ""
             d = json.loads(bruto) if bruto.strip() else {}   # /api/atualizar vai sem corpo
+            if self.path in ("/api/enviar", "/api/catalogo", "/api/catalogo/video", "/api/audio", "/api/gravado", "/api/combo"):
+                try:
+                    d["fone"] = valida_destinatario(d.get("chatid"), d.get("fone"))
+                except ValueError as e:
+                    return self._send(409, json.dumps({"ok": False, "erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/metas/config":
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
