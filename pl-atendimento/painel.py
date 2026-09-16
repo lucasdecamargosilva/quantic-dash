@@ -15,6 +15,7 @@ Como funciona por dentro:
     PERDIDO nao gasta chamada de IA.
 """
 import base64
+import grupos_catalogos
 import hashlib
 from crm_bridge import CRM, ETAPAS
 from live_events import EventHub, LiveEvents
@@ -189,6 +190,7 @@ LIVE_EVENTS = LiveEvents(UZ, UZ_TOKEN, con, avisa_mensagem_nova)
 
 def cria_banco():
     c = con()
+    grupos_catalogos.initialize(c)
     c.executescript("""
     CREATE TABLE IF NOT EXISTS mensagens (
       messageid TEXT PRIMARY KEY, chatid TEXT, ts INTEGER, from_me INTEGER,
@@ -270,13 +272,20 @@ def _req(url, body=None, headers=None, timeout=90, raw=False):
 def uz(path, body):
     if not UZ_TOKEN:
         raise RuntimeError("Configure UAZAPI_TOKEN em .env.local.")
-    return _req(UZ + path, body, {"token": UZ_TOKEN})
+    try:
+        return _req(UZ + path, body, {"token": UZ_TOKEN})
+    except urllib.error.HTTPError as e:
+        if e.code == 503:
+            raise RuntimeError('WhatsApp indisponível. Verifique a conexão da instância Quantic 4714 na Uazapi antes de tentar novamente.') from None
+        raise
 
 
 def altera_mensagem(chatid, messageid, acao, texto=None):
     """Altera no WhatsApp primeiro; só então reflete a operação no histórico local."""
     if not isinstance(chatid, str) or not isinstance(messageid, str) or not chatid or not messageid:
         raise ValueError("Conversa ou mensagem inválida.")
+    if chatid.endswith('@g.us'):
+        raise ValueError('Este grupo está disponível para acompanhamento.')
     if acao not in ("editar", "excluir"):
         raise ValueError("Ação inválida.")
     c = con()
@@ -507,6 +516,16 @@ def loop_sync():
         time.sleep(30 if LIVE_EVENTS.status["connected"] else INTERVALO_SYNC)
 
 
+def loop_grupos():
+    while True:
+        try:
+            if grupos_catalogos.sync(con(), uz):
+                UI_EVENTS.publish()
+        except Exception:
+            pass
+        time.sleep(30)
+
+
 # ─────────────────────────── transcricao ───────────────────────────
 def transcreve(url):
     c = con()
@@ -549,7 +568,7 @@ def normaliza_busca(valor):
     return " ".join("".join(c for c in valor if not unicodedata.combining(c)).casefold().split())
 
 
-def fila(status=None, busca=None, responsavel=None, chatid=None):
+def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
     c = con()
     busca = str(busca or "").strip()
     if chatid:
@@ -593,6 +612,21 @@ def fila(status=None, busca=None, responsavel=None, chatid=None):
                     "ha": humano(dt),
                     "ultima": (u["texto"] if u and u["texto"]
                                else rotulo(u["tipo"], u["segundos"]) if u else "")})
+    if status == 'TESTE GRÁTIS' or busca or (chatid and chatid.endswith('@g.us')):
+        for g in grupos_catalogos.visible(c, usuario):
+            if chatid and chatid != g['chatid']:
+                continue
+            if responsavel and responsavel != g['dono']:
+                continue
+            if busca and normaliza_busca(busca) not in normaliza_busca(g['nome']):
+                continue
+            m = c.execute('SELECT ts,texto FROM mensagens WHERE chatid=? AND excluida=0 ORDER BY ts DESC LIMIT 1', (g['chatid'],)).fetchone()
+            ts = m['ts'] if m else 0
+            out.append({'chatid':g['chatid'], 'fone':g['chatid'], 'nome':g['nome'],
+                        'status':'TESTE GRÁTIS', 'responsavel':g['dono'], 'venda':None,
+                        'ultimo_ts':ts, 'quando':quando(ts).strftime('%d/%m %H:%M') if ts else '',
+                        'ha':humano(quando(ts)) if ts else '', 'ultima':m['texto'] if m else 'Grupo do catálogo',
+                        'grupo':True, 'lead_chatid':g['lead_chatid']})
     return out
 
 
@@ -692,16 +726,22 @@ def contagem():
     return d
 
 
-def conversa(chatid):
+def conversa(chatid, usuario=None):
     c = con()
     lead = c.execute("SELECT * FROM leads WHERE chatid=?", (chatid,)).fetchone()
+    grupo = None
+    if chatid.endswith('@g.us'):
+        grupo = next((g for g in grupos_catalogos.visible(c, usuario) if g['chatid']==chatid), None)
+        if not grupo:
+            raise ValueError('Grupo não disponível para este acesso.')
+        lead = {'nome':grupo['nome'], 'fone':chatid, 'status':'TESTE GRÁTIS', 'responsavel':grupo['dono'], 'oculto':0}
     ms = c.execute("SELECT * FROM mensagens WHERE chatid=? AND excluida=0 ORDER BY ts", (chatid,)).fetchall()
     encerrado = bool(lead and lead["status"] in STATUS_ENCERRADO)
     ja = {r["url"] for r in c.execute("SELECT url FROM transcricoes")}
     # lead encerrado nao gasta IA
     faltam = [m["file_url"] for m in ms
               if m["tipo"] == "AudioMessage" and m["file_url"] and m["file_url"] not in ja]
-    if faltam and not encerrado:
+    if faltam and not encerrado and not grupo:
         with ThreadPoolExecutor(max_workers=6) as pool:
             list(pool.map(transcreve, faltam))
     tr = {r["url"]: r["texto"] for r in c.execute("SELECT url,texto FROM transcricoes")}
@@ -715,7 +755,10 @@ def conversa(chatid):
                        "hora": quando(m["ts"]).strftime("%d/%m %H:%M"),
                        "texto": t, "audio": aud, "tipo": m["tipo"], "editada": bool(m["editada"]),
                        "midia": bool(m["file_url"] and m["tipo"] in TIPOS_MIDIA)})
-    return {"chatid": chatid, "linhas": linhas, "status": lead["status"] if lead else "SEM ETAPA",
+    return {"chatid": chatid, "linhas": linhas, "grupo":bool(grupo),
+            "erro_sync":grupo['erro'] if grupo else '',
+            "lead_chatid":grupo['lead_chatid'] if grupo else None,
+            "status": lead["status"] if lead else "SEM ETAPA",
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
             "nome": lead["nome"] if lead else "", "fone": lead["fone"] if lead else "",
             "responsavel": lead["responsavel"] if lead else None,
@@ -1409,7 +1452,7 @@ async function carrega(){
     d.onclick=()=>abrirLead(p);
     d.tabIndex=0; d.setAttribute('aria-label','Abrir conversa com '+(p.nome||p.fone));
     d.onkeydown=e=>{if(e.target===d&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrirLead(p);}};
-    d.innerHTML=`<input class="item-check" type="checkbox" aria-label="Selecionar ${esc(p.nome||p.fone)}"
+    d.innerHTML=`<input class="item-check" type="checkbox" ${p.grupo?'disabled':''} aria-label="Selecionar ${esc(p.nome||p.fone)}"
       ${selecionados.has(p.chatid)?'checked':''} onclick="event.stopPropagation()"
       onchange="marca('${esc(p.chatid)}',this.checked)"><span class="avatar">${icone('user')}</span><div class="item-body">
       <div class="top"><span class="nome">${esc(p.nome||p.fone)}</span>
@@ -1417,7 +1460,7 @@ async function carrega(){
       <span class="responsavel-tag" data-responsavel="${esc(p.responsavel||'')}">${tagResponsavel(p.responsavel)}</span>
       <div class="msg">${esc(p.ultima)}</div>
       <div style="margin-top:6px;display:flex;gap:5px">
-        <span class="pill ${cls(p.status)}">${esc(p.status)}</span>
+        ${p.grupo?'<span class="pill">Grupo do catálogo</span>':''}<span class="pill ${cls(p.status)}">${esc(p.status)}</span>
         <span class="pill">${esc(p.quando)}</span></div></div>`;
     L.appendChild(d);
   });
@@ -1440,9 +1483,9 @@ function limpaBusca(recarregar=true){
 }
 
 function marca(chatid,on){ if(on) selecionados.add(chatid); else selecionados.delete(chatid); atualizaBulk(); }
-function marcaTodas(on){ pend.forEach(p=>on?selecionados.add(p.chatid):selecionados.delete(p.chatid)); carrega(); }
+function marcaTodas(on){ pend.filter(p=>!p.grupo).forEach(p=>on?selecionados.add(p.chatid):selecionados.delete(p.chatid)); carrega(); }
 function atualizaBulk(){
-  const n=selecionados.size, vis=pend.length, marcados=pend.filter(p=>selecionados.has(p.chatid)).length;
+  const n=selecionados.size, vis=pend.filter(p=>!p.grupo).length, marcados=pend.filter(p=>!p.grupo&&selecionados.has(p.chatid)).length;
   const cb=document.getElementById('selTodos');
   cb.checked=vis>0&&marcados===vis; cb.indeterminate=marcados>0&&marcados<vis;
   document.getElementById('bulkCount').textContent=n?n+' selecionada'+(n===1?'':'s'):'Selecionar todas';
@@ -1638,7 +1681,7 @@ function conteudoBolha(l){
 function bolhas(linhas){
   return linhas.map(l=>{
     const enviada=l.de==='loja', texto=['Conversation','ExtendedTextMessage','TextMessage'].includes(l.tipo);
-    const acoes=enviada?`${texto?'<button class="msg-acao" type="button" data-msg-action="editar" title="Editar mensagem">Editar</button>':''}<button class="msg-acao excluir" type="button" data-msg-action="excluir" title="Excluir para todos">Excluir</button>`:'';
+    const acoes=enviada&&!conversaAberta?.grupo?`${texto?'<button class="msg-acao" type="button" data-msg-action="editar" title="Editar mensagem">Editar</button>':''}<button class="msg-acao excluir" type="button" data-msg-action="excluir" title="Excluir para todos">Excluir</button>`:'';
     return `<div class="bolha ${enviada?'loja':'lead'}" data-id="${esc(l.id)}">${conteudoBolha(l)}<div class="meta">${esc(l.hora)}${l.editada?' · editada':''}${l.audio?' · <span class="aud">áudio transcrito</span>':''}${acoes}</div></div>`;
   }).join('');
 }
@@ -1667,6 +1710,16 @@ async function abrirLead(lead){
   if(d.chatid!==p.chatid||d.fone!==p.fone){P.textContent='Os dados da conversa mudaram. Abra o lead novamente.';return;}
   conversaAberta=Object.freeze({...p,fone:d.fone,nome:d.nome});
   ultimasLinhas=d.linhas;
+  if(d.grupo){
+    P.innerHTML=`<div class="conversa-conteudo"><div class="cliente-topo"><span class="avatar">${icone('chat')}</span>
+      <div class="cliente-info"><strong class="cliente-nome">${esc(d.nome)}</strong>
+      <span class="responsavel-tag">${tagResponsavel(d.responsavel)}</span><div class="tag">Grupo do catálogo · Teste grátis</div></div></div>
+      <div class="chat" id="chat">${bolhas(d.linhas)}</div>
+      <div class="tag" style="padding:12px">Acompanhamento do grupo · ${esc(d.erro_sync||'Atualização automática das mensagens')}
+      <a href="?chatid=${encodeURIComponent(d.lead_chatid)}">Abrir conversa da loja</a></div></div>`;
+    document.getElementById('chat').scrollTop=9e9;
+    return;
+  }
   P.innerHTML=`
     <div class="conversa-conteudo">
     <div class="cliente-topo">
@@ -2169,6 +2222,9 @@ class H(BaseHTTPRequestHandler):
                     return self._send_media(video.read(), "video/mp4")
             if p.path == "/api/midia":
                 try:
+                    m = con().execute('SELECT chatid FROM mensagens WHERE messageid=?', ((q.get('id') or [''])[0],)).fetchone()
+                    if m and m['chatid'].endswith('@g.us') and not any(g['chatid']==m['chatid'] for g in grupos_catalogos.visible(con(), self.headers.get('X-Prospeccao-User'))):
+                        return self._send(403, '{}')
                     corpo, mime = carrega_midia((q.get("id") or [""])[0])
                     return self._send_media(corpo, mime)
                 except ValueError as e:
@@ -2223,13 +2279,13 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps(fila((q.get("status") or [None])[0],
                                                        (q.get("busca") or [None])[0],
                                                        (q.get("responsavel") or [None])[0],
-                                                       (q.get("chatid") or [None])[0]),
+                                                       (q.get("chatid") or [None])[0], self.headers.get('X-Prospeccao-User')),
                                                   ensure_ascii=False))
             if p.path == "/api/recebidas":
                 return self._send(200, json.dumps(
                     recebidas_recentes((q.get("limite") or [50])[0]), ensure_ascii=False))
             if p.path == "/api/conversa":
-                return self._send(200, json.dumps(conversa(q["chatid"][0]), ensure_ascii=False))
+                return self._send(200, json.dumps(conversa(q["chatid"][0], self.headers.get('X-Prospeccao-User')), ensure_ascii=False))
             if p.path == "/api/sugestao":
                 d = conversa(q["chatid"][0])
                 return self._send(200, json.dumps(
@@ -2418,6 +2474,7 @@ if __name__ == "__main__":
         print("AVISO: sem GEMINI_KEY — sem transcrição e sem sugestão de IA.\n")
     threading.Thread(target=LIVE_EVENTS.loop, daemon=True).start()
     threading.Thread(target=loop_sync, daemon=True).start()
+    threading.Thread(target=loop_grupos, daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)
     print("Ctrl+C para parar.\n")
