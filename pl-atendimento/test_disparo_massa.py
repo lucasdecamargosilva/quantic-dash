@@ -91,8 +91,8 @@ class DisparoMassaTest(unittest.TestCase):
         self.assertEqual(2, estado["enviados"])
         self.assertEqual(["/send/text"] * 4, [item[0] for item in chamadas])
         self.assertEqual(
-            ["Oi Loja, aqui é a Dione, da Provou Levou.", painel.ABORDAGEM_SEGUNDA,
-             "Oi Maria, aqui é a Dione, da Provou Levou.", painel.ABORDAGEM_SEGUNDA],
+            ["Oii Loja! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?", painel.ABORDAGEM_SEGUNDA,
+             "Oii Maria! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?", painel.ABORDAGEM_SEGUNDA],
             [item[1]["text"] for item in chamadas],
         )
         self.assertEqual(
@@ -115,7 +115,7 @@ class DisparoMassaTest(unittest.TestCase):
             eid = painel.inicia_disparo_massa(["5511000000001@s.whatsapp.net"], "", "abordagem", "o Lucas")
             estado = self.wait(eid)
 
-        self.assertEqual("Oi, aqui é o Lucas, da Provou Levou.", chamadas[0])
+        self.assertEqual("Oii! Boa tarde! 🌻\nAqui é o Lucas da Provou Levou. 💜 Tudo bem?", chamadas[0])
         self.assertEqual("erro", estado["estado"])
         self.assertEqual(1, estado["falhas"])
         self.assertEqual(1, estado["resultados"][0]["mensagens_enviadas"])

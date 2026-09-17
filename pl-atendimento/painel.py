@@ -795,7 +795,7 @@ def sugere(linhas, nome):
 COMBO_STATUS = {}
 ENVIOS = {}          # eid -> {"estado": enviando|ok|erro, "erro": ""}
 MAX_DISPARO_MASSA = 100
-ABORDAGEM_SEGUNDA = "Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?"
+ABORDAGEM_SEGUNDA = "Você entrou em contato com a gente para saber mais sobre nosso catálogo virtual, certo?\nMe conta: hoje suas vendas acontecem na loja física, online, pelo WhatsApp ou pelo Instagram?"
 RESPONSAVEIS = ("Lucas", "Dione")
 
 
@@ -903,7 +903,7 @@ def metas_conversas(since, until):
 def mensagens_abordagem(nome, vendedor):
     limpo = (nome or "").strip()
     primeiro = "" if not limpo or re.match(r"^\+?\d", limpo) else re.sub(r"[,:;]+$", "", limpo.split()[0])
-    return ["Oi%s, aqui é %s, da Provou Levou." % ((" " + primeiro) if primeiro else "", vendedor),
+    return ["Oii%s! Boa tarde! 🌻\nAqui é %s da Provou Levou. 💜 Tudo bem?" % ((" " + primeiro) if primeiro else "", vendedor),
             ABORDAGEM_SEGUNDA]
 
 
@@ -1513,8 +1513,8 @@ function selecionaTextoMassa(){
     ? 'Prévia — o nome de cada cliente será preenchido automaticamente'
     : 'Revise antes de disparar';
   campo.value=abordagem
-    ? 'Oi [nome do cliente], aqui é '+prontos.vendedor+', da Provou Levou.\n\n'
-      +'Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?'
+    ? 'Oii [nome do cliente]! Boa tarde! 🌻\nAqui é '+prontos.vendedor+' da Provou Levou. 💜 Tudo bem?\n\n'
+      +'Você entrou em contato com a gente para saber mais sobre nosso catálogo virtual, certo?\nMe conta: hoje suas vendas acontecem na loja física, online, pelo WhatsApp ou pelo Instagram?'
     : (pronto?.texto||'');
   const n=selecionados.size;
   document.getElementById('massaResumo').textContent=n+' conversa'+(n===1?'':'s')+' selecionada'+(n===1?'':'s')+
@@ -2041,8 +2041,8 @@ function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   const b=document.getElementById('ok'); if(b)b.innerHTML=icone('send')+' Aprovar e enviar'; }
 function poeAbordagem(){
   const nome=primeiroNome(destinatarioAberto().nome), c=document.getElementById('txt');
-  c.value='Oi'+(nome?' '+nome:'')+', aqui é '+prontos.vendedor+', da Provou Levou.\n\n'
-    +'Antes de iniciarmos, você vende em loja online, física, WhatsApp, Instagram?';
+  c.value='Oii'+(nome?' '+nome:'')+'! Boa tarde! 🌻\nAqui é '+prontos.vendedor+' da Provou Levou. 💜 Tudo bem?\n\n'
+    +'Você entrou em contato com a gente para saber mais sobre nosso catálogo virtual, certo?\nMe conta: hoje suas vendas acontecem na loja física, online, pelo WhatsApp ou pelo Instagram?';
   document.getElementById('catalogoRascunho').hidden=true;
   c.dataset.modo='abordagem'; c.focus();
   document.getElementById('ok').innerHTML=icone('send')+' Aprovar e enviar 2 mensagens';
