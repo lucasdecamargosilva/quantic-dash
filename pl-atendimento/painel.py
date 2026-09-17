@@ -11,8 +11,7 @@ Como funciona por dentro:
     O histórico fica em painel.db (SQLite), entao a conversa NAO se perde quando
     a Uazapi expira as mensagens — ela guarda so ~2 meses.
   - A tela le do banco: abre instantaneo e nao depende da rede a cada clique.
-  - Transcricao de audio so acontece pra lead ativo: quem esta CONVERTIDO ou
-    PERDIDO nao gasta chamada de IA.
+  - Áudios são reproduzidos diretamente, sem transcrição automática na conversa.
 """
 import base64
 import grupos_catalogos
@@ -367,14 +366,17 @@ def manda_video_catalogo(fone):
     })
 
 
+DIR_CACHE_MIDIAS = os.path.join(os.path.dirname(os.path.abspath(DB)), "cache-midias")
+
+
 def carrega_midia(messageid):
     """Baixa, decodifica e guarda localmente uma mídia recebida do WhatsApp."""
     r = con().execute("SELECT tipo,file_url FROM mensagens WHERE messageid=?", (messageid,)).fetchone()
     if not r or r["tipo"] not in TIPOS_MIDIA or not r["file_url"]:
         raise ValueError("Mídia não encontrada.")
     chave = hashlib.sha256(messageid.encode("utf-8")).hexdigest()
-    arquivo = os.path.join(DIR_MIDIAS, chave + ".bin")
-    meta = os.path.join(DIR_MIDIAS, chave + ".json")
+    arquivo = os.path.join(DIR_CACHE_MIDIAS, chave + ".bin")
+    meta = os.path.join(DIR_CACHE_MIDIAS, chave + ".json")
     if os.path.exists(arquivo) and os.path.exists(meta):
         with open(meta, encoding="utf-8") as f:
             mime = json.load(f).get("mimetype") or MIME_PADRAO[r["tipo"]]
@@ -397,7 +399,7 @@ def carrega_midia(messageid):
     if len(corpo) > 50 * 1024 * 1024:
         raise RuntimeError("A mídia ultrapassa o limite de 50 MB do painel.")
     mime = (d.get("mimetype") or MIME_PADRAO[r["tipo"]]).split(";", 1)[0]
-    os.makedirs(DIR_MIDIAS, exist_ok=True)
+    os.makedirs(DIR_CACHE_MIDIAS, exist_ok=True)
     temporario = arquivo + "." + uuid.uuid4().hex + ".tmp"
     with open(temporario, "wb") as f:
         f.write(corpo)
@@ -737,20 +739,12 @@ def conversa(chatid, usuario=None):
         lead = {'nome':grupo['nome'], 'fone':chatid, 'status':'TESTE GRÁTIS', 'responsavel':grupo['dono'], 'oculto':0}
     ms = c.execute("SELECT * FROM mensagens WHERE chatid=? AND excluida=0 ORDER BY ts", (chatid,)).fetchall()
     encerrado = bool(lead and lead["status"] in STATUS_ENCERRADO)
-    ja = {r["url"] for r in c.execute("SELECT url FROM transcricoes")}
-    # lead encerrado nao gasta IA
-    faltam = [m["file_url"] for m in ms
-              if m["tipo"] == "AudioMessage" and m["file_url"] and m["file_url"] not in ja]
-    if faltam and not encerrado and not grupo:
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            list(pool.map(transcreve, faltam))
-    tr = {r["url"]: r["texto"] for r in c.execute("SELECT url,texto FROM transcricoes")}
     linhas = []
     for m in ms:
         t = m["texto"] or rotulo(m["tipo"], m["segundos"])
         aud = False
-        if m["tipo"] == "AudioMessage" and tr.get(m["file_url"]):
-            t, aud = tr[m["file_url"]], True
+        if m["tipo"] == "AudioMessage":
+            t = rotulo(m["tipo"], m["segundos"])
         linhas.append({"id": m["messageid"], "de": "loja" if m["from_me"] else "lead",
                        "hora": quando(m["ts"]).strftime("%d/%m %H:%M"),
                        "texto": t, "audio": aud, "tipo": m["tipo"], "editada": bool(m["editada"]),
@@ -1607,7 +1601,21 @@ function desenhaChat(linhas){
   if(editandoMensagem) { ultimasLinhas=linhas; return; }
   const perto=ch.scrollHeight-ch.scrollTop-ch.clientHeight<80;
   const novo=bolhas(linhas)+bolhasPend(linhas);
-  if(novo!==ch.innerHTML){ ch.innerHTML=novo; if(perto) ch.scrollTop=9e9; }
+  if(novo!==ch.innerHTML){
+    // Keep unchanged message nodes in place so live updates do not reset audio.
+    const template=document.createElement('template'); template.innerHTML=novo;
+    const existentes=new Map([...ch.children].filter(n=>n.dataset.id).map(n=>[n.dataset.id,n]));
+    const manter=new Set(); let anterior=null;
+    for(const candidato of [...template.content.children]){
+      const existente=existentes.get(candidato.dataset.id);
+      const node=existente&&existente.outerHTML===candidato.outerHTML?existente:candidato;
+      const proximo=anterior?anterior.nextElementSibling:ch.firstElementChild;
+      if(node!==proximo) ch.insertBefore(node,proximo);
+      manter.add(node); anterior=node;
+    }
+    for(const node of [...ch.children]) if(!manter.has(node)) node.remove();
+    if(perto) ch.scrollTop=9e9;
+  }
   ultimasLinhas=linhas;
 }
 let ultimasLinhas=[];
@@ -1672,7 +1680,7 @@ function conteudoBolha(l){
   if(!l.midia) return esc(l.texto);
   const url='/api/midia?id='+encodeURIComponent(l.id), rotulo=/^\[[^\]]+\]$/.test(l.texto||'');
   const legenda=!rotulo&&l.texto ? `<div class="midia-legenda">${esc(l.texto)}</div>` : '';
-  if(l.tipo==='AudioMessage') return `<audio class="midia-audio" controls preload="metadata" src="${url}"></audio>${legenda}`;
+  if(l.tipo==='AudioMessage') return `<audio class="midia-audio" controls preload="metadata" src="${url}"></audio>`;
   if(l.tipo==='ImageMessage'||l.tipo==='StickerMessage')
     return `<a href="${url}" target="_blank" title="Abrir imagem"><img class="midia-imagem" loading="lazy" src="${url}" alt="Imagem enviada"></a>${legenda}`;
   if(l.tipo==='VideoMessage') return `<video class="midia-video" controls preload="metadata" src="${url}"></video>${legenda}`;
@@ -1682,7 +1690,7 @@ function bolhas(linhas){
   return linhas.map(l=>{
     const enviada=l.de==='loja', texto=['Conversation','ExtendedTextMessage','TextMessage'].includes(l.tipo);
     const acoes=enviada&&!conversaAberta?.grupo?`${texto?'<button class="msg-acao" type="button" data-msg-action="editar" title="Editar mensagem">Editar</button>':''}<button class="msg-acao excluir" type="button" data-msg-action="excluir" title="Excluir para todos">Excluir</button>`:'';
-    return `<div class="bolha ${enviada?'loja':'lead'}" data-id="${esc(l.id)}">${conteudoBolha(l)}<div class="meta">${esc(l.hora)}${l.editada?' · editada':''}${l.audio?' · <span class="aud">áudio transcrito</span>':''}${acoes}</div></div>`;
+    return `<div class="bolha ${enviada?'loja':'lead'}" data-id="${esc(l.id)}">${conteudoBolha(l)}<div class="meta">${esc(l.hora)}${l.editada?' · editada':''}${acoes}</div></div>`;
   }).join('');
 }
 

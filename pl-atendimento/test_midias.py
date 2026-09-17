@@ -12,10 +12,10 @@ class MidiasTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.old_db = painel.DB
-        self.old_dir_midias = painel.DIR_MIDIAS
+        self.old_dir_midias = painel.DIR_CACHE_MIDIAS
         self.old_local = painel._local
         painel.DB = os.path.join(self.tmp.name, "painel.db")
-        painel.DIR_MIDIAS = os.path.join(self.tmp.name, "midias")
+        painel.DIR_CACHE_MIDIAS = os.path.join(self.tmp.name, "midias")
         painel._local = threading.local()
         painel.cria_banco()
         c = painel.con()
@@ -38,12 +38,12 @@ class MidiasTest(unittest.TestCase):
         if hasattr(painel._local, "c"):
             painel._local.c.close()
         painel.DB = self.old_db
-        painel.DIR_MIDIAS = self.old_dir_midias
+        painel.DIR_CACHE_MIDIAS = self.old_dir_midias
         painel._local = self.old_local
         self.tmp.cleanup()
 
     def test_conversa_expoe_midias_sem_vazar_url_do_whatsapp(self):
-        with patch.object(painel, "transcreve", return_value=""):
+        with patch.object(painel, "transcreve", side_effect=AssertionError("No automatic transcription")):
             linhas = painel.conversa("loja")["linhas"]
 
         self.assertEqual(["audio-1", "imagem-1"], [x["id"] for x in linhas])
