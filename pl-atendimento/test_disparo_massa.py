@@ -115,7 +115,7 @@ class DisparoMassaTest(unittest.TestCase):
             eid = painel.inicia_disparo_massa(["5511000000001@s.whatsapp.net"], "", "abordagem", "o Lucas")
             estado = self.wait(eid)
 
-        self.assertEqual("Oii! Boa tarde! 🌻\nAqui é o Lucas da Provou Levou. 💜 Tudo bem?", chamadas[0])
+        self.assertEqual("Oii! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?", chamadas[0])
         self.assertEqual("erro", estado["estado"])
         self.assertEqual(1, estado["falhas"])
         self.assertEqual(1, estado["resultados"][0]["mensagens_enviadas"])

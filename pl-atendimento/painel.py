@@ -903,7 +903,7 @@ def metas_conversas(since, until):
 def mensagens_abordagem(nome, vendedor):
     limpo = (nome or "").strip()
     primeiro = "" if not limpo or re.match(r"^\+?\d", limpo) else re.sub(r"[,:;]+$", "", limpo.split()[0])
-    return ["Oii%s! Boa tarde! 🌻\nAqui é %s da Provou Levou. 💜 Tudo bem?" % ((" " + primeiro) if primeiro else "", vendedor),
+    return ["Oii%s! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?" % ((" " + primeiro) if primeiro else ""),
             ABORDAGEM_SEGUNDA]
 
 
@@ -1513,7 +1513,7 @@ function selecionaTextoMassa(){
     ? 'Prévia — o nome de cada cliente será preenchido automaticamente'
     : 'Revise antes de disparar';
   campo.value=abordagem
-    ? 'Oii [nome do cliente]! Boa tarde! 🌻\nAqui é '+prontos.vendedor+' da Provou Levou. 💜 Tudo bem?\n\n'
+    ? 'Oii [nome do cliente]! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?\n\n'
       +'Você entrou em contato com a gente para saber mais sobre nosso catálogo virtual, certo?\nMe conta: hoje suas vendas acontecem na loja física, online, pelo WhatsApp ou pelo Instagram?'
     : (pronto?.texto||'');
   const n=selecionados.size;
@@ -2041,7 +2041,7 @@ function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   const b=document.getElementById('ok'); if(b)b.innerHTML=icone('send')+' Aprovar e enviar'; }
 function poeAbordagem(){
   const nome=primeiroNome(destinatarioAberto().nome), c=document.getElementById('txt');
-  c.value='Oii'+(nome?' '+nome:'')+'! Boa tarde! 🌻\nAqui é '+prontos.vendedor+' da Provou Levou. 💜 Tudo bem?\n\n'
+  c.value='Oii'+(nome?' '+nome:'')+'! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?\n\n'
     +'Você entrou em contato com a gente para saber mais sobre nosso catálogo virtual, certo?\nMe conta: hoje suas vendas acontecem na loja física, online, pelo WhatsApp ou pelo Instagram?';
   document.getElementById('catalogoRascunho').hidden=true;
   c.dataset.modo='abordagem'; c.focus();
