@@ -208,6 +208,59 @@ def exclui_texto(mid):
     return carrega_textos()
 
 
+# Mensagens "especiais" (Abordagem e Provou Catalogo): sao sequencias de 2 mensagens
+# com botao proprio no chat. A Dione tambem edita o texto delas na tela de Mensagens
+# Personalizadas; o nome do cliente entra pelo marcador {nome} e o video do catalogo
+# segue automatico. Fonte: tabela mensagens_especiais (fallback = defaults do codigo).
+ESPECIAIS_META = [
+    ("abordagem_1", "Abordagem — mensagem 1 (use {nome} para o nome do cliente)"),
+    ("abordagem_2", "Abordagem — mensagem 2"),
+    ("catalogo_1", "Provou Catálogo — mensagem 1"),
+    ("catalogo_2", "Provou Catálogo — mensagem 2"),
+]
+
+
+def _especiais_padrao():
+    return {
+        "abordagem_1": "Oii {nome}! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?",
+        "abordagem_2": ABORDAGEM_SEGUNDA,
+        "catalogo_1": CATALOGO_MENSAGENS[0],
+        "catalogo_2": CATALOGO_MENSAGENS[1],
+    }
+
+
+def carrega_especiais():
+    """Textos das especiais: default do codigo sobrescrito pelo que a Dione salvou."""
+    base = _especiais_padrao()
+    for r in con().execute("SELECT chave, texto FROM mensagens_especiais"):
+        if r["chave"] in base:
+            base[r["chave"]] = r["texto"]
+    return base
+
+
+def salva_especial(chave, texto):
+    """Edita uma mensagem especial. Devolve o conjunto atualizado."""
+    if chave not in dict(ESPECIAIS_META):
+        raise ValueError("Mensagem inválida.")
+    texto = str(texto or "").strip()
+    if not texto:
+        raise ValueError("Escreva o texto da mensagem.")
+    if len(texto) > 4096:
+        raise ValueError("A mensagem pode ter no máximo 4.096 caracteres.")
+    c = con()
+    c.execute("INSERT INTO mensagens_especiais(chave, texto) VALUES(?,?) "
+              "ON CONFLICT(chave) DO UPDATE SET texto=excluded.texto", (chave, texto))
+    c.commit()
+    return carrega_especiais()
+
+
+def aplica_nome(template, primeiro):
+    """Troca {nome} pelo primeiro nome; sem nome, remove o marcador (e o espaco antes)."""
+    if primeiro:
+        return template.replace("{nome}", primeiro)
+    return template.replace(" {nome}", "").replace("{nome}", "")
+
+
 # ─────────────────────────── banco ───────────────────────────
 DB = os.environ.get("PL_DB_PATH") or os.path.join(AQUI, "painel.db")
 _local = threading.local()
@@ -262,6 +315,7 @@ def cria_banco():
     CREATE INDEX IF NOT EXISTS ix_conversa_atribuida_ts ON conversas_atribuidas(ts, responsavel);
     CREATE TABLE IF NOT EXISTS mensagens_prontas (
       id TEXT PRIMARY KEY, rotulo TEXT NOT NULL, texto TEXT NOT NULL, ordem INTEGER DEFAULT 0);
+    CREATE TABLE IF NOT EXISTS mensagens_especiais (chave TEXT PRIMARY KEY, texto TEXT NOT NULL);
     """)
     c.execute("CREATE TABLE IF NOT EXISTS metricas_migracoes (nome TEXT PRIMARY KEY)")
     if not c.execute("SELECT 1 FROM metricas_migracoes WHERE nome='primeiro_envio_v1'").fetchone():
@@ -408,7 +462,8 @@ def fonte_video_catalogo():
 
 
 def manda_catalogo(fone):
-    for texto in CATALOGO_MENSAGENS:
+    esp = carrega_especiais()
+    for texto in (esp["catalogo_1"], esp["catalogo_2"]):
         uz("/send/text", {"number": fone, "text": texto})
     return manda_video_catalogo(fone)
 
@@ -955,8 +1010,8 @@ def metas_conversas(since, until):
 def mensagens_abordagem(nome, vendedor):
     limpo = (nome or "").strip()
     primeiro = "" if not limpo or re.match(r"^\+?\d", limpo) else re.sub(r"[,:;]+$", "", limpo.split()[0])
-    return ["Oii%s! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?" % ((" " + primeiro) if primeiro else ""),
-            ABORDAGEM_SEGUNDA]
+    esp = carrega_especiais()
+    return [aplica_nome(esp["abordagem_1"], primeiro), esp["abordagem_2"]]
 
 
 def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas", responsavel="Lucas"):
@@ -2103,10 +2158,13 @@ function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   c.value=t.texto; delete c.dataset.modo;
   document.getElementById('catalogoRascunho').hidden=true; c.focus();
   const b=document.getElementById('ok'); if(b)b.innerHTML=icone('send')+' Aprovar e enviar'; }
+function aplicaNome(t,nome){ return nome ? t.replace('{nome}',nome) : t.replace(' {nome}','').replace('{nome}',''); }
 function poeAbordagem(){
   const nome=primeiroNome(destinatarioAberto().nome), c=document.getElementById('txt');
-  c.value='Oii'+(nome?' '+nome:'')+'! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?\n\n'
-    +'Você entrou em contato com a gente para saber mais sobre nosso catálogo virtual, certo?\nMe conta: hoje suas vendas acontecem na loja física, online, pelo WhatsApp ou pelo Instagram?';
+  const ab=prontos.abordagem||[];
+  const m1=(ab[0]!=null)?aplicaNome(ab[0],nome):('Oii'+(nome?' '+nome:'')+'! Boa tarde! 🌻\nAqui é a Dione da Provou Levou. 💜 Tudo bem?');
+  const m2=(ab[1]!=null)?ab[1]:'Você entrou em contato com a gente para saber mais sobre nosso catálogo virtual, certo?\nMe conta: hoje suas vendas acontecem na loja física, online, pelo WhatsApp ou pelo Instagram?';
+  c.value=m1+'\n\n'+m2;
   document.getElementById('catalogoRascunho').hidden=true;
   c.dataset.modo='abordagem'; c.focus();
   document.getElementById('ok').innerHTML=icone('send')+' Aprovar e enviar 2 mensagens';
@@ -2252,7 +2310,7 @@ font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
 .novo{background:var(--roxo);color:#fff;border:0;border-radius:10px;padding:10px 16px;
 font:inherit;font-weight:600;cursor:pointer}
 .novo:hover{background:var(--roxo2)}
-#lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+#lista,#especiais{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
 gap:14px;margin-top:14px;align-items:start}
 .card{background:var(--card);border:1px solid var(--linha);border-radius:14px;
 padding:14px 16px;box-shadow:0 1px 2px rgba(16,16,20,.04)}
@@ -2272,8 +2330,12 @@ border:1px solid var(--linha);border-radius:9px;padding:9px 11px;font:inherit}
 <p>Essas mensagens viram botões no chat e já aparecem no disparo em massa. Edite, crie ou apague à vontade.</p>
 <button class="novo" onclick="nova()">+ Nova mensagem</button></div>
 <div id="lista"><div class="vazio">Carregando…</div></div>
+<div class="topo" style="margin-top:34px"><h2 style="font-size:17px;margin:0 0 4px">Mensagens especiais</h2>
+<p>Os botões <b>Abordagem</b> e <b>Provou Catálogo</b> do chat. Cada um envia 2 mensagens (o Provou Catálogo ainda manda o vídeo no fim, automático). Na Abordagem, escreva <b>{nome}</b> onde quiser que entre o nome do cliente.</p></div>
+<div id="especiais"><div class="vazio">Carregando…</div></div>
 </div><script>
 const lista=document.getElementById('lista');
+const especiais=document.getElementById('especiais');
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function card(m){
   const id=m.id||'';
@@ -2291,9 +2353,32 @@ function render(itens){
   lista.innerHTML = itens.length ? itens.map(card).join('')
     : '<div class="vazio">Nenhuma mensagem ainda. Clique em “+ Nova mensagem”.</div>';
 }
+function cardEspecial(m){
+  return `<div class="card" data-chave="${esc(m.chave)}">
+    <label>${esc(m.rotulo)}</label>
+    <textarea class="c-texto" placeholder="Digite a mensagem…">${esc(m.texto)}</textarea>
+    <div class="foot"><span class="msg"></span>
+      <button class="btn salvar" onclick="salvarEspecial(this)">Salvar</button></div>
+  </div>`;
+}
+function renderEspeciais(list){ especiais.innerHTML=list.map(cardEspecial).join(''); }
 async function carrega(){
-  try{const d=await (await fetch('/api/mensagens',{cache:'no-store'})).json();render(d.itens||[])}
-  catch(e){lista.innerHTML='<div class="vazio">Não consegui carregar. Recarregue a página.</div>'}
+  try{
+    const d=await (await fetch('/api/mensagens',{cache:'no-store'})).json();
+    render(d.itens||[]); renderEspeciais(d.especiais||[]);
+  }catch(e){lista.innerHTML='<div class="vazio">Não consegui carregar. Recarregue a página.</div>'}
+}
+async function salvarEspecial(bt){
+  const c=bt.closest('.card');
+  const body={chave:c.dataset.chave,texto:c.querySelector('.c-texto').value};
+  bt.disabled=true;
+  try{
+    const r=await fetch('/api/mensagens/especial',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok||d.erro){aviso(bt,d.erro||'Não deu pra salvar.',false);bt.disabled=false;return}
+    aviso(bt,'Salvo!',true);bt.disabled=false;
+  }catch(e){aviso(bt,'Erro de conexão.',false);bt.disabled=false}
 }
 function nova(){
   const wrap=document.createElement('div');wrap.innerHTML=card({id:'',rotulo:'',texto:''});
@@ -2381,7 +2466,11 @@ class H(BaseHTTPRequestHandler):
                     return self._send(200, PAGINA_MENSAGENS, "text/html; charset=utf-8")
                 return self._send(200, PAGINA, "text/html; charset=utf-8")
             if p.path == "/api/mensagens":
-                return self._send(200, json.dumps({"itens": carrega_textos()}, ensure_ascii=False))
+                esp = carrega_especiais()
+                return self._send(200, json.dumps(
+                    {"itens": carrega_textos(),
+                     "especiais": [{"chave": k, "rotulo": r, "texto": esp[k]} for k, r in ESPECIAIS_META]},
+                    ensure_ascii=False))
             if p.path == "/api/catalogo/video":
                 with open(CATALOGO_VIDEO, "rb") as video:
                     return self._send_media(video.read(), "video/mp4")
@@ -2422,9 +2511,12 @@ class H(BaseHTTPRequestHandler):
             if p.path == "/api/crm":
                 return self._send(200, json.dumps(dados_pipeline(q["chatid"][0]), ensure_ascii=False))
             if p.path == "/api/prontos":
+                esp = carrega_especiais()
                 return self._send(200, json.dumps(
                     {"audios": AUDIOS, "textos": carrega_textos(), "combos": COMBOS,
-                     "catalogo": CATALOGO_MENSAGENS, "status": STATUS,
+                     "catalogo": [esp["catalogo_1"], esp["catalogo_2"]],
+                     "abordagem": [esp["abordagem_1"], esp["abordagem_2"]],
+                     "status": STATUS,
                      "planos": PLANOS, "responsaveis": RESPONSAVEIS,
                      "vendedor": nome_vendedor(self.headers.get("X-Prospeccao-User"))},
                     ensure_ascii=False))
@@ -2637,6 +2729,13 @@ class H(BaseHTTPRequestHandler):
                 try:
                     return self._send(200, json.dumps(
                         {"ok": True, "itens": exclui_texto(d.get("id"))}, ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+            if self.path == "/api/mensagens/especial":
+                try:
+                    return self._send(200, json.dumps(
+                        {"ok": True, "especiais": salva_especial(d.get("chave"), d.get("texto"))},
+                        ensure_ascii=False))
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             self._send(404, "{}")
