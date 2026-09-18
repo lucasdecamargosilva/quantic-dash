@@ -327,6 +327,21 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
               </div>
             </div>
 
+            {/* Observações do chat de prospecção (interações tipo "nota") */}
+            {interacoes.some((i) => i.tipo === "nota") && (
+              <div className="mb-6">
+                <label className="text-[10px] font-semibold text-dim uppercase tracking-widest mb-2 block">Observações do chat</label>
+                <div className="space-y-2">
+                  {interacoes.filter((i) => i.tipo === "nota").map((int) => (
+                    <div key={int.id} className="bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5">
+                      <p className="text-xs text-sub leading-relaxed whitespace-pre-wrap">{int.conteudo}</p>
+                      <span className="text-[10px] text-dim mt-1 block">{new Date(int.created_at).toLocaleString("pt-BR")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <DataTesteGratis leadId={lead.id} value={lead.teste_gratis_em} onSaved={() => { fetchLead(); onUpdated?.(); }} />
             {/* Notas */}
             <div className="mb-6">
