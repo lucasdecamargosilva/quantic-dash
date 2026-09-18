@@ -2243,30 +2243,32 @@ PAGINA_MENSAGENS = r"""<!doctype html><html lang="pt-BR"><head><meta charset="ut
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mensagens Personalizadas</title>
 <style>
-:root{--bg:#0f1115;--card:#181b22;--linha:#262a33;--txt:#e7e9ee;--fraco:#9aa0ac;
---campo:#0f1218;--roxo:#7c5cff;--roxo2:#6a4bf0;--verde:#22c55e;--vermelho:#ef4444}
+:root{--bg:#f4f4f7;--card:#ffffff;--linha:#e2e2e9;--txt:#1a1a20;--fraco:#6b6875;
+--campo:#ffffff;--roxo:#6d28d9;--roxo2:#7c3aed;--verde:#15803d;--vermelho:#b91c1c}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--txt);
 font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
-.wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 20px 60px}
 .topo h1{font-size:20px;margin:0 0 4px}
 .topo p{color:var(--fraco);font-size:13px;margin:0 0 18px}
 .novo{background:var(--roxo);color:#fff;border:0;border-radius:10px;padding:10px 16px;
 font:inherit;font-weight:600;cursor:pointer}
 .novo:hover{background:var(--roxo2)}
+#lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+gap:14px;margin-top:14px;align-items:start}
 .card{background:var(--card);border:1px solid var(--linha);border-radius:14px;
-padding:14px 16px;margin-top:14px}
+padding:14px 16px;box-shadow:0 1px 2px rgba(16,16,20,.04)}
 .card label{display:block;font-size:12px;color:var(--fraco);margin:8px 0 5px}
 .card input,.card textarea{width:100%;background:var(--campo);color:var(--txt);
 border:1px solid var(--linha);border-radius:9px;padding:9px 11px;font:inherit}
-.card textarea{min-height:120px;resize:vertical}
+.card textarea{min-height:96px;resize:vertical}
 .foot{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:12px}
 .btn{border:0;border-radius:9px;padding:9px 15px;font:inherit;font-weight:600;cursor:pointer}
-.salvar{background:var(--verde);color:#04210f}
+.salvar{background:var(--verde);color:#fff}
 .excluir{background:transparent;color:var(--vermelho);border:1px solid var(--linha)}
 .msg{font-size:12.5px;margin-right:auto;min-height:18px}
 .msg.ok{color:var(--verde)}.msg.erro{color:var(--vermelho)}
-.vazio{color:var(--fraco);text-align:center;padding:30px 0}
+.vazio{grid-column:1/-1;color:var(--fraco);text-align:center;padding:30px 0}
 </style></head><body><div class="wrap">
 <div class="topo"><h1>Mensagens Personalizadas</h1>
 <p>Essas mensagens viram botões no chat e já aparecem no disparo em massa. Edite, crie ou apague à vontade.</p>
