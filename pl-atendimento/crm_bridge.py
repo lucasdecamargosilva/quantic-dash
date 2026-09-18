@@ -12,7 +12,7 @@ import urllib.request
 from datetime import datetime, timezone
 
 ETAPAS = dict([
-    ('meta', 'Meta'), ('respondeu', 'Respondeu'), ('interessado', 'Interessado'),
+    ('meta', 'Meta'), ('respondeu', 'Respondeu'), ('contatar', 'Contatar'), ('interessado', 'Interessado'),
     ('atendimento_ia', 'Atendimento com IA'), ('fotos_enviadas', 'Fotos Enviadas'),
     ('reuniao_agendada', 'Reunião Agendada'), ('testando', 'Testando'),
     ('teste_catalogo_7_dias', 'Teste Catálogo — 7 dias'),
@@ -118,7 +118,7 @@ class CRM:
     def reflect_local(self, chatid, lead):
         """Os filtros locais acompanham a etapa confirmada, inclusive encerramentos."""
         status = {'testando': 'TESTE GRÁTIS', 'teste_catalogo_7_dias': 'TESTE GRÁTIS', 'fechou': 'CONVERTIDO',
-                  'perdida': 'PERDIDO', 'descartado': 'PERDIDO', 'interessado': 'INTERESSADO', 'mensagem_1':'MENSAGEM 1', 'mensagem_2':'MENSAGEM 2', 'mensagem_3':'MENSAGEM 3', 'stand_by':'STAND-BY'}.get(lead['status'], 'SEM ETAPA')
+                  'perdida': 'PERDIDO', 'descartado': 'PERDIDO', 'interessado': 'INTERESSADO', 'mensagem_1':'MENSAGEM 1', 'mensagem_2':'MENSAGEM 2', 'mensagem_3':'MENSAGEM 3', 'stand_by':'STAND-BY', 'contatar':'CONTATAR'}.get(lead['status'], 'SEM ETAPA')
         c = self.connect()
         c.execute('UPDATE leads SET status=? WHERE chatid=?', (status, chatid))
         c.commit()
@@ -178,7 +178,7 @@ class CRM:
                 self.request('leads', {'on_conflict': 'instagram'}, 'POST', {
                     'instagram': handle, 'nome_loja': local['nome'] or local['fone'],
                     'telefone': local['fone'], 'status': {'CONVERTIDO': 'fechou', 'PERDIDO': 'perdida',
-                        'TESTE GRÁTIS': 'testando', 'INTERESSADO': 'interessado', 'MENSAGEM 1':'mensagem_1', 'MENSAGEM 2':'mensagem_2', 'MENSAGEM 3':'mensagem_3', 'STAND-BY':'stand_by'}.get(local['status'], 'meta' if ad else 'respondeu'),
+                        'TESTE GRÁTIS': 'testando', 'INTERESSADO': 'interessado', 'MENSAGEM 1':'mensagem_1', 'MENSAGEM 2':'mensagem_2', 'MENSAGEM 3':'mensagem_3', 'STAND-BY':'stand_by', 'CONTATAR':'contatar'}.get(local['status'], 'meta' if ad else 'respondeu'),
                     'fonte_oportunidade': 'Meta' if ad else 'WhatsApp',
                     'notas': 'Registrado pelo PL Atendimento. Instagram não informado.' +
                              ('\nMensagem de entrada: ' + ad if ad else ''),

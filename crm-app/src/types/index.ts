@@ -71,6 +71,7 @@ export type LeadStatus =
   | "email_a_enviar"
   | "email_enviado"
   | "respondeu"
+  | "contatar"
   | "atendimento_ia"
   | "lead_coletado"
   | "fotos_enviadas"
@@ -96,6 +97,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "email_a_enviar",
   "email_enviado",
   "respondeu",
+  "contatar",
   "atendimento_ia",
   "fotos_enviadas",
   "interessado",
@@ -125,6 +127,7 @@ export const PIPELINE_STATUSES: LeadStatus[] = [
   "email_a_enviar",
   "email_enviado",
   "respondeu",
+  "contatar",
   "fotos_enviadas",
   "interessado",
   "reuniao_agendada",
@@ -166,6 +169,7 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   email_a_enviar: "Email a Enviar",
   email_enviado: "Email Enviado",
   respondeu: "Respondeu",
+  contatar: "Contatar",
   atendimento_ia: "Atendimento com IA",
   lead_coletado: "Lead Coletado",
   fotos_enviadas: "Fotos Enviadas",
@@ -193,6 +197,7 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
   email_a_enviar: { bg: "bg-amber/10", text: "text-amber", dot: "bg-amber" },
   email_enviado: { bg: "bg-pink/10", text: "text-pink", dot: "bg-pink" },
   respondeu: { bg: "bg-amber/10", text: "text-amber", dot: "bg-amber" },
+  contatar: { bg: "bg-cyan/10", text: "text-cyan", dot: "bg-cyan" },
   atendimento_ia: { bg: "bg-violet/10", text: "text-violet-light", dot: "bg-violet" },
   lead_coletado: { bg: "bg-pink/10", text: "text-pink", dot: "bg-pink" },
   fotos_enviadas: { bg: "bg-cyan/10", text: "text-cyan-light", dot: "bg-cyan-light" },
@@ -220,6 +225,7 @@ export const STATUS_HEX: Record<LeadStatus, string> = {
   email_a_enviar: "#fb923c",
   email_enviado: "#d946ef",
   respondeu: "#f59e0b",
+  contatar: "#0ea5e9",
   atendimento_ia: "#a855f7",
   lead_coletado: "#ec4899",
   fotos_enviadas: "#3b82f6",

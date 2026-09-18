@@ -61,7 +61,7 @@ GEMINI_MODEL = "gemini-2.5-flash"
 JANELA_DIAS = 14
 INTERVALO_SYNC = 6                     # segundos entre uma varredura e outra
 
-STATUS = ["MENSAGEM 1", "MENSAGEM 2", "MENSAGEM 3", "STAND-BY", "INTERESSADO", "TESTE GRÁTIS", "CONVERTIDO", "PERDIDO"]
+STATUS = ["MENSAGEM 1", "MENSAGEM 2", "MENSAGEM 3", "STAND-BY", "CONTATAR", "INTERESSADO", "TESTE GRÁTIS", "CONVERTIDO", "PERDIDO"]
 STATUS_ENCERRADO = {"CONVERTIDO", "PERDIDO"}
 
 RUIDO = re.compile(
@@ -780,6 +780,7 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
 
 
 PIPELINE_REMOTE_STATUS = {"MENSAGEM 1":"mensagem_1", "MENSAGEM 2":"mensagem_2", "MENSAGEM 3":"mensagem_3", "STAND-BY":"stand_by",
+                          "CONTATAR":"contatar",
                           "INTERESSADO":"interessado", "TESTE GRÁTIS":"testando", "CONVERTIDO":"fechou", "PERDIDO":"perdida"}
 
 def dados_pipeline(chatid):
