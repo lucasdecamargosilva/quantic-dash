@@ -413,6 +413,11 @@ def altera_mensagem(chatid, messageid, acao, texto=None):
             raise ValueError("Mensagem muito longa.")
         if texto == (m["texto"] or ""):
             return
+        # Registra a edicao ANTES de chamar a Uazapi e ja commita. O eco da edicao
+        # chega pela conexao ao vivo (SSE) quase junto — as vezes ANTES — da resposta.
+        # Se registrassemos so no fim, o eco escaparia e a bolha duplicaria no painel.
+        registra_edicao(c, chatid, texto)
+        c.commit()
     resposta = uz("/message/edit" if acao == "editar" else "/message/delete",
                   {"id": messageid, **({"text": texto} if acao == "editar" else {})})
     if not isinstance(resposta, dict) or resposta.get("error") or resposta.get("erro") or resposta.get("success") is False:
@@ -421,9 +426,6 @@ def altera_mensagem(chatid, messageid, acao, texto=None):
     if acao == "editar":
         c.execute("UPDATE mensagens SET texto=?, editada=1 WHERE messageid=? AND chatid=?",
                   (texto, messageid, chatid))
-        # A Uazapi costuma reenviar a mensagem editada como um evento novo (id novo).
-        # Registramos a edicao pra reconhecer esse "eco" e nao criar uma bolha duplicada.
-        registra_edicao(c, chatid, texto)
     else:
         # Mantém o ID como lápide: uma sincronização atrasada não pode recriar a bolha.
         c.execute("UPDATE mensagens SET excluida=1, texto='', file_url=NULL WHERE messageid=? AND chatid=?",
