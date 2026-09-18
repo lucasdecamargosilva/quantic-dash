@@ -614,7 +614,10 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
                     "ha": humano(dt),
                     "ultima": (u["texto"] if u and u["texto"]
                                else rotulo(u["tipo"], u["segundos"]) if u else "")})
-    if status == 'TESTE GRÁTIS' or busca or (chatid and chatid.endswith('@g.us')):
+    # Os grupos de catálogo NÃO entram mais na coluna "Teste grátis": o lead da
+    # loja já está lá (ex.: Bellavi = o lead 51 9673-9517), então o cartão do
+    # grupo era duplicata. Seguem visíveis na busca e ao abrir o grupo direto.
+    if busca or (chatid and chatid.endswith('@g.us')):
         for g in grupos_catalogos.visible(c, usuario):
             if chatid and chatid != g['chatid']:
                 continue
