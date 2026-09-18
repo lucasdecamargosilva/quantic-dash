@@ -39,6 +39,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: "/mensagens-personalizadas",
+    label: "Mensagens Personalizadas",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 2.5h12v8H7l-3.5 3v-3H2z" />
+        <path d="m9 5 2 2-3.5 3.5H5.5V8.5z" />
+      </svg>
+    ),
+  },
+  {
     to: "/trafego-pago",
     label: "Tráfego pago",
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>,

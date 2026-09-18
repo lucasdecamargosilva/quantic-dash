@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Objecoes from "./pages/Objecoes";
 import Metas from "./pages/Metas";
 import Atendimento from "./pages/Atendimento";
+import MensagensPersonalizadas from "./pages/MensagensPersonalizadas";
 import TrafegoPago from "./pages/TrafegoPago";
 import TestesGratis from "./pages/TestesGratis";
 
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/trafego-pago" element={<TrafegoPago />} />
           <Route path="/metas" element={<Metas />} />
           <Route path="/atendimento" element={<Atendimento />} />
+          <Route path="/mensagens-personalizadas" element={<MensagensPersonalizadas />} />
           {/* Compat: rota antiga /dashboard ainda funciona */}
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>

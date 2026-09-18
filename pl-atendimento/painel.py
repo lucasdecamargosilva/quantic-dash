@@ -162,6 +162,52 @@ TEXTOS = [
 ]
 
 
+def carrega_textos():
+    """Mensagens prontas que a Dione edita na tela 'Mensagens Personalizadas'.
+    Alimentam os botoes do chat E o disparo em massa. Fonte: tabela
+    mensagens_prontas no painel.db (semeada com TEXTOS na 1a execucao)."""
+    c = con()
+    rows = c.execute(
+        "SELECT id, rotulo, texto FROM mensagens_prontas ORDER BY ordem, rowid").fetchall()
+    return [dict(r) for r in rows]
+
+
+def salva_texto(dados):
+    """Cria ou edita uma mensagem pronta. Devolve a lista atualizada."""
+    rotulo = str(dados.get("rotulo") or "").strip()
+    texto = str(dados.get("texto") or "").strip()
+    if not rotulo:
+        raise ValueError("Dê um nome pro botão da mensagem.")
+    if not texto:
+        raise ValueError("Escreva o texto da mensagem.")
+    if len(texto) > 4096:
+        raise ValueError("A mensagem pode ter no máximo 4.096 caracteres.")
+    c = con()
+    mid = str(dados.get("id") or "").strip()
+    if mid and c.execute("SELECT 1 FROM mensagens_prontas WHERE id=?", (mid,)).fetchone():
+        c.execute("UPDATE mensagens_prontas SET rotulo=?, texto=? WHERE id=?",
+                  (rotulo, texto, mid))
+    else:
+        mid = "m_" + uuid.uuid4().hex[:8]
+        ordem = (c.execute("SELECT COALESCE(MAX(ordem), -1) + 1 FROM mensagens_prontas")
+                 .fetchone()[0])
+        c.execute("INSERT INTO mensagens_prontas(id, rotulo, texto, ordem) VALUES(?,?,?,?)",
+                  (mid, rotulo, texto, ordem))
+    c.commit()
+    return carrega_textos()
+
+
+def exclui_texto(mid):
+    """Apaga uma mensagem pronta. Devolve a lista atualizada."""
+    mid = str(mid or "").strip()
+    if not mid:
+        raise ValueError("Mensagem inválida.")
+    c = con()
+    c.execute("DELETE FROM mensagens_prontas WHERE id=?", (mid,))
+    c.commit()
+    return carrega_textos()
+
+
 # ─────────────────────────── banco ───────────────────────────
 DB = os.environ.get("PL_DB_PATH") or os.path.join(AQUI, "painel.db")
 _local = threading.local()
@@ -214,6 +260,8 @@ def cria_banco():
       chatid TEXT NOT NULL, responsavel TEXT NOT NULL, ts INTEGER NOT NULL,
       PRIMARY KEY (chatid, responsavel));
     CREATE INDEX IF NOT EXISTS ix_conversa_atribuida_ts ON conversas_atribuidas(ts, responsavel);
+    CREATE TABLE IF NOT EXISTS mensagens_prontas (
+      id TEXT PRIMARY KEY, rotulo TEXT NOT NULL, texto TEXT NOT NULL, ordem INTEGER DEFAULT 0);
     """)
     c.execute("CREATE TABLE IF NOT EXISTS metricas_migracoes (nome TEXT PRIMARY KEY)")
     if not c.execute("SELECT 1 FROM metricas_migracoes WHERE nome='primeiro_envio_v1'").fetchone():
@@ -237,6 +285,13 @@ def cria_banco():
         c.execute("ALTER TABLE mensagens ADD COLUMN excluida INTEGER NOT NULL DEFAULT 0")
     if "editada" not in [r[1] for r in c.execute("PRAGMA table_info(mensagens)")]:
         c.execute("ALTER TABLE mensagens ADD COLUMN editada INTEGER NOT NULL DEFAULT 0")
+    # semeia as mensagens prontas com as que viviam fixas no codigo (so na 1a vez).
+    # Dali em diante a Dione edita pela tela "Mensagens Personalizadas" e a lista
+    # passa a vir do banco (ver carrega_textos()).
+    if not c.execute("SELECT 1 FROM mensagens_prontas LIMIT 1").fetchone():
+        c.executemany(
+            "INSERT INTO mensagens_prontas(id, rotulo, texto, ordem) VALUES(?,?,?,?)",
+            [(t["id"], t["rotulo"], t["texto"], i) for i, t in enumerate(TEXTOS)])
     c.commit()
 
 
@@ -2181,6 +2236,101 @@ setInterval(async()=>{ const s=await (await fetch('/api/sync')).json();
 </script></body></html>"""
 
 
+# Tela de edicao das mensagens prontas — servida em /?view=mensagens e embutida
+# no menu do CRM (item "Mensagens Personalizadas"). A Dione cria/edita/apaga; a
+# lista alimenta os botoes do chat e o disparo em massa (via /api/prontos).
+PAGINA_MENSAGENS = r"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mensagens Personalizadas</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--linha:#262a33;--txt:#e7e9ee;--fraco:#9aa0ac;
+--campo:#0f1218;--roxo:#7c5cff;--roxo2:#6a4bf0;--verde:#22c55e;--vermelho:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);
+font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px}
+.topo h1{font-size:20px;margin:0 0 4px}
+.topo p{color:var(--fraco);font-size:13px;margin:0 0 18px}
+.novo{background:var(--roxo);color:#fff;border:0;border-radius:10px;padding:10px 16px;
+font:inherit;font-weight:600;cursor:pointer}
+.novo:hover{background:var(--roxo2)}
+.card{background:var(--card);border:1px solid var(--linha);border-radius:14px;
+padding:14px 16px;margin-top:14px}
+.card label{display:block;font-size:12px;color:var(--fraco);margin:8px 0 5px}
+.card input,.card textarea{width:100%;background:var(--campo);color:var(--txt);
+border:1px solid var(--linha);border-radius:9px;padding:9px 11px;font:inherit}
+.card textarea{min-height:120px;resize:vertical}
+.foot{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:12px}
+.btn{border:0;border-radius:9px;padding:9px 15px;font:inherit;font-weight:600;cursor:pointer}
+.salvar{background:var(--verde);color:#04210f}
+.excluir{background:transparent;color:var(--vermelho);border:1px solid var(--linha)}
+.msg{font-size:12.5px;margin-right:auto;min-height:18px}
+.msg.ok{color:var(--verde)}.msg.erro{color:var(--vermelho)}
+.vazio{color:var(--fraco);text-align:center;padding:30px 0}
+</style></head><body><div class="wrap">
+<div class="topo"><h1>Mensagens Personalizadas</h1>
+<p>Essas mensagens viram botões no chat e já aparecem no disparo em massa. Edite, crie ou apague à vontade.</p>
+<button class="novo" onclick="nova()">+ Nova mensagem</button></div>
+<div id="lista"><div class="vazio">Carregando…</div></div>
+</div><script>
+const lista=document.getElementById('lista');
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function card(m){
+  const id=m.id||'';
+  return `<div class="card" data-id="${esc(id)}">
+    <label>Nome do botão</label>
+    <input class="c-rotulo" value="${esc(m.rotulo)}" placeholder="Ex.: Tabela de planos" maxlength="60">
+    <label>Mensagem</label>
+    <textarea class="c-texto" placeholder="Digite a mensagem…">${esc(m.texto)}</textarea>
+    <div class="foot"><span class="msg"></span>
+      ${id?'<button class="btn excluir" onclick="excluir(this)">Excluir</button>':''}
+      <button class="btn salvar" onclick="salvar(this)">Salvar</button></div>
+  </div>`;
+}
+function render(itens){
+  lista.innerHTML = itens.length ? itens.map(card).join('')
+    : '<div class="vazio">Nenhuma mensagem ainda. Clique em “+ Nova mensagem”.</div>';
+}
+async function carrega(){
+  try{const d=await (await fetch('/api/mensagens',{cache:'no-store'})).json();render(d.itens||[])}
+  catch(e){lista.innerHTML='<div class="vazio">Não consegui carregar. Recarregue a página.</div>'}
+}
+function nova(){
+  const wrap=document.createElement('div');wrap.innerHTML=card({id:'',rotulo:'',texto:''});
+  lista.insertBefore(wrap.firstElementChild,lista.firstElementChild);
+  const vazio=lista.querySelector('.vazio');if(vazio)vazio.remove();
+}
+function aviso(el,txt,ok){const m=el.closest('.card').querySelector('.msg');
+  m.textContent=txt;m.className='msg '+(ok?'ok':'erro')}
+async function salvar(bt){
+  const c=bt.closest('.card');
+  const body={id:c.dataset.id,rotulo:c.querySelector('.c-rotulo').value,
+    texto:c.querySelector('.c-texto').value};
+  bt.disabled=true;
+  try{
+    const r=await fetch('/api/mensagens/salvar',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok||d.erro){aviso(bt,d.erro||'Não deu pra salvar.',false);bt.disabled=false;return}
+    render(d.itens);
+  }catch(e){aviso(bt,'Erro de conexão.',false);bt.disabled=false}
+}
+async function excluir(bt){
+  const c=bt.closest('.card');
+  if(!confirm('Apagar esta mensagem?'))return;
+  bt.disabled=true;
+  try{
+    const r=await fetch('/api/mensagens/excluir',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.dataset.id})});
+    const d=await r.json();
+    if(!r.ok||d.erro){aviso(bt,d.erro||'Não deu pra apagar.',false);bt.disabled=false;return}
+    render(d.itens);
+  }catch(e){aviso(bt,'Erro de conexão.',false);bt.disabled=false}
+}
+carrega();
+</script></body></html>"""
+
+
 # ─────────────────────────── servidor ───────────────────────────
 class H(BaseHTTPRequestHandler):
     def _send(self, code, corpo, tipo="application/json; charset=utf-8"):
@@ -2227,7 +2377,11 @@ class H(BaseHTTPRequestHandler):
             p = urllib.parse.urlparse(self.path)
             q = urllib.parse.parse_qs(p.query)
             if p.path == "/":
+                if (q.get("view") or [""])[0] == "mensagens":
+                    return self._send(200, PAGINA_MENSAGENS, "text/html; charset=utf-8")
                 return self._send(200, PAGINA, "text/html; charset=utf-8")
+            if p.path == "/api/mensagens":
+                return self._send(200, json.dumps({"itens": carrega_textos()}, ensure_ascii=False))
             if p.path == "/api/catalogo/video":
                 with open(CATALOGO_VIDEO, "rb") as video:
                     return self._send_media(video.read(), "video/mp4")
@@ -2269,7 +2423,7 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps(dados_pipeline(q["chatid"][0]), ensure_ascii=False))
             if p.path == "/api/prontos":
                 return self._send(200, json.dumps(
-                    {"audios": AUDIOS, "textos": TEXTOS, "combos": COMBOS,
+                    {"audios": AUDIOS, "textos": carrega_textos(), "combos": COMBOS,
                      "catalogo": CATALOGO_MENSAGENS, "status": STATUS,
                      "planos": PLANOS, "responsaveis": RESPONSAVEIS,
                      "vendedor": nome_vendedor(self.headers.get("X-Prospeccao-User"))},
@@ -2473,6 +2627,18 @@ class H(BaseHTTPRequestHandler):
 
                 threading.Thread(target=roda, daemon=True).start()
                 return self._send(200, json.dumps({"ok": True}))
+            if self.path == "/api/mensagens/salvar":
+                try:
+                    return self._send(200, json.dumps(
+                        {"ok": True, "itens": salva_texto(d)}, ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+            if self.path == "/api/mensagens/excluir":
+                try:
+                    return self._send(200, json.dumps(
+                        {"ok": True, "itens": exclui_texto(d.get("id"))}, ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             self._send(404, "{}")
         except Exception as e:
             self._send(200, json.dumps({"ok": False, "erro": str(e)[:200]}, ensure_ascii=False))
