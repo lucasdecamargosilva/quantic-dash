@@ -1808,9 +1808,7 @@ async function abrirLead(lead){
         title="Prepara a abordagem inicial personalizada em duas mensagens">${icone('user')} Abordagem</button>
       <button class="btn sec" id="btCatalogo" onclick="poeCatalogo()"
         title="Prepara duas mensagens e um vídeo para aprovação">${icone('book')} Provou Catálogo</button>
-      <button class="btn sec" id="btPlanos" onclick="poeTexto('tabela')"
-        title="Prepara a mensagem com os valores dos sete planos para revisão">${icone('tag')} Planos</button>
-      <button class="btn sec" onclick="poeTexto('reaquecer')">${icone('refresh')} Reaquecer</button>
+      ${(prontos.textos||[]).map(t=>`<button class="btn sec" onclick="poeTexto('${esc(t.id)}')" title="Insere a mensagem para revisão antes de enviar">${icone('tag')} ${esc(t.rotulo)}</button>`).join('')}
     </div>
     <label class="editor-label" for="txt">${icone('chat')} Mensagem para ${esc(d.nome||d.fone)} · ${esc(d.fone)}</label>
     <textarea id="txt" data-chatid="${esc(p.chatid)}" placeholder="Digite sua mensagem…"></textarea>
