@@ -70,12 +70,26 @@ def ingest(connect, payload):
     if chat.get('wa_chatid') and chat['wa_chatid'] != cid:
         chat = {}
     name = chat.get('wa_name') or chat.get('name') or chat.get('wa_contactName') or (msg.get('senderName') if not me else '') or phone
+    texto_m = (msg.get('text') or '').strip()
     c = connect()
     with c:
+        # Eco de uma edicao feita no painel: a Uazapi reenvia a mensagem editada com
+        # id novo. Reconhecemos pelo texto registrado em edicoes_recentes e gravamos
+        # oculto (excluida=1), pra nao duplicar a bolha nem notificar de novo.
+        oculta = 0
+        if me and texto_m:
+            c.execute('DELETE FROM edicoes_recentes WHERE ts < ?', (int(time.time()) - 600,))
+            eco = c.execute('SELECT rowid FROM edicoes_recentes WHERE chatid=? AND texto=? '
+                            'ORDER BY ts DESC LIMIT 1', (cid, texto_m)).fetchone()
+            if eco:
+                c.execute('DELETE FROM edicoes_recentes WHERE rowid=?', (eco[0],))
+                oculta = 1
         inserted = c.execute('INSERT OR IGNORE INTO mensagens '
-            '(messageid,chatid,ts,from_me,tipo,texto,file_url,segundos) VALUES(?,?,?,?,?,?,?,?)',
-            (mid, cid, ts, int(me), msg.get('messageType'), (msg.get('text') or '').strip(),
-             msg.get('fileURL') or content.get('URL') or content.get('url'), content.get('seconds'))).rowcount
+            '(messageid,chatid,ts,from_me,tipo,texto,file_url,segundos,excluida) VALUES(?,?,?,?,?,?,?,?,?)',
+            (mid, cid, ts, int(me), msg.get('messageType'), texto_m,
+             msg.get('fileURL') or content.get('URL') or content.get('url'), content.get('seconds'), oculta)).rowcount
+        if oculta:
+            inserted = 0
         c.execute("INSERT INTO leads(chatid,fone,nome,status,ultimo_ts,ultimo_de,atualizado) "
             "VALUES(?,?,?,'SEM ETAPA',?,?,?) ON CONFLICT(chatid) DO UPDATE SET "
             "nome=excluded.nome,fone=excluded.fone,ultimo_ts=excluded.ultimo_ts,"

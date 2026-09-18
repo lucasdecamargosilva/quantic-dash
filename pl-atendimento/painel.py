@@ -316,6 +316,8 @@ def cria_banco():
     CREATE TABLE IF NOT EXISTS mensagens_prontas (
       id TEXT PRIMARY KEY, rotulo TEXT NOT NULL, texto TEXT NOT NULL, ordem INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS mensagens_especiais (chave TEXT PRIMARY KEY, texto TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS edicoes_recentes (chatid TEXT, texto TEXT, ts INTEGER);
+    CREATE INDEX IF NOT EXISTS ix_edicoes_recentes ON edicoes_recentes(chatid, ts);
     """)
     c.execute("CREATE TABLE IF NOT EXISTS metricas_migracoes (nome TEXT PRIMARY KEY)")
     if not c.execute("SELECT 1 FROM metricas_migracoes WHERE nome='primeiro_envio_v1'").fetchone():
@@ -419,12 +421,39 @@ def altera_mensagem(chatid, messageid, acao, texto=None):
     if acao == "editar":
         c.execute("UPDATE mensagens SET texto=?, editada=1 WHERE messageid=? AND chatid=?",
                   (texto, messageid, chatid))
+        # A Uazapi costuma reenviar a mensagem editada como um evento novo (id novo).
+        # Registramos a edicao pra reconhecer esse "eco" e nao criar uma bolha duplicada.
+        registra_edicao(c, chatid, texto)
     else:
         # Mantém o ID como lápide: uma sincronização atrasada não pode recriar a bolha.
         c.execute("UPDATE mensagens SET excluida=1, texto='', file_url=NULL WHERE messageid=? AND chatid=?",
                   (messageid, chatid))
     c.commit()
     UI_EVENTS.publish()
+
+
+JANELA_ECO_EDICAO = 600  # segundos: quanto tempo esperamos o "eco" da edicao chegar
+
+
+def registra_edicao(c, chatid, texto):
+    """Marca que acabamos de editar uma mensagem, pra reconhecer o eco que volta."""
+    c.execute("INSERT INTO edicoes_recentes(chatid, texto, ts) VALUES(?,?,?)",
+              (chatid, (texto or "").strip(), int(time.time())))
+
+
+def eco_de_edicao(c, chatid, texto):
+    """True se este texto (nosso, from_me) casa com uma edicao recente — ou seja, e o
+    eco reenviado pela Uazapi com id novo. Consome o registro pra so suprimir uma vez."""
+    texto = (texto or "").strip()
+    if not texto:
+        return False
+    c.execute("DELETE FROM edicoes_recentes WHERE ts < ?", (int(time.time()) - JANELA_ECO_EDICAO,))
+    row = c.execute("SELECT rowid FROM edicoes_recentes WHERE chatid=? AND texto=? "
+                    "ORDER BY ts DESC LIMIT 1", (chatid, texto)).fetchone()
+    if not row:
+        return False
+    c.execute("DELETE FROM edicoes_recentes WHERE rowid=?", (row[0],))
+    return True
 
 
 # A Uazapi APAGA os arquivos depois de poucos dias: a URL do audio volta 404 e o
@@ -590,14 +619,19 @@ def sincroniza():
                 if not mid:
                     continue
                 cc = m.get("content") or {}
+                de_nos = 1 if m.get("fromMe") else 0
+                texto_m = (m.get("text") or "").strip()
+                # eco de uma edicao nossa (id novo): grava oculto pra nao duplicar a bolha
+                oculta = 1 if (de_nos and eco_de_edicao(c, cid, texto_m)) else 0
                 cur = c.execute(
                     "INSERT OR IGNORE INTO mensagens"
-                    "(messageid,chatid,ts,from_me,tipo,texto,file_url,segundos)"
-                    " VALUES(?,?,?,?,?,?,?,?)",
-                    (mid, cid, int(m["messageTimestamp"]), 1 if m.get("fromMe") else 0,
-                     m.get("messageType"), (m.get("text") or "").strip(),
-                     m.get("fileURL"), cc.get("seconds")))
-                novas += cur.rowcount
+                    "(messageid,chatid,ts,from_me,tipo,texto,file_url,segundos,excluida)"
+                    " VALUES(?,?,?,?,?,?,?,?,?)",
+                    (mid, cid, int(m["messageTimestamp"]), de_nos,
+                     m.get("messageType"), texto_m,
+                     m.get("fileURL"), cc.get("seconds"), oculta))
+                if not oculta:
+                    novas += cur.rowcount
             if not ms:
                 continue
             ult = ms[-1]
@@ -1007,11 +1041,17 @@ def metas_conversas(since, until):
     return [dict(r) for r in rows]
 
 
-def mensagens_abordagem(nome, vendedor):
+def primeiro_nome(nome):
+    """Primeiro nome utilizavel do lead; vazio se for numero/telefone ou nome ausente."""
     limpo = (nome or "").strip()
-    primeiro = "" if not limpo or re.match(r"^\+?\d", limpo) else re.sub(r"[,:;]+$", "", limpo.split()[0])
+    if not limpo or re.match(r"^\+?\d", limpo):
+        return ""
+    return re.sub(r"[,:;]+$", "", limpo.split()[0])
+
+
+def mensagens_abordagem(nome, vendedor):
     esp = carrega_especiais()
-    return [aplica_nome(esp["abordagem_1"], primeiro), esp["abordagem_2"]]
+    return [aplica_nome(esp["abordagem_1"], primeiro_nome(nome)), esp["abordagem_2"]]
 
 
 def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas", responsavel="Lucas"):
@@ -1054,7 +1094,8 @@ def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas", responsave
                          "ok": False, "erro": "", "mensagens_enviadas": 0}
             try:
                 mensagens = (mensagens_abordagem(alvo["nome"], vendedor)
-                             if modo == "abordagem" else [texto])
+                             if modo == "abordagem"
+                             else [aplica_nome(texto, primeiro_nome(alvo["nome"]))])
                 for mensagem in mensagens:
                     envia_texto(alvo["chatid"], alvo["fone"], mensagem, responsavel)
                     resultado["mensagens_enviadas"] += 1
@@ -2155,7 +2196,7 @@ function poeCatalogo(){
 }
 function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   const c=document.getElementById('txt');
-  c.value=t.texto; delete c.dataset.modo;
+  c.value=aplicaNome(t.texto, primeiroNome((destinatarioAberto()||{}).nome)); delete c.dataset.modo;
   document.getElementById('catalogoRascunho').hidden=true; c.focus();
   const b=document.getElementById('ok'); if(b)b.innerHTML=icone('send')+' Aprovar e enviar'; }
 function aplicaNome(t,nome){ return nome ? t.replace('{nome}',nome) : t.replace(' {nome}','').replace('{nome}',''); }
