@@ -1014,6 +1014,44 @@ def envia_texto(chatid, fone, texto, responsavel):
     return resposta
 
 
+TIPO_ENVIO_MIDIA = {"ImageMessage": "image", "VideoMessage": "video",
+                    "AudioMessage": "audio", "DocumentMessage": "document",
+                    "StickerMessage": "image"}
+
+
+def encaminha_mensagem(origem_chatid, messageid, destino_chatid, responsavel="Lucas"):
+    """Encaminha uma mensagem (texto ou mídia) de uma conversa para outra."""
+    origem = str(origem_chatid or "").strip()
+    destino = str(destino_chatid or "").strip()
+    mid = str(messageid or "").strip()
+    if not origem or not destino or not mid:
+        raise ValueError("Conversa ou mensagem inválida.")
+    if origem == destino:
+        raise ValueError("Escolha uma conversa diferente pra encaminhar.")
+    c = con()
+    m = c.execute("SELECT tipo, texto, excluida FROM mensagens WHERE chatid=? AND messageid=?",
+                  (origem, mid)).fetchone()
+    if not m or m["excluida"]:
+        raise ValueError("Mensagem não encontrada.")
+    alvo = c.execute("SELECT fone FROM leads WHERE chatid=?", (destino,)).fetchone()
+    fone = re.sub(r"\D", "", (alvo["fone"] if alvo else "") or "")
+    if not fone:
+        raise ValueError("A conversa de destino não tem telefone válido.")
+    if m["tipo"] in TIPOS_MIDIA:
+        corpo, mime = carrega_midia(mid)
+        arquivo = "data:%s;base64,%s" % (mime or "application/octet-stream",
+                                         base64.b64encode(corpo).decode())
+        envio = {"number": fone, "type": TIPO_ENVIO_MIDIA.get(m["tipo"], "document"), "file": arquivo}
+        legenda = (m["texto"] or "").strip()
+        if legenda and not re.fullmatch(r"\[[^\]]+\]", legenda):
+            envio["text"] = legenda
+        return envia_midia_atendimento(lambda: uz("/send/media", envio), fone, responsavel)
+    texto = (m["texto"] or "").strip()
+    if not texto:
+        raise ValueError("Não há conteúdo pra encaminhar nessa mensagem.")
+    return envia_texto(destino, fone, texto, responsavel)
+
+
 def envia_midia_atendimento(acao, fone, responsavel, teste=False):
     resposta = acao()
     if not teste:
@@ -1465,6 +1503,16 @@ header>.filtro-responsavel select{width:135px;flex:0 0 auto}
     </div>
   </div>
 </dialog>
+<dialog class="massa" id="encaminharDialog">
+  <div class="massa-head"><div><h2>Encaminhar mensagem</h2><p>Escolha a conversa de destino</p></div>
+    <button class="btn sec" onclick="fechaEncaminhar()" aria-label="Fechar">✕</button></div>
+  <div class="massa-body">
+    <input id="encBusca" placeholder="Buscar conversa por nome ou telefone…" oninput="buscaEncaminhar(this.value.trim())"
+      style="width:100%;height:40px;border:1px solid var(--linha);border-radius:9px;background:var(--campo);color:var(--txt);padding:0 11px;font:inherit">
+    <div class="massa-resultados" id="encLista" style="max-height:320px;margin-top:10px"></div>
+    <div class="massa-progress" id="encStatus"></div>
+  </div>
+</dialog>
 <script>
 let conversaAberta=null, aberturaSeq=0;
 function destinatarioAberto(){
@@ -1817,7 +1865,44 @@ document.addEventListener('click',e=>{
     if(!texto){alert('Digite o novo texto da mensagem.');return;}
     acaoMensagem('editar',id,texto);
   }else if(acao==='excluir') acaoMensagem('excluir',id);
+  else if(acao==='encaminhar') abreEncaminhar(id);
 });
+let encaminhando=null;
+async function abreEncaminhar(id){
+  if(!selId){alert('Abra uma conversa primeiro.');return;}
+  encaminhando={id, origem:selId};
+  document.getElementById('encStatus').textContent='';
+  document.getElementById('encBusca').value='';
+  document.getElementById('encaminharDialog').showModal();
+  buscaEncaminhar('');
+}
+function fechaEncaminhar(){ try{document.getElementById('encaminharDialog').close();}catch(e){} encaminhando=null; }
+async function buscaEncaminhar(q){
+  const alvo=document.getElementById('encLista');
+  alvo.innerHTML='<div style="padding:10px;color:var(--fraco)">Carregando…</div>';
+  try{
+    const lista=await (await fetch('/api/fila'+(q?('?busca='+encodeURIComponent(q)):''))).json();
+    pintaEncaminhar(Array.isArray(lista)?lista:[]);
+  }catch(e){ alvo.innerHTML='<div style="padding:10px;color:var(--fraco)">Erro ao buscar.</div>'; }
+}
+function pintaEncaminhar(lista){
+  const alvo=document.getElementById('encLista');
+  lista=(lista||[]).filter(c=>c.chatid&&c.chatid!==encaminhando?.origem&&!String(c.chatid).endsWith('@g.us'));
+  if(!lista.length){alvo.innerHTML='<div style="padding:10px;color:var(--fraco)">Nenhuma conversa encontrada.</div>';return;}
+  alvo.innerHTML=lista.slice(0,60).map(c=>`<button type="button" class="btn sec" style="display:block;width:100%;text-align:left;margin:4px 0" onclick="encaminhaPara('${esc(c.chatid)}')">${esc(c.nome||c.fone||c.chatid)}${c.fone?` · <span style="color:var(--fraco)">${esc(c.fone)}</span>`:''}</button>`).join('');
+}
+async function encaminhaPara(destino){
+  if(!encaminhando)return;
+  const st=document.getElementById('encStatus'); st.textContent='Encaminhando…';
+  try{
+    const r=await fetch('/api/encaminhar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({origem:encaminhando.origem,id:encaminhando.id,destino})});
+    const d=await r.json();
+    if(!r.ok||d.erro){st.innerHTML='<span class="err">'+esc(d.erro||'Falha ao encaminhar.')+'</span>';return;}
+    st.innerHTML='<span class="ok">Encaminhada ✓</span>';
+    setTimeout(fechaEncaminhar,700);
+  }catch(e){st.innerHTML='<span class="err">Erro de conexão.</span>';}
+}
 // acompanha o envio em segundo plano e marca a bolha como enviada ou falhou
 async function segue(eid,item){
   for(let i=0;i<40;i++){
@@ -1842,10 +1927,13 @@ function conteudoBolha(l){
   return `<a class="midia-link" href="${url}" target="_blank">📎 Abrir documento</a>${legenda}`;
 }
 function bolhas(linhas){
+  const grupo=!!conversaAberta?.grupo;
   return linhas.map(l=>{
     const enviada=l.de==='loja', texto=['Conversation','ExtendedTextMessage','TextMessage'].includes(l.tipo);
-    const acoes=enviada&&!conversaAberta?.grupo?`${texto?'<button class="msg-acao" type="button" data-msg-action="editar" title="Editar mensagem">Editar</button>':''}<button class="msg-acao excluir" type="button" data-msg-action="excluir" title="Excluir para todos">Excluir</button>`:'';
-    return `<div class="bolha ${enviada?'loja':'lead'}" data-id="${esc(l.id)}">${conteudoBolha(l)}<div class="meta">${esc(l.hora)}${l.editada?' · editada':''}${acoes}</div></div>`;
+    const editar=enviada&&!grupo&&texto?'<button class="msg-acao" type="button" data-msg-action="editar" title="Editar mensagem">Editar</button>':'';
+    const encaminhar=grupo?'':'<button class="msg-acao" type="button" data-msg-action="encaminhar" title="Encaminhar para outra conversa">Encaminhar</button>';
+    const excluir=enviada&&!grupo?'<button class="msg-acao excluir" type="button" data-msg-action="excluir" title="Excluir para todos">Excluir</button>':'';
+    return `<div class="bolha ${enviada?'loja':'lead'}" data-id="${esc(l.id)}">${conteudoBolha(l)}<div class="meta">${esc(l.hora)}${l.editada?' · editada':''}${editar}${encaminhar}${excluir}</div></div>`;
   }).join('');
 }
 
@@ -2776,6 +2864,15 @@ class H(BaseHTTPRequestHandler):
                         ensure_ascii=False))
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+            if self.path == "/api/encaminhar":
+                try:
+                    encaminha_mensagem(d.get("origem"), d.get("id"), d.get("destino"),
+                                       nome_responsavel(self.headers.get("X-Prospeccao-User")))
+                    return self._send(200, json.dumps({"ok": True}))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except Exception as e:
+                    return self._send(502, json.dumps({"erro": str(e)[:200]}, ensure_ascii=False))
             self._send(404, "{}")
         except Exception as e:
             self._send(200, json.dumps({"ok": False, "erro": str(e)[:200]}, ensure_ascii=False))
