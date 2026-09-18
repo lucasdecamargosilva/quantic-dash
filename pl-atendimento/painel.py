@@ -2327,15 +2327,11 @@ border:1px solid var(--linha);border-radius:9px;padding:9px 11px;font:inherit}
 .vazio{grid-column:1/-1;color:var(--fraco);text-align:center;padding:30px 0}
 </style></head><body><div class="wrap">
 <div class="topo"><h1>Mensagens Personalizadas</h1>
-<p>Essas mensagens viram botões no chat e já aparecem no disparo em massa. Edite, crie ou apague à vontade.</p>
+<p>Essas mensagens viram botões no chat e no disparo em massa. Edite, crie ou apague à vontade. As de <b>Abordagem</b> e <b>Provou Catálogo</b> mandam 2 mensagens (o Catálogo ainda manda o vídeo no fim); na Abordagem, use <b>{nome}</b> onde entra o nome do cliente.</p>
 <button class="novo" onclick="nova()">+ Nova mensagem</button></div>
 <div id="lista"><div class="vazio">Carregando…</div></div>
-<div class="topo" style="margin-top:34px"><h2 style="font-size:17px;margin:0 0 4px">Mensagens especiais</h2>
-<p>Os botões <b>Abordagem</b> e <b>Provou Catálogo</b> do chat. Cada um envia 2 mensagens (o Provou Catálogo ainda manda o vídeo no fim, automático). Na Abordagem, escreva <b>{nome}</b> onde quiser que entre o nome do cliente.</p></div>
-<div id="especiais"><div class="vazio">Carregando…</div></div>
 </div><script>
 const lista=document.getElementById('lista');
-const especiais=document.getElementById('especiais');
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function card(m){
   const id=m.id||'';
@@ -2349,10 +2345,7 @@ function card(m){
       <button class="btn salvar" onclick="salvar(this)">Salvar</button></div>
   </div>`;
 }
-function render(itens){
-  lista.innerHTML = itens.length ? itens.map(card).join('')
-    : '<div class="vazio">Nenhuma mensagem ainda. Clique em “+ Nova mensagem”.</div>';
-}
+let ultimasEspeciais=[];
 function cardEspecial(m){
   return `<div class="card" data-chave="${esc(m.chave)}">
     <label>${esc(m.rotulo)}</label>
@@ -2361,11 +2354,13 @@ function cardEspecial(m){
       <button class="btn salvar" onclick="salvarEspecial(this)">Salvar</button></div>
   </div>`;
 }
-function renderEspeciais(list){ especiais.innerHTML=list.map(cardEspecial).join(''); }
+function pinta(itens){
+  lista.innerHTML=(itens||[]).map(card).join('')+ultimasEspeciais.map(cardEspecial).join('');
+}
 async function carrega(){
   try{
     const d=await (await fetch('/api/mensagens',{cache:'no-store'})).json();
-    render(d.itens||[]); renderEspeciais(d.especiais||[]);
+    ultimasEspeciais=d.especiais||[]; pinta(d.itens||[]);
   }catch(e){lista.innerHTML='<div class="vazio">Não consegui carregar. Recarregue a página.</div>'}
 }
 async function salvarEspecial(bt){
@@ -2377,6 +2372,7 @@ async function salvarEspecial(bt){
       headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     if(!r.ok||d.erro){aviso(bt,d.erro||'Não deu pra salvar.',false);bt.disabled=false;return}
+    if(d.especiais)ultimasEspeciais=d.especiais;
     aviso(bt,'Salvo!',true);bt.disabled=false;
   }catch(e){aviso(bt,'Erro de conexão.',false);bt.disabled=false}
 }
@@ -2397,7 +2393,7 @@ async function salvar(bt){
       headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     if(!r.ok||d.erro){aviso(bt,d.erro||'Não deu pra salvar.',false);bt.disabled=false;return}
-    render(d.itens);
+    pinta(d.itens);
   }catch(e){aviso(bt,'Erro de conexão.',false);bt.disabled=false}
 }
 async function excluir(bt){
@@ -2409,7 +2405,7 @@ async function excluir(bt){
       headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.dataset.id})});
     const d=await r.json();
     if(!r.ok||d.erro){aviso(bt,d.erro||'Não deu pra apagar.',false);bt.disabled=false;return}
-    render(d.itens);
+    pinta(d.itens);
   }catch(e){aviso(bt,'Erro de conexão.',false);bt.disabled=false}
 }
 carrega();
