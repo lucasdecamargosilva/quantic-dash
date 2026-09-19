@@ -732,18 +732,21 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
     elif status == "_ocultos":
         linhas = c.execute("SELECT * FROM leads WHERE oculto=1 ORDER BY ultimo_ts DESC").fetchall()
     elif status == "_sem_resposta":
+        # Quem ja esta em Teste gratis tem coluna propria: nao aparece tambem aqui.
         linhas = c.execute(
             "SELECT * FROM leads WHERE ultimo_de='nos'"
-            " AND COALESCE(oculto,0)=0 AND status NOT IN ('CONVERTIDO','PERDIDO')"
+            " AND COALESCE(oculto,0)=0 AND status NOT IN ('CONVERTIDO','PERDIDO','TESTE GRÁTIS')"
             + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
     elif status:
         linhas = c.execute("SELECT * FROM leads WHERE status=? AND COALESCE(oculto,0)=0"
                            + SEM_SUPORTE +
                            " ORDER BY ultimo_ts DESC", (status,)).fetchall()
     else:
+        # "Esperando": quem respondeu por ultimo e ainda nao tem etapa fechada.
+        # Quem esta em Teste gratis tem coluna propria e nao deve aparecer aqui tambem.
         linhas = c.execute(
             "SELECT * FROM leads WHERE ultimo_de='lead' AND COALESCE(oculto,0)=0"
-            " AND status NOT IN ('CONVERTIDO','PERDIDO')"
+            " AND status NOT IN ('CONVERTIDO','PERDIDO','TESTE GRÁTIS')"
             + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
     if responsavel:
         linhas = [r for r in linhas if (not r["responsavel"] if responsavel == "_sem_responsavel"
