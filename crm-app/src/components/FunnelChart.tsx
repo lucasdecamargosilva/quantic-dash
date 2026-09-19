@@ -25,6 +25,7 @@ const STAGES_AFTER: Record<LeadStatus, LeadStatus[]> = {
   novo_tiktok: [],
   lead_coletado: [],
   contatar: [],
+  testando_ativo: [],
   descartado: [],
   meta: [],
   email_a_enviar: [],
