@@ -26,7 +26,6 @@ export default function ChatPipeline(){
  useEffect(()=>{fetch("/api/prontos").then(r=>{if(!r.ok)throw new Error();return r.json()}).then(d=>setPlans(d.planos||[])).catch(()=>setError("Não foi possível carregar os planos. Atualize a página."))},[]);
  function openSale(lead:Lead,removed=false){setError("");setSelected({lead,removed});setClosing(true);setPlan(lead.venda?.plano||"");setPrice(lead.venda?(lead.venda.valor_centavos/100).toFixed(2):"");}
  const [dragged,setDragged]=useState<Lead|null>(null);
- const [showResumo,setShowResumo]=useState(true);
  const sensors=useSensors(useSensor(MouseSensor,{activationConstraint:{distance:6}}),useSensor(TouchSensor,{activationConstraint:{delay:350,tolerance:8}}));
  const [limits,setLimits]=useState(stages.map(()=>60));
  async function load(){try{const result=await Promise.all(stages.map(async s=>{const r=await fetch(`/api/fila?status=${encodeURIComponent(s.value)}`);if(!r.ok)throw new Error(r.status===401?"Entre no Atendimento para acessar o pipeline de conversas.":"Não foi possível carregar as conversas.");return await r.json() as Lead[]}));setColumns(result);setError("")}catch(e){setError(e instanceof Error?e.message:"Erro ao carregar o pipeline.")}finally{setLoading(false)}}
@@ -43,32 +42,7 @@ export default function ChatPipeline(){
  }
  const term=search.trim().toLocaleLowerCase("pt-BR");
  const visible=columns.map(list=>list.filter(l=>{const day=l.ultimo_ts?new Date(l.ultimo_ts>1e11?l.ultimo_ts:l.ultimo_ts*1000).toLocaleDateString("en-CA",{timeZone:"America/Sao_Paulo"}):"";return (!from||(!!day&&day>=from))&&(!to||(!!day&&day<=to))&&(!owner||(owner==="_sem"?!l.responsavel:l.responsavel===owner))&&(!term||`${l.nome} ${l.fone}`.toLocaleLowerCase("pt-BR").includes(term)||(/^[\d\s()+.-]+$/.test(term)&&l.fone.replace(/\D/g,"").includes(term.replace(/\D/g,""))))}));
- const idxOf=(v:string)=>stages.findIndex(s=>s.value===v);
- const funnel=stages.map((s,i)=>({label:s.label,color:s.color,value:visible[i].length})).filter((_,i)=>!["","_sem_resposta","_ocultos"].includes(stages[i].value));
- const totalFunnel=funnel.reduce((a,c)=>a+c.value,0);
- const maxFunnel=Math.max(1,...funnel.map(f=>f.value));
- const pct=(n:number)=>totalFunnel?Math.round(n/totalFunnel*100):0;
- const countOf=(v:string)=>{const i=idxOf(v);return i>=0?visible[i].length:0;};
- const convertidos=countOf("CONVERTIDO");
- const kpis=[{label:"No funil",value:totalFunnel},{label:"Interessados",value:countOf("INTERESSADO")},{label:"Testando",value:countOf("TESTANDO")},{label:"Convertidos",value:convertidos}];
  return <div className="chat-pipeline">
-
-  <section className="pipeline-resumo">
-   <header className="pipeline-resumo-head"><h2>Resumo do funil</h2><button type="button" onClick={()=>setShowResumo(v=>!v)}>{showResumo?"Ocultar":"Mostrar"}</button></header>
-   {showResumo&&<div className="pipeline-resumo-body">
-    <div className="pipeline-kpis">
-     {kpis.map(k=><div className="pipeline-kpi" key={k.label}><strong>{k.value}</strong><span>{k.label}</span></div>)}
-     <div className="pipeline-kpi pipeline-kpi-hi"><strong>{pct(convertidos)}%</strong><span>Conversão</span></div>
-    </div>
-    <div className="pipeline-bars" role="img" aria-label="Quantidade de leads por etapa">
-     {funnel.map(f=><div className="pipeline-bar-row" key={f.label}>
-      <span className="pipeline-bar-label" title={f.label}>{f.label}</span>
-      <div className="pipeline-bar-track"><div className="pipeline-bar-fill" style={{width:`${Math.round(f.value/maxFunnel*100)}%`,background:f.color}}/></div>
-      <span className="pipeline-bar-value">{f.value}<em>{pct(f.value)}%</em></span>
-     </div>)}
-    </div>
-   </div>}
-  </section>
 
   <div className="chat-pipeline-filters"><label>Buscar lead<input placeholder="Nome ou telefone" value={search} onChange={e=>setSearch(e.target.value)}/></label><label>Responsável<select value={owner} onChange={e=>setOwner(e.target.value)}><option value="">Todos</option><option>Lucas</option><option>Dione</option><option value="_sem">Sem responsável</option></select></label><div className="pipeline-switch"><span>Atendimento · principal</span><Link to="/pipeline/anterior">Pipeline anterior</Link></div><button onClick={()=>{void load()}}>Atualizar</button><div className="pipeline-date-controls"><div className="pipeline-date-presets" aria-label="Atalhos de período">{[{label:"Hoje",days:1},{label:"Ontem",days:-1},{label:"7d",days:7},{label:"15d",days:15},{label:"30d",days:30},{label:"Mês",days:0}].map(p=>{const today=saoPauloDay(),end=p.days===-1?shiftDay(today,-1):today,start=p.days===-1?end:p.days?shiftDay(today,1-p.days):today.slice(0,7)+"-01";return <button key={p.label} aria-pressed={from===start&&to===end} onClick={()=>{setFrom(start);setTo(end)}}>{p.label}</button>})}</div><label>Última mensagem · de<input aria-label="Última mensagem desde" type="date" value={from} max={to||undefined} onChange={e=>setFrom(e.target.value)}/></label><label>Até<input aria-label="Última mensagem até" type="date" value={to} min={from||undefined} onChange={e=>setTo(e.target.value)}/></label>{(from||to)&&<button onClick={()=>{setFrom("");setTo("")}}>Limpar período</button>}</div></div>
   {error&&<div role="alert" className="chat-pipeline-error">{error} <Link to="/atendimento">Abrir Atendimento</Link></div>}
