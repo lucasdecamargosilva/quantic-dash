@@ -2286,9 +2286,10 @@ async function mandaCombo(id,botao){
 function poeCatalogo(){
   const textos=prontos.catalogo||[];
   if(textos.length!==2) return;
+  const nome=primeiroNome((destinatarioAberto()||{}).nome);
   const campo=document.getElementById('txt');
-  campo.value=textos[0]; campo.dataset.modo='catalogo';
-  document.getElementById('catalogoTexto2').value=textos[1];
+  campo.value=aplicaNome(textos[0],nome); campo.dataset.modo='catalogo';
+  document.getElementById('catalogoTexto2').value=aplicaNome(textos[1],nome);
   document.getElementById('catalogoRascunho').hidden=false;
   document.getElementById('ok').innerHTML=icone('send')+' Aprovar e enviar 2 mensagens + vídeo';
   document.getElementById('st').textContent='Revise as duas mensagens e o vídeo antes de enviar.';
