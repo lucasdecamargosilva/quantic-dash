@@ -254,11 +254,16 @@ def salva_especial(chave, texto):
     return carrega_especiais()
 
 
+_MARCADOR_NOME = re.compile(r"[\[{]{1,2}\s*[^\]}]*?\bnome[^\]}]*?\s*[\]}]{1,2}", re.IGNORECASE)
+
+
 def aplica_nome(template, primeiro):
-    """Troca {nome} pelo primeiro nome; sem nome, remove o marcador (e o espaco antes)."""
+    """Troca qualquer marcador de nome entre chaves ({nome}, {{nome}}, {nome do cliente},
+    {Nome}, [nome]...) pelo primeiro nome. Sem nome, remove o marcador e o espaco antes."""
+    template = template or ""
     if primeiro:
-        return template.replace("{nome}", primeiro)
-    return template.replace(" {nome}", "").replace("{nome}", "")
+        return _MARCADOR_NOME.sub(lambda m: primeiro, template)
+    return re.sub(r"\s*" + _MARCADOR_NOME.pattern, "", template, flags=re.IGNORECASE)
 
 
 # ─────────────────────────── banco ───────────────────────────
@@ -2294,7 +2299,9 @@ function poeTexto(id){ const t=prontos.textos.find(x=>x.id===id);
   c.value=aplicaNome(t.texto, primeiroNome((destinatarioAberto()||{}).nome)); delete c.dataset.modo;
   document.getElementById('catalogoRascunho').hidden=true; c.focus();
   const b=document.getElementById('ok'); if(b)b.innerHTML=icone('send')+' Aprovar e enviar'; }
-function aplicaNome(t,nome){ return nome ? t.replace('{nome}',nome) : t.replace(' {nome}','').replace('{nome}',''); }
+function aplicaNome(t,nome){ t=String(t==null?'':t);
+  if(nome) return t.replace(/[\[{]{1,2}\s*[^\]}]*?\bnome[^\]}]*?\s*[\]}]{1,2}/gi, function(){return nome;});
+  return t.replace(/\s*[\[{]{1,2}\s*[^\]}]*?\bnome[^\]}]*?\s*[\]}]{1,2}/gi, ''); }
 function poeAbordagem(){
   const nome=primeiroNome(destinatarioAberto().nome), c=document.getElementById('txt');
   const ab=prontos.abordagem||[];
