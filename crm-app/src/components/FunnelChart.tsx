@@ -26,6 +26,7 @@ const STAGES_AFTER: Record<LeadStatus, LeadStatus[]> = {
   lead_coletado: [],
   contatar: [],
   testando_ativo: [],
+  passou_prazo: [],
   descartado: [],
   meta: [],
   email_a_enviar: [],
