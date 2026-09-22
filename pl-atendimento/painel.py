@@ -834,6 +834,23 @@ def move_pipeline_dados(chatid, status):
     return dados_pipeline(chatid)
 
 
+def exclui_lead(crm_id=None, chatid=None):
+    """Exclui um lead do CRM: apaga o registro no Supabase (lead + etapas + notas)
+    e, se houver conversa no painel, oculta ela da fila. Ação destrutiva."""
+    if crm_id:
+        for tb in ('interacoes', 'crm_lead_etapas'):
+            try:
+                CRM_CLIENT.request(tb, {'lead_id': 'eq.' + crm_id}, 'DELETE')
+            except Exception:
+                pass
+        CRM_CLIENT.request('leads', {'id': 'eq.' + crm_id}, 'DELETE')
+    if chatid:
+        c = con()
+        c.execute("UPDATE leads SET oculto=1 WHERE chatid=?", (chatid,))
+        c.commit()
+    return {"ok": True}
+
+
 def salva_plano_fechado(chatid, plano, valor_centavos):
     if plano not in {p["nome"] for p in PLANOS}:
         raise ValueError("Selecione um plano válido.")
@@ -2807,6 +2824,17 @@ class H(BaseHTTPRequestHandler):
                         return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 CRM_CLIENT.change(d["chatid"], mapping[d["status"]])
                 return self._send(200, json.dumps({"ok": True}))
+            if self.path == "/api/lead/excluir":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                if not d.get("crm_id") and not d.get("chatid"):
+                    return self._send(400, json.dumps({"erro": "Informe crm_id ou chatid."}))
+                try:
+                    return self._send(200, json.dumps(exclui_lead(d.get("crm_id"), d.get("chatid")), ensure_ascii=False))
+                except Exception as e:
+                    return self._send(502, json.dumps({"erro": str(e)[:200]}, ensure_ascii=False))
             if self.path == "/api/responsavel":
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (

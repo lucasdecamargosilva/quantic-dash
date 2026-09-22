@@ -46,3 +46,7 @@
 .pipeline-bar-value{font-size:12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--color-bright)}
 .pipeline-bar-value em{color:var(--color-muted);font-style:normal;margin-left:6px}
 @media(max-width:639px){.pipeline-bar-row{grid-template-columns:92px 1fr 62px;gap:8px}}
+
+.chat-pipeline-excluir{margin-top:4px;padding:10px 14px;border:1px solid var(--color-rose,#ef4444);border-radius:8px;background:transparent;color:var(--color-rose,#ef4444);font-weight:600}
+.chat-pipeline-excluir:hover:not(:disabled){background:var(--color-rose,#ef4444);color:#fff}
+.chat-pipeline-excluir:disabled{opacity:.5}
