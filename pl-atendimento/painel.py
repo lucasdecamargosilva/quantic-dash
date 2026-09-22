@@ -789,6 +789,29 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
     return out
 
 
+def conversas_index():
+    """Índice leve das conversas do WhatsApp (painel.db) para o pipeline do CRM
+    casar por telefone: chatid p/ abrir a conversa, última mensagem e venda.
+    Não inclui grupos (@g.us) nem ocultos."""
+    c = con()
+    vendas = {r["chatid"]: dict(r) for r in c.execute("SELECT * FROM planos_fechados")}
+    linhas = c.execute(
+        "SELECT chatid, fone, responsavel, ultimo_ts, ultimo_de FROM leads"
+        " WHERE COALESCE(oculto,0)=0 AND chatid NOT LIKE '%@g.us'").fetchall()
+    out = []
+    for r in linhas:
+        u = c.execute("SELECT tipo,texto,segundos FROM mensagens WHERE chatid=? AND excluida=0"
+                      " ORDER BY ts DESC LIMIT 1", (r["chatid"],)).fetchone()
+        dt = quando(r["ultimo_ts"])
+        out.append({"chatid": r["chatid"], "fone": r["fone"], "responsavel": r["responsavel"],
+                    "ultimo_ts": r["ultimo_ts"], "ultimo_de": r["ultimo_de"],
+                    "quando": dt.strftime("%d/%m %H:%M") if r["ultimo_ts"] else "",
+                    "ultima": (u["texto"] if u and u["texto"]
+                               else rotulo(u["tipo"], u["segundos"]) if u else ""),
+                    "venda": vendas.get(r["chatid"])})
+    return out
+
+
 PIPELINE_REMOTE_STATUS = {"MENSAGEM 1":"mensagem_1", "MENSAGEM 2":"mensagem_2", "MENSAGEM 3":"mensagem_3", "STAND-BY":"stand_by",
                           "CONTATAR":"contatar",
                           "INTERESSADO":"interessado", "TESTE GRÁTIS":"testando", "TESTANDO":"testando_ativo",
@@ -2678,6 +2701,8 @@ class H(BaseHTTPRequestHandler):
                                                        (q.get("responsavel") or [None])[0],
                                                        (q.get("chatid") or [None])[0], self.headers.get('X-Prospeccao-User')),
                                                   ensure_ascii=False))
+            if p.path == "/api/conversas":
+                return self._send(200, json.dumps(conversas_index(), ensure_ascii=False))
             if p.path == "/api/recebidas":
                 return self._send(200, json.dumps(
                     recebidas_recentes((q.get("limite") or [50])[0]), ensure_ascii=False))
