@@ -192,6 +192,9 @@ if (fs.existsSync(LUCAS_AUTH_FILE)) {
 }
 const PROSPECCAO_ACCOUNTS = loadAccounts(PROSPECCAO_ENV);
 const PROSPECCAO_SESSION_SECRET = process.env.PROSPECCAO_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+// Atrás do proxy do EasyPanel: sem isso req.ip é o IP do proxy e o limite de
+// tentativas de login vira um contador único pra TODO mundo (um trava o outro).
+app.set('trust proxy', 1);
 const loginAttempts = new Map();
 const PROSPECCAO_API = /^\/api\/(recebidas|fila|conversas|disparo|envio|contagem|metas\/(?:conversas|config|responsaveis)|midia|conversa|crm(?:\/.*)?|ocultar|status|responsavel|lead\/excluir|enviar|mensagem\/(?:editar|excluir)|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|mensagens(?:\/.*)?|encaminhar|sync|sugestao|events)(?:\?|$)/;
 
