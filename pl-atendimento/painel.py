@@ -815,6 +815,14 @@ def conversas_index():
                     "venda": vendas.get(r["chatid"]),
                     "grupo_chatid": (grupos.get(r["chatid"]) or (None, None))[0],
                     "grupo_nome": (grupos.get(r["chatid"]) or (None, None))[1]})
+    # Plano fechado cuja conversa está oculta/inexistente: entra só pra o card mostrar o plano.
+    com_conv = {o["chatid"] for o in out}
+    for chatid, v in vendas.items():
+        if chatid not in com_conv:
+            out.append({"chatid": chatid, "fone": chatid.split("@")[0], "responsavel": None,
+                        "ultimo_ts": None, "ultimo_de": None, "quando": "", "ultima": "",
+                        "venda": v, "grupo_chatid": (grupos.get(chatid) or (None, None))[0],
+                        "grupo_nome": (grupos.get(chatid) or (None, None))[1], "sem_conversa": True})
     return out
 
 

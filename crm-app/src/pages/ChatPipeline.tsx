@@ -43,11 +43,13 @@ export default function ChatPipeline(){
    // 2. Banco (CRM) + índice de conversas por telefone
    const [crmRes,convs]=await Promise.all([
      supabase.from("leads").select("id,nome_loja,telefone,whatsapp,status,responsavel,updated_at"),
-     fetch("/api/conversas").then(r=>r.ok?r.json():[]).catch(()=>[]) as Promise<Array<{chatid:string;fone:string;responsavel:string|null;ultimo_ts:number|null;quando:string;ultima:string;venda:Sale|null;grupo_chatid?:string|null;grupo_nome?:string|null}>>,
+     fetch("/api/conversas").then(r=>r.ok?r.json():[]).catch(()=>[]) as Promise<Array<{chatid:string;fone:string;responsavel:string|null;ultimo_ts:number|null;quando:string;ultima:string;venda:Sale|null;grupo_chatid?:string|null;grupo_nome?:string|null;sem_conversa?:boolean}>>,
    ]);
    const crmLeads=await applyCustomLeadStatuses((crmRes.data||[]) as any[]) as Array<{id:string;nome_loja:string|null;telefone:string|null;whatsapp:string|null;status:string;responsavel:string|null;updated_at:string|null}>;
    const convByFone=new Map<string,typeof convs[number]>();
-   for(const c of convs){const f=normFone(c.fone);if(f){if(!convByFone.has(f))convByFone.set(f,c);const t=f.slice(-8);if(!convByFone.has(t))convByFone.set(t,c);}}
+   const vendaByFone=new Map<string,Sale>();
+   for(const c of convs){const f=normFone(c.fone);if(!f||!c.venda)continue;if(!vendaByFone.has(f))vendaByFone.set(f,c.venda);if(!vendaByFone.has(f.slice(-8)))vendaByFone.set(f.slice(-8),c.venda);}
+   for(const c of convs){if(c.sem_conversa)continue;const f=normFone(c.fone);if(f){if(!convByFone.has(f))convByFone.set(f,c);const t=f.slice(-8);if(!convByFone.has(t))convByFone.set(t,c);}}
    const result=panel.map(col=>col.slice());
    const commercialPhones=new Set<string>();
    // 3. Colunas comerciais vêm do banco, enriquecidas com a conversa
@@ -62,7 +64,7 @@ export default function ChatPipeline(){
        commercialPhones.add(f);commercialPhones.add(f.slice(-8));
        cards.push({origem:"crm",crmId:cl.id,hasConv:!!conv,chatid:conv?conv.chatid:("55"+f+"@s.whatsapp.net"),
          nome:cl.nome_loja||"",fone:conv?conv.fone:f,status:s.value,
-         responsavel:conv?(conv.responsavel??cl.responsavel):cl.responsavel,venda:conv?conv.venda:null,
+         responsavel:conv?(conv.responsavel??cl.responsavel):cl.responsavel,venda:(conv&&conv.venda)||vendaByFone.get(f)||vendaByFone.get(f.slice(-8))||null,
          ultimo_ts:conv?conv.ultimo_ts:(cl.updated_at?Date.parse(cl.updated_at):null),
          quando:conv?conv.quando:"",ha:"",ultima:conv?conv.ultima:"",grupoChatid:conv?.grupo_chatid??null,grupoNome:conv?.grupo_nome??null});
      }
