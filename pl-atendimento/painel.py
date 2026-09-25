@@ -61,7 +61,7 @@ GEMINI_MODEL = "gemini-2.5-flash"
 JANELA_DIAS = 14
 INTERVALO_SYNC = 6                     # segundos entre uma varredura e outra
 
-STATUS = ["MENSAGEM 1", "MENSAGEM 2", "MENSAGEM 3", "STAND-BY", "CONTATAR", "INTERESSADO", "TESTE GRÁTIS", "TESTANDO", "PASSOU DO PRAZO", "PROPOSTA ENVIADA", "CONVERTIDO", "PERDIDO"]
+STATUS = ["MENSAGEM 1", "MENSAGEM 2", "MENSAGEM 3", "STAND-BY", "CONTATAR", "INTERESSADO", "TESTE GRÁTIS", "AGUARDANDO CADASTRO", "TESTANDO", "PASSOU DO PRAZO", "PROPOSTA ENVIADA", "NEGOCIANDO", "AGUARDANDO PAGAMENTO", "CONVERTIDO", "PERDIDO"]
 STATUS_ENCERRADO = {"CONVERTIDO", "PERDIDO"}
 
 RUIDO = re.compile(
@@ -743,7 +743,7 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
         # Quem ja esta em Teste gratis tem coluna propria: nao aparece tambem aqui.
         linhas = c.execute(
             "SELECT * FROM leads WHERE ultimo_de='nos'"
-            " AND COALESCE(oculto,0)=0 AND status NOT IN ('CONVERTIDO','PERDIDO','TESTE GRÁTIS','TESTANDO','PASSOU DO PRAZO','PROPOSTA ENVIADA')"
+            " AND COALESCE(oculto,0)=0 AND status NOT IN ('CONVERTIDO','PERDIDO','TESTE GRÁTIS','TESTANDO','PASSOU DO PRAZO','PROPOSTA ENVIADA','AGUARDANDO CADASTRO','NEGOCIANDO','AGUARDANDO PAGAMENTO')"
             + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
     elif status:
         linhas = c.execute("SELECT * FROM leads WHERE status=? AND COALESCE(oculto,0)=0"
@@ -754,7 +754,7 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
         # Quem esta em Teste gratis tem coluna propria e nao deve aparecer aqui tambem.
         linhas = c.execute(
             "SELECT * FROM leads WHERE ultimo_de='lead' AND COALESCE(oculto,0)=0"
-            " AND status NOT IN ('CONVERTIDO','PERDIDO','TESTE GRÁTIS','TESTANDO','PASSOU DO PRAZO','PROPOSTA ENVIADA')"
+            " AND status NOT IN ('CONVERTIDO','PERDIDO','TESTE GRÁTIS','TESTANDO','PASSOU DO PRAZO','PROPOSTA ENVIADA','AGUARDANDO CADASTRO','NEGOCIANDO','AGUARDANDO PAGAMENTO')"
             + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
     if responsavel:
         linhas = [r for r in linhas if (not r["responsavel"] if responsavel == "_sem_responsavel"
@@ -841,7 +841,7 @@ def vincula_grupos(usuario, itens):
 
 PIPELINE_REMOTE_STATUS = {"MENSAGEM 1":"mensagem_1", "MENSAGEM 2":"mensagem_2", "MENSAGEM 3":"mensagem_3", "STAND-BY":"stand_by",
                           "CONTATAR":"contatar",
-                          "INTERESSADO":"interessado", "TESTE GRÁTIS":"testando", "TESTANDO":"testando_ativo", "PASSOU DO PRAZO":"passou_prazo", "PROPOSTA ENVIADA":"proposta_enviada",
+                          "INTERESSADO":"interessado", "TESTE GRÁTIS":"testando", "TESTANDO":"testando_ativo", "PASSOU DO PRAZO":"passou_prazo", "PROPOSTA ENVIADA":"proposta_enviada", "AGUARDANDO CADASTRO":"aguardando_cadastro", "NEGOCIANDO":"negociando", "AGUARDANDO PAGAMENTO":"aguardando_pagamento",
                           "CONVERTIDO":"fechou", "PERDIDO":"perdida"}
 
 def dados_pipeline(chatid):
@@ -2911,7 +2911,7 @@ class H(BaseHTTPRequestHandler):
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
                         origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
                     return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
-                mapping = {"MENSAGEM 1": "mensagem_1", "MENSAGEM 2": "mensagem_2", "MENSAGEM 3": "mensagem_3", "STAND-BY": "stand_by", "CONTATAR": "contatar", "INTERESSADO": "interessado", "TESTE GRÁTIS": "testando", "TESTANDO": "testando_ativo", "PASSOU DO PRAZO": "passou_prazo", "PROPOSTA ENVIADA": "proposta_enviada",
+                mapping = {"MENSAGEM 1": "mensagem_1", "MENSAGEM 2": "mensagem_2", "MENSAGEM 3": "mensagem_3", "STAND-BY": "stand_by", "CONTATAR": "contatar", "INTERESSADO": "interessado", "TESTE GRÁTIS": "testando", "TESTANDO": "testando_ativo", "PASSOU DO PRAZO": "passou_prazo", "PROPOSTA ENVIADA": "proposta_enviada", "AGUARDANDO CADASTRO": "aguardando_cadastro", "NEGOCIANDO": "negociando", "AGUARDANDO PAGAMENTO": "aguardando_pagamento",
                            "CONVERTIDO": "fechou", "PERDIDO": "perdida"}
                 if d["status"] == "CONVERTIDO" and "plano" in d:
                     try:

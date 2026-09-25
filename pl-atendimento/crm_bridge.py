@@ -16,8 +16,11 @@ ETAPAS = dict([
     ('atendimento_ia', 'Atendimento com IA'), ('fotos_enviadas', 'Fotos Enviadas'),
     ('reuniao_agendada', 'Reunião Agendada'), ('testando', 'Testando'),
     ('testando_ativo', 'Testando'),
+    ('aguardando_cadastro', 'Aguardando cadastro'),
     ('passou_prazo', 'Passou do prazo'),
     ('proposta_enviada', 'Proposta enviada'),
+    ('negociando', 'Negociando'),
+    ('aguardando_pagamento', 'Aguardando pagamento'),
     ('teste_catalogo_7_dias', 'Teste Catálogo — 7 dias'),
     ('testou_e_saiu', 'Testou e Saiu'), ('fechou', 'Fechou'), ('stand_by', 'Stand By'),
     ('sem_site', 'Sem Site'), ('parou_responder', 'Parou de Responder'),
@@ -121,7 +124,7 @@ class CRM:
     def reflect_local(self, chatid, lead):
         """Os filtros locais acompanham a etapa confirmada, inclusive encerramentos."""
         status = {'testando': 'TESTE GRÁTIS', 'teste_catalogo_7_dias': 'TESTE GRÁTIS', 'fechou': 'CONVERTIDO',
-                  'perdida': 'PERDIDO', 'descartado': 'PERDIDO', 'interessado': 'INTERESSADO', 'mensagem_1':'MENSAGEM 1', 'mensagem_2':'MENSAGEM 2', 'mensagem_3':'MENSAGEM 3', 'stand_by':'STAND-BY', 'contatar':'CONTATAR', 'testando_ativo':'TESTANDO', 'passou_prazo':'PASSOU DO PRAZO', 'proposta_enviada':'PROPOSTA ENVIADA'}.get(lead['status'], 'SEM ETAPA')
+                  'perdida': 'PERDIDO', 'descartado': 'PERDIDO', 'interessado': 'INTERESSADO', 'mensagem_1':'MENSAGEM 1', 'mensagem_2':'MENSAGEM 2', 'mensagem_3':'MENSAGEM 3', 'stand_by':'STAND-BY', 'contatar':'CONTATAR', 'testando_ativo':'TESTANDO', 'passou_prazo':'PASSOU DO PRAZO', 'proposta_enviada':'PROPOSTA ENVIADA', 'aguardando_cadastro':'AGUARDANDO CADASTRO', 'negociando':'NEGOCIANDO', 'aguardando_pagamento':'AGUARDANDO PAGAMENTO'}.get(lead['status'], 'SEM ETAPA')
         c = self.connect()
         c.execute('UPDATE leads SET status=? WHERE chatid=?', (status, chatid))
         c.commit()
@@ -181,7 +184,7 @@ class CRM:
                 self.request('leads', {'on_conflict': 'instagram'}, 'POST', {
                     'instagram': handle, 'nome_loja': local['nome'] or local['fone'],
                     'telefone': local['fone'], 'status': {'CONVERTIDO': 'fechou', 'PERDIDO': 'perdida',
-                        'TESTE GRÁTIS': 'testando', 'INTERESSADO': 'interessado', 'MENSAGEM 1':'mensagem_1', 'MENSAGEM 2':'mensagem_2', 'MENSAGEM 3':'mensagem_3', 'STAND-BY':'stand_by', 'CONTATAR':'contatar', 'TESTANDO':'testando_ativo', 'PASSOU DO PRAZO':'passou_prazo', 'PROPOSTA ENVIADA':'proposta_enviada'}.get(local['status'], 'meta' if ad else 'respondeu'),
+                        'TESTE GRÁTIS': 'testando', 'INTERESSADO': 'interessado', 'MENSAGEM 1':'mensagem_1', 'MENSAGEM 2':'mensagem_2', 'MENSAGEM 3':'mensagem_3', 'STAND-BY':'stand_by', 'CONTATAR':'contatar', 'TESTANDO':'testando_ativo', 'PASSOU DO PRAZO':'passou_prazo', 'PROPOSTA ENVIADA':'proposta_enviada', 'AGUARDANDO CADASTRO':'aguardando_cadastro', 'NEGOCIANDO':'negociando', 'AGUARDANDO PAGAMENTO':'aguardando_pagamento'}.get(local['status'], 'meta' if ad else 'respondeu'),
                     'fonte_oportunidade': 'Meta' if ad else 'WhatsApp',
                     'notas': 'Registrado pelo PL Atendimento. Instagram não informado.' +
                              ('\nMensagem de entrada: ' + ad if ad else ''),

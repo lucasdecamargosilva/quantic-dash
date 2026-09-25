@@ -81,6 +81,9 @@ export type LeadStatus =
   | "testando_ativo"
   | "passou_prazo"
   | "proposta_enviada"
+  | "aguardando_cadastro"
+  | "negociando"
+  | "aguardando_pagamento"
   | "teste_catalogo_7_dias"
   | "testou_e_saiu"
   | "interessado"
@@ -107,8 +110,11 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "stand_by",
   "reuniao_agendada",
   "testando",
+  "aguardando_cadastro",
   "passou_prazo",
   "proposta_enviada",
+  "negociando",
+  "aguardando_pagamento",
   "teste_catalogo_7_dias",
   "testou_e_saiu",
   "fechou",
@@ -138,8 +144,11 @@ export const PIPELINE_STATUSES: LeadStatus[] = [
   "reuniao_agendada",
   "teste_catalogo_7_dias",
   "testando",
+  "aguardando_cadastro",
   "passou_prazo",
   "proposta_enviada",
+  "negociando",
+  "aguardando_pagamento",
   "testou_e_saiu",
   "fechou",
   "stand_by",
@@ -186,6 +195,9 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   testando_ativo: "Testando",
   passou_prazo: "Passou do prazo",
   proposta_enviada: "Proposta enviada",
+  aguardando_cadastro: "Aguardando cadastro",
+  negociando: "Negociando",
+  aguardando_pagamento: "Aguardando pagamento",
   teste_catalogo_7_dias: "Teste Catálogo — 7 dias",
   testou_e_saiu: "Testou e Saiu",
   interessado: "Interessado",
@@ -217,6 +229,9 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
   testando_ativo: { bg: "bg-emerald/10", text: "text-emerald", dot: "bg-emerald" },
   passou_prazo: { bg: "bg-amber/10", text: "text-amber", dot: "bg-amber" },
   proposta_enviada: { bg: "bg-violet/10", text: "text-violet-light", dot: "bg-violet" },
+  aguardando_cadastro: { bg: "bg-cyan/10", text: "text-cyan", dot: "bg-cyan" },
+  negociando: { bg: "bg-pink/10", text: "text-pink", dot: "bg-pink" },
+  aguardando_pagamento: { bg: "bg-emerald/10", text: "text-emerald", dot: "bg-emerald" },
   teste_catalogo_7_dias: { bg: "bg-cyan/10", text: "text-cyan", dot: "bg-cyan" },
   testou_e_saiu: { bg: "bg-orange/10", text: "text-orange", dot: "bg-orange" },
   interessado: { bg: "bg-rose/10", text: "text-rose", dot: "bg-rose" },
@@ -248,6 +263,9 @@ export const STATUS_HEX: Record<LeadStatus, string> = {
   testando_ativo: "#10b981",
   passou_prazo: "#f97316",
   proposta_enviada: "#a855f7",
+  aguardando_cadastro: "#14b8a6",
+  negociando: "#ec4899",
+  aguardando_pagamento: "#22c55e",
   teste_catalogo_7_dias: "#22d3ee",
   testou_e_saiu: "#f97316",
   interessado: "#f43f5e",
