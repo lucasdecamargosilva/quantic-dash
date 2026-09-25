@@ -310,6 +310,9 @@ def cria_banco():
     CREATE TABLE IF NOT EXISTS planos_fechados (
       chatid TEXT PRIMARY KEY, lead_id TEXT, plano TEXT NOT NULL, valor_centavos INTEGER NOT NULL,
       fechado_em TEXT NOT NULL, atualizado_em TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS comissoes_status (
+      chatid TEXT PRIMARY KEY, cliente_pagou_em TEXT, comissao_paga_em TEXT,
+      atualizado_por TEXT, atualizado_em TEXT);
     CREATE TABLE IF NOT EXISTS atendimentos_iniciados (
       chatid TEXT NOT NULL, responsavel TEXT NOT NULL, ts INTEGER NOT NULL,
       PRIMARY KEY (chatid, responsavel));
@@ -867,6 +870,67 @@ def salva_plano_fechado(chatid, plano, valor_centavos):
         c.execute("UPDATE leads SET oculto=0 WHERE chatid=?", (chatid,))
         c.commit()
         return {"ok": True}
+
+
+COMISSAO_PCT = 20  # % sobre a 1ª mensalidade que o cliente paga
+
+
+def comissoes(usuario):
+    """Comissão do comercial por cliente convertido (plano registrado em planos_fechados).
+    Dione vê só as dela; Lucas vê todas. Status: aguardando o cliente pagar ->
+    cliente pagou (comissão a receber) -> comissão paga."""
+    eh_lucas = (usuario or "").strip().lower() == "lucas"
+    c = con()
+    linhas = c.execute(
+        "SELECT pf.chatid, pf.plano, pf.valor_centavos, pf.fechado_em, l.nome, l.fone, l.responsavel,"
+        "       cs.cliente_pagou_em, cs.comissao_paga_em"
+        "  FROM planos_fechados pf"
+        "  LEFT JOIN leads l ON l.chatid = pf.chatid"
+        "  LEFT JOIN comissoes_status cs ON cs.chatid = pf.chatid"
+        " ORDER BY pf.fechado_em DESC").fetchall()
+    meu = nome_responsavel(usuario)
+    itens = []
+    totais = {"prevista": 0, "a_receber": 0, "paga": 0}
+    for r in linhas:
+        resp = r["responsavel"] or ""
+        if not eh_lucas and resp != meu:
+            continue
+        comissao = round(r["valor_centavos"] * COMISSAO_PCT / 100)
+        if r["comissao_paga_em"]:
+            situacao = "paga"
+        elif r["cliente_pagou_em"]:
+            situacao = "a_receber"
+        else:
+            situacao = "prevista"
+        totais[situacao] += comissao
+        itens.append({"chatid": r["chatid"], "cliente": r["nome"] or r["fone"] or r["chatid"],
+                      "fone": r["fone"], "responsavel": resp or None, "plano": r["plano"],
+                      "mensalidade_centavos": r["valor_centavos"], "comissao_centavos": comissao,
+                      "fechado_em": r["fechado_em"], "cliente_pagou_em": r["cliente_pagou_em"],
+                      "comissao_paga_em": r["comissao_paga_em"], "situacao": situacao})
+    return {"pct": COMISSAO_PCT, "canEdit": eh_lucas, "usuario": meu, "itens": itens, "totais": totais}
+
+
+def marca_comissao(usuario, chatid, campo, marcado):
+    if (usuario or "").strip().lower() != "lucas":
+        raise PermissionError("Só o Lucas pode alterar o status da comissão.")
+    coluna = {"cliente_pagou": "cliente_pagou_em", "comissao_paga": "comissao_paga_em"}.get(campo)
+    if not coluna:
+        raise ValueError("Campo inválido.")
+    c = con()
+    if not c.execute("SELECT 1 FROM planos_fechados WHERE chatid=?", (chatid,)).fetchone():
+        raise ValueError("Cliente sem plano fechado registrado.")
+    agora = datetime.now(BRT).isoformat()
+    valor = agora if marcado else None
+    c.execute("INSERT INTO comissoes_status(chatid," + coluna + ",atualizado_por,atualizado_em) VALUES(?,?,?,?) "
+              "ON CONFLICT(chatid) DO UPDATE SET " + coluna + "=excluded." + coluna +
+              ", atualizado_por=excluded.atualizado_por, atualizado_em=excluded.atualizado_em",
+              (chatid, valor, usuario, agora))
+    # comissão paga implica cliente pagou
+    if coluna == "comissao_paga_em" and marcado:
+        c.execute("UPDATE comissoes_status SET cliente_pagou_em=COALESCE(cliente_pagou_em, ?) WHERE chatid=?", (agora, chatid))
+    c.commit()
+    return {"ok": True}
 
 
 def recebidas_recentes(limite=50):
@@ -2718,6 +2782,8 @@ class H(BaseHTTPRequestHandler):
                                                        (q.get("responsavel") or [None])[0],
                                                        (q.get("chatid") or [None])[0], self.headers.get('X-Prospeccao-User')),
                                                   ensure_ascii=False))
+            if p.path == "/api/comissoes":
+                return self._send(200, json.dumps(comissoes(self.headers.get("X-Prospeccao-User")), ensure_ascii=False))
             if p.path == "/api/conversas":
                 return self._send(200, json.dumps(conversas_index(), ensure_ascii=False))
             if p.path == "/api/recebidas":
@@ -2824,6 +2890,18 @@ class H(BaseHTTPRequestHandler):
                         return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 CRM_CLIENT.change(d["chatid"], mapping[d["status"]])
                 return self._send(200, json.dumps({"ok": True}))
+            if self.path == "/api/comissoes/marcar":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    return self._send(200, json.dumps(marca_comissao(self.headers.get("X-Prospeccao-User"),
+                        d.get("chatid"), d.get("campo"), bool(d.get("marcado"))), ensure_ascii=False))
+                except PermissionError as e:
+                    return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/lead/excluir":
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (

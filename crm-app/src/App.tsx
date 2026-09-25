@@ -10,6 +10,7 @@ import Atendimento from "./pages/Atendimento";
 import MensagensPersonalizadas from "./pages/MensagensPersonalizadas";
 import TrafegoPago from "./pages/TrafegoPago";
 import TestesGratis from "./pages/TestesGratis";
+import Comissoes from "./pages/Comissoes";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/metas" element={<Metas />} />
           <Route path="/atendimento" element={<Atendimento />} />
           <Route path="/mensagens-personalizadas" element={<MensagensPersonalizadas />} />
+          <Route path="/comissoes" element={<Comissoes />} />
           {/* Compat: rota antiga /dashboard ainda funciona */}
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>

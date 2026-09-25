@@ -49,6 +49,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: "/comissoes",
+    label: "Comissões",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="8" r="6.5" />
+        <path d="M10 5.8c-.4-.6-1.1-.9-2-.9-1.1 0-1.9.6-1.9 1.4 0 1.9 4 1 4 2.9 0 .8-.8 1.5-2.1 1.5-.9 0-1.7-.4-2.1-1M8 3.8v1.1M8 11.1v1.1" />
+      </svg>
+    ),
+  },
+  {
     to: "/trafego-pago",
     label: "Tráfego pago",
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>,
