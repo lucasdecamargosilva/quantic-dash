@@ -196,7 +196,7 @@ const PROSPECCAO_SESSION_SECRET = process.env.PROSPECCAO_SESSION_SECRET || crypt
 // tentativas de login vira um contador único pra TODO mundo (um trava o outro).
 app.set('trust proxy', 1);
 const loginAttempts = new Map();
-const PROSPECCAO_API = /^\/api\/(recebidas|fila|conversas|comissoes(?:\/marcar)?|disparo|envio|contagem|metas\/(?:conversas|config|responsaveis)|midia|conversa|crm(?:\/.*)?|ocultar|status|responsavel|lead\/excluir|enviar|mensagem\/(?:editar|excluir)|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|mensagens(?:\/.*)?|encaminhar|sync|sugestao|events)(?:\?|$)/;
+const PROSPECCAO_API = /^\/api\/(recebidas|fila|conversas|comissoes(?:\/marcar)?|grupos\/vincular|disparo|envio|contagem|metas\/(?:conversas|config|responsaveis)|midia|conversa|crm(?:\/.*)?|ocultar|status|responsavel|lead\/excluir|enviar|mensagem\/(?:editar|excluir)|audio|combo|combo_status|catalogo(?:\/video)?|gravado|atualizar|prontos|mensagens(?:\/.*)?|encaminhar|sync|sugestao|events)(?:\?|$)/;
 
 function origemProspeccaoValida(req) {
     const origem = req.headers.origin;

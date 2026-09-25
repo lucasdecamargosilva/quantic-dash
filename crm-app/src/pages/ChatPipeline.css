@@ -50,3 +50,5 @@
 .chat-pipeline-excluir{margin-top:4px;padding:10px 14px;border:1px solid var(--color-rose,#ef4444);border-radius:8px;background:transparent;color:var(--color-rose,#ef4444);font-weight:600}
 .chat-pipeline-excluir:hover:not(:disabled){background:var(--color-rose,#ef4444);color:#fff}
 .chat-pipeline-excluir:disabled{opacity:.5}
+
+.pipeline-open-group{background:transparent;border:1px solid var(--color-violet);color:var(--color-violet-light)}

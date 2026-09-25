@@ -798,6 +798,7 @@ def conversas_index():
     Não inclui grupos (@g.us) nem ocultos."""
     c = con()
     vendas = {r["chatid"]: dict(r) for r in c.execute("SELECT * FROM planos_fechados")}
+    grupos = {r["lead_chatid"]: (r["chatid"], r["nome"]) for r in c.execute("SELECT chatid, lead_chatid, nome FROM grupos_catalogos")}
     linhas = c.execute(
         "SELECT chatid, fone, responsavel, ultimo_ts, ultimo_de FROM leads"
         " WHERE COALESCE(oculto,0)=0 AND chatid NOT LIKE '%@g.us'").fetchall()
@@ -811,8 +812,31 @@ def conversas_index():
                     "quando": dt.strftime("%d/%m %H:%M") if r["ultimo_ts"] else "",
                     "ultima": (u["texto"] if u and u["texto"]
                                else rotulo(u["tipo"], u["segundos"]) if u else ""),
-                    "venda": vendas.get(r["chatid"])})
+                    "venda": vendas.get(r["chatid"]),
+                    "grupo_chatid": (grupos.get(r["chatid"]) or (None, None))[0],
+                    "grupo_nome": (grupos.get(r["chatid"]) or (None, None))[1]})
     return out
+
+
+def vincula_grupos(usuario, itens):
+    """Liga grupo de catálogo -> conversa da loja -> responsável (tabela grupos_catalogos).
+    É o que faz o grupo aparecer pro responsável e o botão "Grupo da loja" na conversa."""
+    if (usuario or "").strip().lower() != "lucas":
+        raise PermissionError("Só o Lucas pode vincular grupos.")
+    if not isinstance(itens, list) or len(itens) > 1000:
+        raise ValueError("Lista inválida.")
+    c = con(); n = 0
+    for it in itens:
+        g, lc, nome = str(it.get("grupo_chatid") or ""), str(it.get("lead_chatid") or ""), str(it.get("nome") or "")[:120]
+        resp = it.get("responsavel") if it.get("responsavel") in RESPONSAVEIS else "Lucas"
+        if not g.endswith("@g.us") or not lc.endswith("@s.whatsapp.net") or not nome:
+            continue
+        c.execute("INSERT INTO grupos_catalogos(chatid,lead_chatid,nome,responsavel) VALUES(?,?,?,?) "
+                  "ON CONFLICT(chatid) DO UPDATE SET lead_chatid=excluded.lead_chatid, nome=excluded.nome, "
+                  "responsavel=excluded.responsavel", (g, lc, nome, resp))
+        n += 1
+    c.commit()
+    return {"ok": True, "vinculados": n}
 
 
 PIPELINE_REMOTE_STATUS = {"MENSAGEM 1":"mensagem_1", "MENSAGEM 2":"mensagem_2", "MENSAGEM 3":"mensagem_3", "STAND-BY":"stand_by",
@@ -1000,6 +1024,9 @@ def conversa(chatid, usuario=None):
         if not grupo:
             raise ValueError('Grupo não disponível para este acesso.')
         lead = {'nome':grupo['nome'], 'fone':chatid, 'status':'TESTE GRÁTIS', 'responsavel':grupo['dono'], 'oculto':0}
+    grupo_lead = None
+    if not chatid.endswith('@g.us'):
+        grupo_lead = next((g for g in grupos_catalogos.visible(c, usuario) if g['lead_chatid']==chatid), None)
     ms = c.execute("SELECT * FROM mensagens WHERE chatid=? AND excluida=0 ORDER BY ts", (chatid,)).fetchall()
     encerrado = bool(lead and lead["status"] in STATUS_ENCERRADO)
     linhas = []
@@ -1015,6 +1042,8 @@ def conversa(chatid, usuario=None):
     return {"chatid": chatid, "linhas": linhas, "grupo":bool(grupo),
             "erro_sync":grupo['erro'] if grupo else '',
             "lead_chatid":grupo['lead_chatid'] if grupo else None,
+            "grupo_chatid":grupo_lead['chatid'] if grupo_lead else None,
+            "grupo_nome":grupo_lead['nome'] if grupo_lead else None,
             "status": lead["status"] if lead else "SEM ETAPA",
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
             "nome": lead["nome"] if lead else "", "fone": lead["fone"] if lead else "",
@@ -2100,6 +2129,7 @@ async function abrirLead(lead){
         </div>
         <div class="tag cliente-meta">${icone('phone')}${esc(d.fone)} · ${icone('clock')} última ${esc(p.ha)} (${esc(p.quando)})</div></div>
       <div class="cliente-acoes">
+      ${d.grupo_chatid?`<a class="btn sec cliente-link" href="?chatid=${encodeURIComponent(d.grupo_chatid)}" title="${esc(d.grupo_nome||'')}">${icone('chat')} Grupo da loja</a>`:''}
       <button class="btn sec cliente-link" id="btDadosLead" onclick="toggleDadosLead()" aria-expanded="false" aria-controls="leadDrawer">${icone('user')} Dados do lead</button></div>
     </div>
     <div class="chat" id="chat">${bolhas(d.linhas)}${bolhasPend(d.linhas)}</div>
@@ -2890,6 +2920,17 @@ class H(BaseHTTPRequestHandler):
                         return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 CRM_CLIENT.change(d["chatid"], mapping[d["status"]])
                 return self._send(200, json.dumps({"ok": True}))
+            if self.path == "/api/grupos/vincular":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    return self._send(200, json.dumps(vincula_grupos(self.headers.get("X-Prospeccao-User"), d.get("itens")), ensure_ascii=False))
+                except PermissionError as e:
+                    return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/comissoes/marcar":
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
