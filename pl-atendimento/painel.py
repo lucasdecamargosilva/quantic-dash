@@ -920,12 +920,14 @@ def comissoes(usuario):
         "  LEFT JOIN leads l ON l.chatid = pf.chatid"
         "  LEFT JOIN comissoes_status cs ON cs.chatid = pf.chatid"
         " ORDER BY pf.fechado_em DESC").fetchall()
-    meu = nome_responsavel(usuario)
+    u = (usuario or "").strip().lower()
+    # Só o Lucas vê todo mundo; a Dione só os clientes dela; qualquer outro login, nada.
+    meu = "Lucas" if eh_lucas else ("Dione" if u == "dione" else None)
     itens = []
     totais = {"prevista": 0, "a_receber": 0, "paga": 0}
     for r in linhas:
         resp = r["responsavel"] or ""
-        if not eh_lucas and resp != meu:
+        if not eh_lucas and (meu is None or resp != meu):
             continue
         comissao = round(r["valor_centavos"] * COMISSAO_PCT / 100)
         if r["comissao_paga_em"]:
