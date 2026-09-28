@@ -62,8 +62,13 @@ def _evento(dt, tipo, titulo, detalhe="", onde=""):
             "tipo": tipo, "titulo": titulo, "detalhe": (detalhe or "")[:220], "onde": onde}
 
 
-def _catalogo(crm, lead_crm, fone, grupo_nome):
-    """Acha o catálogo do lead: e-mail, depois telefone, depois nome do grupo."""
+def _parecido(a, b):
+    a, b = _core(a), _core(b)
+    return len(a) >= 4 and len(b) >= 4 and (a == b or (min(len(a), len(b)) >= 8 and (a in b or b in a)))
+
+
+def _catalogo(crm, lead_crm, fone, grupo_nome, nomes):
+    """Acha o catálogo do lead: e-mail, telefone, nome do grupo e, por fim, nome do lead."""
     try:
         cats = crm.request("pl_catalog_stores", {"select": "id,slug,display_name,owner_email,whatsapp,created_at"}) or []
     except Exception:
@@ -78,9 +83,11 @@ def _catalogo(crm, lead_crm, fone, grupo_nome):
         c = next((c for c in cats if _digitos(c.get("whatsapp"))[-8:] == tail), None)
         if c:
             return c
-    alvo = _core(re.sub(r"(?i)^provou levou\s*&\s*", "", grupo_nome or ""))
-    if len(alvo) >= 4:
-        return next((c for c in cats if _core(c.get("display_name")) == alvo), None)
+    for nome in [re.sub(r"(?i)^provou levou\s*&\s*", "", grupo_nome or "")] + nomes:
+        nome = re.sub(r"\(.*?\)", "", nome or "")      # "Ótica X (Fulana)" -> "Ótica X"
+        c = next((c for c in cats if _parecido(c.get("display_name"), nome)), None)
+        if c:
+            return c
     return None
 
 
@@ -115,7 +122,13 @@ def historico(c, crm, usuario, chatid=None, crm_id=None):
     if lead_crm and _iso(lead_crm.get("created_at")):
         eventos.append(_evento(_iso(lead_crm["created_at"]), "lead", "Lead entrou no CRM"))
 
-    cat = _catalogo(crm, lead_crm, fone, grupo["nome"] if grupo else "")
+    nome_painel = c.execute("SELECT nome FROM leads WHERE chatid=?", (chatid,)).fetchone() if chatid else None
+    nomes = [(lead_crm or {}).get("nome_loja") or "", nome_painel["nome"] if nome_painel else ""]
+    cat = _catalogo(crm, lead_crm, fone, grupo["nome"] if grupo else "", nomes)
+    if cat and not grupo:
+        # grupo ligado a outro número da mesma loja: acha pelo telefone ou nome do catálogo
+        tail = _digitos(cat.get("whatsapp"))[-8:]
+        grupo = next((g for g in visiveis if len(tail) == 8 and _digitos(g["lead_chatid"].split("@")[0])[-8:] == tail), None) or             next((g for g in visiveis if _parecido(re.sub(r"(?i)^provou levou\s*&\s*", "", g["nome"]), cat.get("display_name"))), None)
     if cat and _iso(cat.get("created_at")):
         eventos.append(_evento(_iso(cat["created_at"]), "catalogo", "Catálogo criado",
                                "provoulevou.com.br/catalogo/?loja=" + cat["slug"]))
