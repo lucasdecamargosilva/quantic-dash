@@ -106,6 +106,15 @@ def historico(c, crm, usuario, chatid=None, crm_id=None):
             lead_crm = rows[0] if rows else None
         except Exception:
             lead_crm = None
+    if not lead_crm and chatid:
+        tail = _digitos(chatid.split("@")[0])[-8:]
+        try:
+            rows = crm.request("leads", {"or": "(telefone.like.*%s,whatsapp.like.*%s)" % (tail, tail),
+                                         "select": "id,nome_loja,telefone,whatsapp,email,created_at,status,responsavel",
+                                         "status": "neq.descartado", "limit": "1"}) if len(tail) == 8 else []
+            lead_crm = rows[0] if rows else None
+        except Exception:
+            lead_crm = None
     fone = chatid.split("@")[0] if chatid else _digitos((lead_crm or {}).get("telefone") or (lead_crm or {}).get("whatsapp"))
     if not chatid and fone:
         tail = fone[-8:]
