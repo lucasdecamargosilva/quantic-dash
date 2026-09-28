@@ -203,6 +203,12 @@ def historico(c, crm, usuario, chatid=None, crm_id=None):
                 eventos.append(_evento(_iso(n["created_at"]), "nota", "Nota no CRM" if n.get("tipo") == "nota" else "Interação: " + str(n.get("tipo")),
                                        n.get("conteudo") or ""))
 
+    # antes do catálogo existir, preço na conversa é apresentação, não cobrança
+    cat_ts = _iso(cat["created_at"]).isoformat() if cat and _iso(cat.get("created_at")) else None
+    if cat_ts:
+        for e in eventos:
+            if e["tipo"] in ("proposta", "cobranca_prazo", "cobranca_cadastro", "pagamento") and e["ts"] < cat_ts:
+                e["tipo"], e["titulo"] = "apresentacao", "Preço apresentado (antes do catálogo)"
     eventos.sort(key=lambda e: e["ts"])
     ultimo = {}
     for e in eventos:
