@@ -15,6 +15,7 @@ Como funciona por dentro:
 """
 import base64
 import grupos_catalogos
+import historico_lead
 import hashlib
 from crm_bridge import CRM, ETAPAS
 from live_events import EventHub, LiveEvents
@@ -2824,6 +2825,13 @@ class H(BaseHTTPRequestHandler):
                                                   ensure_ascii=False))
             if p.path == "/api/comissoes":
                 return self._send(200, json.dumps(comissoes(self.headers.get("X-Prospeccao-User")), ensure_ascii=False))
+            if p.path == "/api/lead/historico":
+                try:
+                    return self._send(200, json.dumps(historico_lead.historico(
+                        con(), CRM_CLIENT, self.headers.get("X-Prospeccao-User"),
+                        (q.get("chatid") or [None])[0], (q.get("crm_id") or [None])[0]), ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if p.path == "/api/conversas":
                 return self._send(200, json.dumps(conversas_index(), ensure_ascii=False))
             if p.path == "/api/recebidas":
