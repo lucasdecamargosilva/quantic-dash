@@ -78,3 +78,4 @@
 .pipeline-acoes>*{margin:0!important}
 .pipeline-dias{background:#10b98122;color:#10b981}
 .pipeline-acoes>button{padding:9px 14px;border:1px solid var(--color-edge);border-radius:8px}
+.chat-pipeline-card .chat-pipeline-owner{margin-right:6px}
