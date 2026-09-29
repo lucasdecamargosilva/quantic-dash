@@ -1162,9 +1162,22 @@ def valida_destinatario(chatid, fone):
     return lead[0]
 
 
+# Uma linha só com "---" dentro do texto (mensagem pronta ou digitada) corta em
+# mensagens separadas no WhatsApp, na ordem, com uma pausa curta entre elas.
+SEPARADOR_MENSAGENS = re.compile(r"\n[ \t]*-{3,}[ \t]*(?:\n|$)")
+
+
+def partes_mensagem(texto):
+    return [p.strip() for p in SEPARADOR_MENSAGENS.split(str(texto or "")) if p.strip()] or [str(texto or "")]
+
+
 def envia_texto(chatid, fone, texto, responsavel):
     fone = valida_destinatario(chatid, fone)
-    resposta = uz("/send/text", {"number": fone, "text": texto})
+    resposta = None
+    for i, parte in enumerate(partes_mensagem(texto)):
+        if i:
+            time.sleep(1.5)
+        resposta = uz("/send/text", {"number": fone, "text": parte})
     registra_inicio(chatid, responsavel)
     return resposta
 
