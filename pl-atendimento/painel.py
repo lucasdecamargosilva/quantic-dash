@@ -1162,9 +1162,9 @@ def valida_destinatario(chatid, fone):
     return lead[0]
 
 
-# Uma linha só com "---" dentro do texto (mensagem pronta ou digitada) corta em
+# Uma linha só com 3+ tracinhos (---, ___, —— ou "- - -") dentro do texto (mensagem pronta ou digitada) corta em
 # mensagens separadas no WhatsApp, na ordem, com uma pausa curta entre elas.
-SEPARADOR_MENSAGENS = re.compile(r"\n[ \t]*-{3,}[ \t]*(?:\n|$)")
+SEPARADOR_MENSAGENS = re.compile(r"\r?\n[ \t]*(?:[-_–—=][ \t]*){3,}(?:\r?\n|$)")
 
 
 def partes_mensagem(texto):
