@@ -1367,6 +1367,7 @@ font-size:12.5px;padding:5px 11px;display:flex;gap:6px;align-items:center;white-
 .fbtn b{font-weight:700;font-size:11.5px;background:color-mix(in srgb,var(--txt) 10%,transparent);
 padding:0 6px;border-radius:99px}
 .fbtn.on b{background:#ffffff2e;color:#fff}
+.fbtn b.naolidas{background:var(--roxo);color:#fff}.fbtn.on b.naolidas{background:#ffffff2e}
 @media(max-width:900px){header{flex-wrap:wrap}.filtros{order:3;width:100%}}
 .lista-col{height:100%;min-height:0;display:flex;flex-direction:column;background:var(--card);
 border-right:1px solid var(--linha);overflow:hidden}
@@ -1932,7 +1933,7 @@ async function filtros(){
   document.getElementById('filtros').innerHTML=rot.map(([v,r,k])=>
     `<button class="fbtn${filtro===v?' on':''}" aria-pressed="${filtro===v}" onclick="setFiltro('${v}')">${icone(
       ({'':'chat','_sem_resposta':'clock','INTERESSADO':'user','TESTE GRÁTIS':'calendar','CONVERTIDO':'check','PERDIDO':'logout','_ocultos':'logout'})[v]||'tag')}${esc(r)}
-       <b>${n[k]||0}</b></button>`).join('');
+       <b${v===''?' class="naolidas"':''}>${n[k]||0}</b></button>`).join('');
 }
 function setFiltro(v){ conversaDestino=null; filtro=v; limpaBusca(false); filtros(); carrega(); }
 function setResponsavelFiltro(v){conversaDestino=null;filtroResponsavel=v;carrega();}
