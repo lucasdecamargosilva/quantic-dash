@@ -43,18 +43,19 @@ export default function ChatPipeline(){
    const panel=await Promise.all(stages.map(async s=>{const r=await fetch(`/api/fila?status=${encodeURIComponent(s.value)}`);if(!r.ok)throw new Error(r.status===401?"Entre no Atendimento para acessar o pipeline de conversas.":"Não foi possível carregar as conversas.");return await r.json() as Lead[]}));
    // 2. Banco (CRM) + índice de conversas por telefone
    const [crmRes,catRes,convs]=await Promise.all([
-     supabase.from("leads").select("id,nome_loja,telefone,whatsapp,email,status,responsavel,updated_at"),
+     supabase.from("leads").select("id,nome_loja,telefone,whatsapp,email,status,responsavel,updated_at,teste_gratis_em"),
      supabase.from("pl_catalog_stores").select("display_name,owner_email,whatsapp,created_at"),
      fetch("/api/conversas").then(r=>r.ok?r.json():[]).catch(()=>[]) as Promise<Array<{chatid:string;fone:string;responsavel:string|null;ultimo_ts:number|null;quando:string;ultima:string;venda:Sale|null;grupo_chatid?:string|null;grupo_nome?:string|null;sem_conversa?:boolean}>>,
    ]);
-   const crmLeads=await applyCustomLeadStatuses((crmRes.data||[]) as any[]) as Array<{id:string;nome_loja:string|null;telefone:string|null;whatsapp:string|null;status:string;responsavel:string|null;updated_at:string|null;email?:string|null}>;
+   const crmLeads=await applyCustomLeadStatuses((crmRes.data||[]) as any[]) as Array<{id:string;nome_loja:string|null;telefone:string|null;whatsapp:string|null;status:string;responsavel:string|null;updated_at:string|null;email?:string|null;teste_gratis_em?:string|null}>;
    // Catálogo do lead (e-mail, telefone ou nome) -> dias desde a criação
    const cats=(catRes.data||[]) as Array<{display_name:string|null;owner_email:string|null;whatsapp:string|null;created_at:string}>;
    const coreNome=(v:string|null|undefined)=>String(v||"").replace(/\(.*?\)/g,"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]/g,"").replace(/^(provoulevou|oticas|otica|opticas|optica)/,"");
    const catPorEmail=new Map<string,string>(),catPorFone=new Map<string,string>(),catPorNome=new Map<string,string>();
    for(const c of cats){if(c.owner_email)catPorEmail.set(c.owner_email.trim().toLowerCase(),c.created_at);const f=normFone(c.whatsapp||"").slice(-8);if(f.length===8&&!catPorFone.has(f))catPorFone.set(f,c.created_at);const n=coreNome(c.display_name);if(n.length>=4)catPorNome.set(n,c.created_at);}
    const hojeBR=Date.parse(saoPauloDay()+"T00:00:00-03:00");
-   const diasDeTeste=(cl:{email?:string|null;nome_loja:string|null},f:string)=>{const iso=(cl.email&&catPorEmail.get(cl.email.trim().toLowerCase()))||catPorFone.get(f.slice(-8))||catPorNome.get(coreNome(cl.nome_loja));if(!iso)return null;const d=Date.parse(saoPauloDay(new Date(iso))+"T00:00:00-03:00");return Number.isFinite(d)?Math.max(0,Math.round((hojeBR-d)/86400000)):null;};
+   // sem catálogo (loja com widget/Nuvemshop etc.): usa a data de início do teste gravada no lead
+   const diasDeTeste=(cl:{email?:string|null;nome_loja:string|null;teste_gratis_em?:string|null},f:string)=>{const iso=(cl.email&&catPorEmail.get(cl.email.trim().toLowerCase()))||catPorFone.get(f.slice(-8))||catPorNome.get(coreNome(cl.nome_loja))||(cl.teste_gratis_em?cl.teste_gratis_em.slice(0,10)+"T12:00:00-03:00":null);if(!iso)return null;const d=Date.parse(saoPauloDay(new Date(iso))+"T00:00:00-03:00");return Number.isFinite(d)?Math.max(0,Math.round((hojeBR-d)/86400000)):null;};
    const convByFone=new Map<string,typeof convs[number]>();
    const vendaByFone=new Map<string,Sale>();
    for(const c of convs){const f=normFone(c.fone);if(!f||!c.venda)continue;if(!vendaByFone.has(f))vendaByFone.set(f,c.venda);if(!vendaByFone.has(f.slice(-8)))vendaByFone.set(f.slice(-8),c.venda);}
