@@ -16,6 +16,7 @@ Como funciona por dentro:
 import base64
 import grupos_catalogos
 import historico_lead
+import tarefas
 import hashlib
 from crm_bridge import CRM, ETAPAS
 from live_events import EventHub, LiveEvents
@@ -295,6 +296,7 @@ LIVE_EVENTS = LiveEvents(UZ, UZ_TOKEN, con, avisa_mensagem_nova)
 def cria_banco():
     c = con()
     grupos_catalogos.initialize(c)
+    tarefas.initialize(c)
     c.executescript("""
     CREATE TABLE IF NOT EXISTS mensagens (
       messageid TEXT PRIMARY KEY, chatid TEXT, ts INTEGER, from_me INTEGER,
@@ -2839,6 +2841,11 @@ class H(BaseHTTPRequestHandler):
                                                   ensure_ascii=False))
             if p.path == "/api/comissoes":
                 return self._send(200, json.dumps(comissoes(self.headers.get("X-Prospeccao-User")), ensure_ascii=False))
+            if p.path == "/api/tarefas":
+                try:
+                    return self._send(200, json.dumps(tarefas.lista(con(), self.headers.get("X-Prospeccao-User")), ensure_ascii=False))
+                except PermissionError as e:
+                    return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if p.path == "/api/lead/historico":
                 try:
                     return self._send(200, json.dumps(historico_lead.historico(
@@ -2971,6 +2978,20 @@ class H(BaseHTTPRequestHandler):
                 try:
                     return self._send(200, json.dumps(marca_comissao(self.headers.get("X-Prospeccao-User"),
                         d.get("chatid"), d.get("campo"), bool(d.get("marcado"))), ensure_ascii=False))
+                except PermissionError as e:
+                    return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+            if self.path in ("/api/tarefas/salvar", "/api/tarefas/excluir"):
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    usuario = self.headers.get("X-Prospeccao-User")
+                    r = (tarefas.salva(con(), usuario, d) if self.path.endswith("salvar")
+                         else tarefas.exclui(con(), usuario, d.get("id")))
+                    return self._send(200, json.dumps(r, ensure_ascii=False))
                 except PermissionError as e:
                     return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 except ValueError as e:
