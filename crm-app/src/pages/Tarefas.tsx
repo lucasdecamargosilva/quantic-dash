@@ -46,7 +46,7 @@ export default function Tarefas() {
   }
   useEffect(() => { void load(); }, []);
 
-  async function salvar(t: Rascunho | (Partial<Tarefa> & { id: string }), limpar?: () => void) {
+  async function salvar(t: Rascunho & { feita?: boolean }, limpar?: () => void) {
     setSalvando(true);
     try { await post("/api/tarefas/salvar", t); limpar?.(); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao salvar."); }
@@ -57,7 +57,7 @@ export default function Tarefas() {
     try { await post("/api/tarefas/excluir", { id: t.id }); setEditando(null); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao excluir."); }
   }
-  const alterna = (t: Tarefa) => salvar({ ...t, prazo: t.prazo || "", feita: !t.feita } as Tarefa);
+  const alterna = (t: Tarefa) => salvar({ id: t.id, titulo: t.titulo, notas: t.notas || "", prazo: t.prazo || "", prioridade: t.prioridade, feita: !t.feita });
 
   const pendentes = useMemo(() => lista.filter(t => !t.feita), [lista]);
   const feitas = useMemo(() => lista.filter(t => t.feita), [lista]);
