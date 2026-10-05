@@ -21,6 +21,15 @@ class PlanoFechadoTest(BuscaTest):
         self.assertEqual(first["fechado_em"],saved["fechado_em"])
         self.assertEqual("crm-a",saved["lead_id"])
 
+    def test_plano_personalizado(self):
+        with patch.object(painel.CRM_CLIENT,"change",return_value={"id":"crm-a"}):
+            painel.salva_plano_fechado("a","Personalizado — 1.000 provas",207200)
+        saved=painel.fila(chatid="a")[0]["venda"]
+        self.assertEqual("Personalizado — 1.000 provas",saved["plano"])
+        self.assertEqual(207200,saved["valor_centavos"])
+        for ruim in ["Personalizadox","Personal","Personalizado — "+"x"*90, None]:
+            self.assertIsNone(painel.plano_valido(ruim))
+
     def test_falha_crm_nao_salva_plano(self):
         with patch.object(painel.CRM_CLIENT,"change",side_effect=RuntimeError("falhou")):
             with self.assertRaises(RuntimeError):painel.salva_plano_fechado("a","Essencial",3900)

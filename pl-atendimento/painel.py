@@ -889,8 +889,23 @@ def exclui_lead(crm_id=None, chatid=None):
     return {"ok": True}
 
 
+PLANO_PERSONALIZADO = "Personalizado"  # acordo fora da tabela: "Personalizado" ou "Personalizado — <descrição>"
+
+
+def plano_valido(plano):
+    if not isinstance(plano, str):
+        return None
+    p = plano.strip()
+    if p in {x["nome"] for x in PLANOS}:
+        return p
+    if len(p) <= 80 and (p == PLANO_PERSONALIZADO or p.startswith(PLANO_PERSONALIZADO + " — ")):
+        return p
+    return None
+
+
 def salva_plano_fechado(chatid, plano, valor_centavos):
-    if plano not in {p["nome"] for p in PLANOS}:
+    plano = plano_valido(plano)
+    if not plano:
         raise ValueError("Selecione um plano válido.")
     if type(valor_centavos) is not int or not 1 <= valor_centavos <= 100000000:
         raise ValueError("Informe um valor de mensalidade válido.")
