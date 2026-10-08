@@ -13,6 +13,7 @@ Como funciona por dentro:
   - A tela le do banco: abre instantaneo e nao depende da rede a cada clique.
   - Áudios são reproduzidos diretamente, sem transcrição automática na conversa.
 """
+import assistente
 import base64
 import grupos_catalogos
 import historico_lead
@@ -2917,6 +2918,20 @@ class H(BaseHTTPRequestHandler):
                     d["fone"] = valida_destinatario(d.get("chatid"), d.get("fone"))
                 except ValueError as e:
                     return self._send(409, json.dumps({"ok": False, "erro": str(e)}, ensure_ascii=False))
+            if self.path == "/api/assistente":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    resposta = assistente.responde(self.headers.get("X-Prospeccao-User"), d.get("mensagens"),
+                                                   GEMINI_KEY, CRM_CLIENT.url, CRM_CLIENT.key,
+                                                   datetime.now(BRT).strftime("%d/%m/%Y %H:%M"))
+                    return self._send(200, json.dumps({"resposta": resposta}, ensure_ascii=False))
+                except PermissionError as e:
+                    return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except (ValueError, RuntimeError) as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/metas/config":
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (

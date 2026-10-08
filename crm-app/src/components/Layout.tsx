@@ -39,6 +39,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: "/assistente",
+    label: "Assistente IA",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 1.5l1.4 3.1 3.1 1.4-3.1 1.4L8 10.5 6.6 7.4 3.5 6l3.1-1.4z" />
+        <path d="M12.5 10.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" />
+      </svg>
+    ),
+  },
+  {
     to: "/mensagens-personalizadas",
     label: "Mensagens Personalizadas",
     icon: (
