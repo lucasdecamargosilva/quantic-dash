@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useGoalConfig } from "../components/SharedGoals";
 
 // Assistente IA do comercial: conversa sobre o negócio, o funil e os catálogos.
 // O backend (pl-atendimento/assistente.py) só enxerga o retrato que a função
 // crm_ia_contexto do Supabase devolve — sem telefone, e-mail ou faturamento de lojista.
-// A conversa fica só neste navegador (localStorage).
+// A conversa também é gravada no servidor (assistente_log) para o Lucas acompanhar
+// na aba "Conversas da equipe".
 
 type Destinatario = { chatid: string; nome: string | null; status: string | null; responsavel: string | null };
 type Disparo = { destinatarios: number; itens: Destinatario[]; texto: string; sem_conversa_no_whatsapp?: number; cortados_pelo_limite?: number };
@@ -11,6 +13,15 @@ type Msg = { de: "eu" | "ia"; texto: string; disparo?: Disparo | null };
 type Envio = { estado: string; total?: number; enviados?: number; falhas?: number; erro?: string };
 
 const STORAGE_KEY = "quantic-crm-assistente";
+const CONVERSA_KEY = "quantic-crm-assistente-conversa";
+const novaConversaId = () => (crypto.randomUUID?.() || String(Date.now()) + Math.random().toString(16).slice(2));
+function conversaAtual(): string {
+  try {
+    const id = localStorage.getItem(CONVERSA_KEY) || novaConversaId();
+    localStorage.setItem(CONVERSA_KEY, id);
+    return id;
+  } catch { return novaConversaId(); }
+}
 const SUGESTOES = [
   "Quais leads em teste eu devo cobrar hoje?",
   "Quem está provando bem e já dá pra propor pacote?",
@@ -122,12 +133,91 @@ function CartaoDisparo({ d }: { d: Disparo }) {
   );
 }
 
+type ConversaResumo = { conversa_id: string; usuario: string; inicio: number; ultima: number; perguntas: number; disparos: number; primeira: string };
+type Turno = { usuario: string; pergunta: string; resposta: string; disparo_n: number; ts: number };
+const dataHora = (ts: number) => new Date(ts * 1000).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const nomeUsuario = (u: string) => (u === "dione" ? "Dione" : u === "lucas" ? "Lucas" : u);
+
+// Só aparece pro Lucas (o servidor também recusa qualquer outro login).
+function ConversasEquipe() {
+  const [lista, setLista] = useState<ConversaResumo[]>([]);
+  const [filtro, setFiltro] = useState("dione");
+  const [aberta, setAberta] = useState<string | null>(null);
+  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(true);
+
+  async function carrega() {
+    setCarregando(true); setErro("");
+    try {
+      const r = await fetch("/api/assistente/conversas", { cache: "no-store" });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.erro || `HTTP ${r.status}`);
+      setLista(d.itens || []);
+    } catch (e) { setErro(e instanceof Error ? e.message : "Erro ao carregar."); } finally { setCarregando(false); }
+  }
+  useEffect(() => { void carrega(); }, []);
+  useEffect(() => {
+    if (!aberta) return;
+    void fetch("/api/assistente/conversa?id=" + encodeURIComponent(aberta), { cache: "no-store" })
+      .then(r => r.json()).then(d => setTurnos(d.itens || [])).catch(() => setTurnos([]));
+  }, [aberta]);
+
+  const visiveis = lista.filter(c => !filtro || c.usuario === filtro);
+  return (
+    <div className="grid flex-1 gap-4 overflow-hidden md:grid-cols-[280px_1fr]">
+      <div className="flex flex-col overflow-hidden rounded-xl border border-edge-subtle bg-raised">
+        <div className="flex items-center gap-2 border-b border-edge-subtle p-2 text-xs">
+          <select value={filtro} onChange={e => setFiltro(e.target.value)} className="rounded-md border border-edge bg-raised px-2 py-1 text-bright">
+            <option value="dione">Dione</option><option value="lucas">Lucas</option><option value="">Todos</option>
+          </select>
+          <button onClick={() => void carrega()} className="ml-auto text-violet">Atualizar</button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {carregando && <p className="p-3 text-xs text-muted">Carregando…</p>}
+          {erro && <p role="alert" className="p-3 text-xs text-rose">{erro}</p>}
+          {!carregando && !erro && !visiveis.length && <p className="p-3 text-xs text-muted">Nenhuma conversa ainda.</p>}
+          {visiveis.map(c => (
+            <button key={c.conversa_id + c.usuario} onClick={() => setAberta(c.conversa_id)}
+              className={`block w-full border-b border-edge-subtle px-3 py-2 text-left hover:bg-active-bg ${aberta === c.conversa_id ? "bg-active-bg" : ""}`}>
+              <div className="flex items-center gap-2 text-[11px] text-muted">
+                <span className="font-semibold text-violet">{nomeUsuario(c.usuario)}</span>
+                <span>{dataHora(c.ultima)}</span>
+                <span className="ml-auto">{c.perguntas} pergunta{c.perguntas === 1 ? "" : "s"}{c.disparos ? " · disparo" : ""}</span>
+              </div>
+              <p className="mt-0.5 line-clamp-2 text-sm text-bright">{c.primeira}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-4 overflow-y-auto pr-1">
+        {!aberta && <p className="text-sm text-muted">Escolha uma conversa ao lado.</p>}
+        {aberta && turnos.map((t, i) => (
+          <div key={i} className="space-y-2">
+            <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-violet px-4 py-2.5 text-sm text-white">
+              <div className="mb-1 text-[10px] opacity-80">{nomeUsuario(t.usuario)} · {dataHora(t.ts)}</div>
+              <p className="whitespace-pre-wrap">{t.pergunta}</p>
+            </div>
+            <div className="max-w-[92%] rounded-2xl rounded-bl-sm border border-edge-subtle bg-raised px-4 py-3 text-sub">
+              <Resposta texto={t.resposta} />
+              {t.disparo_n > 0 && <p className="mt-2 text-xs text-amber">Preparou um disparo para {t.disparo_n} conversa{t.disparo_n === 1 ? "" : "s"}.</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Assistente() {
   const [msgs, setMsgs] = useState<Msg[]>(carrega);
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
   const [erro, setErro] = useState("");
   const fim = useRef<HTMLDivElement>(null);
+  const { canEdit: isLucas } = useGoalConfig();
+  const [aba, setAba] = useState<"minha" | "equipe">("minha");
+  const conversaId = useRef(conversaAtual());
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs.slice(-40))); } catch { /* segue sem salvar */ }
@@ -142,7 +232,7 @@ export default function Assistente() {
     try {
       const r = await fetch("/api/assistente", {
         method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensagens: nova.map(m => ({ de: m.de, texto: m.texto })) }),
+        body: JSON.stringify({ mensagens: nova.map(m => ({ de: m.de, texto: m.texto })), conversa_id: conversaId.current }),
       });
       const bruto = await r.text();
       let d: { resposta?: string; erro?: string; error?: string; disparo?: Disparo | null } = {};
@@ -157,15 +247,30 @@ export default function Assistente() {
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col p-4 sm:p-6">
+    <div className={`mx-auto flex h-full flex-col p-4 sm:p-6 ${aba === "equipe" ? "max-w-6xl" : "max-w-3xl"}`}>
       <header className="flex flex-wrap items-end justify-between gap-3 pb-4">
         <div>
           <h1 className="text-2xl font-semibold text-bright">Assistente IA</h1>
           <p className="mt-1 text-sm text-muted">Pergunte sobre a Provou Levou, os planos, o funil e os catálogos em teste. Os dados são do CRM de agora.</p>
         </div>
-        {msgs.length > 0 && <button onClick={() => { setMsgs([]); setErro(""); }} className="rounded-lg border border-edge px-3 py-1.5 text-xs text-muted hover:text-bright">Nova conversa</button>}
+        <div className="flex items-center gap-2">
+          {isLucas && (
+            <div className="flex rounded-lg border border-edge p-0.5 text-xs">
+              {(["minha", "equipe"] as const).map(a => (
+                <button key={a} onClick={() => setAba(a)} className={`rounded-md px-3 py-1 ${aba === a ? "bg-violet text-white" : "text-muted hover:text-bright"}`}>
+                  {a === "minha" ? "Minha conversa" : "Conversas da equipe"}</button>
+              ))}
+            </div>
+          )}
+          {aba === "minha" && msgs.length > 0 && <button onClick={() => {
+            setMsgs([]); setErro("");
+            conversaId.current = novaConversaId();
+            try { localStorage.setItem(CONVERSA_KEY, conversaId.current); } catch { /* segue */ }
+          }} className="rounded-lg border border-edge px-3 py-1.5 text-xs text-muted hover:text-bright">Nova conversa</button>}
+        </div>
       </header>
 
+      {aba === "equipe" ? <ConversasEquipe /> : <>
       <div className="flex-1 space-y-4 overflow-y-auto pb-4">
         {!msgs.length && (
           <div className="grid gap-2 sm:grid-cols-2">
@@ -195,6 +300,7 @@ export default function Assistente() {
           className="flex-1 resize-none rounded-lg border border-edge bg-raised px-3 py-2 text-sm text-bright outline-none focus:border-violet" />
         <button type="submit" disabled={pensando || !texto.trim()} className="rounded-lg bg-violet px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Enviar</button>
       </form>
+      </>}
     </div>
   );
 }

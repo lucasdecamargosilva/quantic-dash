@@ -2845,6 +2845,14 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps({**SYNC, "crm": CRM_CLIENT.sync_status, "events": dict(LIVE_EVENTS.status)}, ensure_ascii=False))
             if p.path == "/api/contagem":
                 return self._send(200, json.dumps(contagem(), ensure_ascii=False))
+            if p.path in ("/api/assistente/conversas", "/api/assistente/conversa"):
+                # Só o Lucas lê o histórico da equipe.
+                if (self.headers.get("X-Prospeccao-User") or "").strip().lower() != "lucas":
+                    return self._send(403, json.dumps({"erro": "Só o Lucas vê o histórico da equipe."}, ensure_ascii=False))
+                if p.path == "/api/assistente/conversas":
+                    return self._send(200, json.dumps({"itens": assistente.lista_conversas(DB)}, ensure_ascii=False))
+                return self._send(200, json.dumps({"itens": assistente.le_conversa(DB, (q.get("id") or [""])[0])},
+                                                  ensure_ascii=False))
             if p.path == "/api/metas/config":
                 return self._send(200, json.dumps({"goals": read_goals(DB),
                     "canEdit": self.headers.get("X-Prospeccao-User") == "lucas"}, ensure_ascii=False))
@@ -2931,6 +2939,12 @@ class H(BaseHTTPRequestHandler):
                     resposta = assistente.responde(self.headers.get("X-Prospeccao-User"), d.get("mensagens"),
                                                    GEMINI_KEY, CRM_CLIENT.url, CRM_CLIENT.key,
                                                    datetime.now(BRT).strftime("%d/%m/%Y %H:%M"), DB)
+                    try:
+                        ultima = next((m.get("texto") for m in reversed(d.get("mensagens") or []) if m.get("de") != "ia"), "")
+                        assistente.registra(DB, self.headers.get("X-Prospeccao-User"), d.get("conversa_id"), ultima,
+                                            resposta["texto"], resposta.get("disparo"))
+                    except Exception as e:
+                        print("  aviso: não gravei o histórico do assistente (%s)" % e)
                     return self._send(200, json.dumps({"resposta": resposta["texto"], "disparo": resposta.get("disparo")},
                                                       ensure_ascii=False))
                 except PermissionError as e:

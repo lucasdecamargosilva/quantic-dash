@@ -410,3 +410,47 @@ def _gemini(url, corpo):
         except (KeyError, IndexError):
             raise RuntimeError("A IA não conseguiu responder essa. Reformule a pergunta.")
     raise RuntimeError("A IA está ocupada. Tente de novo em instantes.")
+
+
+# ───────────── histórico (o Lucas lê as conversas da equipe) ─────────────
+
+def _log_con(db_path):
+    c = sqlite3.connect(db_path, timeout=30)
+    c.row_factory = sqlite3.Row
+    c.execute("CREATE TABLE IF NOT EXISTS assistente_log (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario TEXT NOT NULL, "
+              "conversa_id TEXT NOT NULL, pergunta TEXT NOT NULL, resposta TEXT NOT NULL, disparo_n INTEGER DEFAULT 0, "
+              "ts INTEGER NOT NULL)")
+    c.execute("CREATE INDEX IF NOT EXISTS ix_assistente_log ON assistente_log(conversa_id, ts)")
+    return c
+
+
+def registra(db_path, usuario, conversa_id, pergunta, resposta, disparo):
+    c = _log_con(db_path)
+    try:
+        c.execute("INSERT INTO assistente_log(usuario,conversa_id,pergunta,resposta,disparo_n,ts) VALUES(?,?,?,?,?,?)",
+                  ((usuario or "").strip().lower(), str(conversa_id or "sem-id")[:64], str(pergunta)[:6000],
+                   str(resposta)[:20000], len((disparo or {}).get("itens") or []), int(time.time())))
+        c.commit()
+    finally:
+        c.close()
+
+
+def lista_conversas(db_path, limite=200):
+    c = _log_con(db_path)
+    try:
+        return [dict(r) for r in c.execute(
+            "SELECT conversa_id, usuario, MIN(ts) inicio, MAX(ts) ultima, COUNT(*) perguntas, SUM(disparo_n>0) disparos, "
+            "(SELECT pergunta FROM assistente_log x WHERE x.conversa_id=l.conversa_id ORDER BY ts LIMIT 1) primeira "
+            "FROM assistente_log l GROUP BY conversa_id, usuario ORDER BY ultima DESC LIMIT ?", (limite,))]
+    finally:
+        c.close()
+
+
+def le_conversa(db_path, conversa_id):
+    c = _log_con(db_path)
+    try:
+        return [dict(r) for r in c.execute(
+            "SELECT usuario, pergunta, resposta, disparo_n, ts FROM assistente_log WHERE conversa_id=? ORDER BY ts, id",
+            (conversa_id,))]
+    finally:
+        c.close()
