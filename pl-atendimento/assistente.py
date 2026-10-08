@@ -7,13 +7,14 @@ no banco existe apenas o hash dela (tabela crm_ia_chave, invisível pra anon).
 """
 import json
 import os
+import sqlite3
 import threading
 import time
 import urllib.error
 import urllib.request
 
 USUARIOS = {"lucas", "dione"}
-MODELO = "gemini-2.5-flash"
+MODELO = os.environ.get("PL_IA_MODELO", "gemini-2.5-flash")   # ou claude-haiku-5-5 (precisa ANTHROPIC_API_KEY)
 MAX_TURNOS = 24
 CACHE_SEG = 180
 
@@ -86,9 +87,16 @@ Quem conversa com você é %(quem)s. Hoje é %(hoje)s (horário de Brasília).
 Use a BASE DE CONHECIMENTO e o RETRATO DOS DADOS abaixo para responder sobre o negócio, o funil,
 os leads em teste e o uso dos catálogos, sugerir próximos passos e escrever mensagens de WhatsApp.
 
+Você tem duas ferramentas — USE-AS sempre que a pergunta for sobre leads, etapas, status, planos fechados,
+conversas, quantidades ou datas (o retrato abaixo é só um resumo):
+- buscar_leads_crm: CRM do Supabase (pipeline de prospecção: etapa, responsável, notas, teste grátis, origem).
+- consultar_pipeline: SQL SELECT (SQLite) no Pipeline de atendimento do WhatsApp — status do chat,
+  plano fechado e valor, comissão, mensagens trocadas, quem iniciou cada conversa.
+Pode chamar várias vezes e combinar. Se a consulta der erro, corrija e tente de novo.
+
 Regras:
 - Português do Brasil, direto, com recomendação clara. Nada de rodeio.
-- Números e status de leads/catálogos: SOMENTE do retrato dos dados. Se não estiver lá, diga que
+- Números e status de leads/catálogos: SOMENTE do retrato dos dados ou das ferramentas. Se não estiver lá, diga que
   não tem esse dado aqui e sugira perguntar ao Lucas. Nunca invente preço, desconto, prazo,
   funcionalidade ou case.
 - Desconto, plano fora da tabela, Enterprise ou questão técnica de instalação: oriente a falar com o Lucas.
@@ -127,11 +135,151 @@ def contexto(crm_url, crm_key):
         return _cache["txt"]
 
 
-def responde(usuario, mensagens, gemini_key, crm_url, crm_key, hoje):
+ESQUEMA_PIPELINE = """Tabelas (SQLite, só leitura):
+- leads(chatid, fone, nome, status, responsavel, ultimo_ts, ultimo_de, oculto)
+  status do chat: MENSAGEM 1, MENSAGEM 2, MENSAGEM 3, STAND-BY, CONTATAR, INTERESSADO, TESTE GRÁTIS,
+  AGUARDANDO CADASTRO, TESTANDO, PASSOU DO PRAZO, PROPOSTA ENVIADA, NEGOCIANDO, AGUARDANDO PAGAMENTO,
+  CONVERTIDO, PERDIDO. responsavel: 'Lucas' | 'Dione' | NULL. ultimo_de: 'lead' (esperando a gente) | 'nos'.
+  ultimo_ts = epoch em segundos (ou ms se > 1e11). oculto=1 = removido da fila.
+- mensagens(chatid, ts, from_me, tipo, texto)   -- from_me=1 nós; ts epoch (s ou ms)
+- planos_fechados(chatid, lead_id, plano, valor_centavos, fechado_em, atualizado_em)  -- fechado_em ISO -03:00
+- comissoes_status(chatid, cliente_pagou_em, comissao_paga_em)   -- comissão = 20% da 1ª mensalidade
+- conversas_iniciadas(chatid, ts, responsavel) / atendimentos_iniciados(chatid, responsavel, ts)
+- conversas_atribuidas(chatid, responsavel, ts)
+- crm_links(chatid, lead_id)   -- liga o chat ao lead do CRM (Supabase)
+- grupos_catalogos(chatid, lead_chatid, nome, responsavel)   -- grupos de WhatsApp dos catálogos
+Datas: date(CASE WHEN ts>100000000000 THEN ts/1000 ELSE ts END,'unixepoch','-3 hours')."""
+
+FERRAMENTAS = [{"functionDeclarations": [
+    {"name": "buscar_leads_crm",
+     "description": "Busca leads no CRM (Supabase). Devolve total_encontrado, contagens por_etapa/por_fonte/por_responsavel do conjunto filtrado e até 'limite' leads (mais recentes primeiro) "
+                    "com loja, etapa, responsável, instagram, site, plataforma, categoria, fonte, criado, atualizado, "
+                    "teste_desde e notas. Etapas: meta, dm_enviada, mensagem_1, mensagem_2, mensagem_3, respondeu, contatar, "
+                    "interessado, fotos_enviadas, reuniao_agendada, testando, teste_catalogo_7_dias, testando_ativo, "
+                    "aguardando_cadastro, passou_prazo, proposta_enviada, negociando, aguardando_pagamento, fechou, "
+                    "stand_by, parou_responder, perdida, descartado, sem_site, email_a_enviar, novo.",
+     "parameters": {"type": "OBJECT", "properties": {
+         "busca": {"type": "STRING", "description": "texto no nome da loja, instagram, site ou notas"},
+         "etapas": {"type": "ARRAY", "items": {"type": "STRING"}},
+         "responsavel": {"type": "STRING", "description": "Lucas ou Dione"},
+         "atualizado_desde": {"type": "STRING", "description": "AAAA-MM-DD"},
+         "fonte": {"type": "STRING", "description": "origem do lead, ex.: Meta, WhatsApp, Instagram"},
+         "criado_desde": {"type": "STRING", "description": "entrou no CRM a partir de AAAA-MM-DD"},
+         "criado_ate": {"type": "STRING", "description": "entrou no CRM até AAAA-MM-DD (inclusive)"},
+         "limite": {"type": "INTEGER", "description": "1 a 300 (padrão 100); para só contar use 1"}}}},
+    {"name": "consultar_pipeline",
+     "description": "Executa um SELECT (SQLite) no Pipeline de atendimento do WhatsApp. " + ESQUEMA_PIPELINE,
+     "parameters": {"type": "OBJECT", "properties": {"sql": {"type": "STRING"}}, "required": ["sql"]}},
+]}]
+
+_PIPE_TABELAS = ("conversas_iniciadas", "atendimentos_iniciados", "conversas_atribuidas", "crm_links", "grupos_catalogos")
+
+
+def consultar_pipeline(sql, db_path, usuario):
+    """SELECT só-leitura. Abre o painel.db em modo ro e expõe só views temporárias;
+    para a Dione, planos/comissões aparecem só dos clientes dela (mesma regra da tela Comissões)."""
+    sql = (sql or "").strip().rstrip(";")
+    if not sql.lower().startswith(("select", "with")) or ";" in sql:
+        return {"erro": "Só um SELECT por vez."}
+    c = sqlite3.connect("file::memory:", uri=True)
+    try:
+        c.execute("ATTACH DATABASE ? AS src", ("file:%s?mode=ro" % db_path,))
+        dono = "" if usuario == "lucas" else " WHERE chatid IN (SELECT chatid FROM src.leads WHERE responsavel='Dione')"
+        c.execute("CREATE TEMP VIEW leads AS SELECT chatid,fone,nome,status,responsavel,ultimo_ts,ultimo_de,oculto FROM src.leads")
+        c.execute("CREATE TEMP VIEW mensagens AS SELECT chatid,ts,from_me,tipo,texto FROM src.mensagens WHERE excluida=0")
+        c.execute("CREATE TEMP VIEW planos_fechados AS SELECT * FROM src.planos_fechados" + dono)
+        c.execute("CREATE TEMP VIEW comissoes_status AS SELECT chatid,cliente_pagou_em,comissao_paga_em FROM src.comissoes_status" + dono)
+        for t in _PIPE_TABELAS:
+            c.execute("CREATE TEMP VIEW %s AS SELECT * FROM src.%s" % (t, t))
+
+        def autoriza(acao, a1, a2, banco, view):
+            if acao in (sqlite3.SQLITE_SELECT, sqlite3.SQLITE_FUNCTION, sqlite3.SQLITE_RECURSIVE):
+                return sqlite3.SQLITE_OK
+            if acao == sqlite3.SQLITE_READ and (banco == "temp" or (banco == "src" and view)):
+                return sqlite3.SQLITE_OK
+            return sqlite3.SQLITE_DENY
+        c.set_authorizer(autoriza)
+        fim = time.time() + 5
+        c.set_progress_handler(lambda: 1 if time.time() > fim else 0, 10000)
+        cur = c.execute(sql)
+        cols = [d[0] for d in cur.description or []]
+        linhas = cur.fetchmany(201)
+        return {"colunas": cols, "linhas": [list(l) for l in linhas[:200]], "cortado": len(linhas) > 200}
+    except sqlite3.Error as e:
+        return {"erro": str(e)[:300]}
+    finally:
+        c.close()
+
+
+def buscar_leads_crm(args, crm_url, crm_key):
+    corpo = {"p_chave": os.environ.get("PL_IA_KEY", "")}
+    for k in ("busca", "etapas", "responsavel", "atualizado_desde", "limite", "fonte", "criado_desde", "criado_ate"):
+        if args.get(k) not in (None, "", []):
+            corpo["p_" + k] = args[k]
+    try:
+        return _post(crm_url.rstrip("/") + "/rest/v1/rpc/crm_ia_leads", corpo,
+                     {"apikey": crm_key, "Authorization": "Bearer " + crm_key})
+    except urllib.error.HTTPError as e:
+        return {"erro": e.read().decode("utf-8", "replace")[:300]}
+
+
+def _executa(nome, a, usuario, crm_url, crm_key, db_path):
+    if nome == "buscar_leads_crm":
+        return buscar_leads_crm(a, crm_url, crm_key)
+    if nome == "consultar_pipeline" and db_path:
+        return consultar_pipeline(a.get("sql"), db_path, usuario)
+    return {"erro": "ferramenta indisponível"}
+
+
+def _tipo_claude(p):
+    """Converte o schema estilo Gemini (OBJECT/STRING) para JSON Schema."""
+    out = {k: v for k, v in p.items() if k not in ("type", "properties", "items")}
+    out["type"] = p["type"].lower()
+    if "properties" in p:
+        out["properties"] = {k: _tipo_claude(v) for k, v in p["properties"].items()}
+    if "items" in p:
+        out["items"] = _tipo_claude(p["items"])
+    return out
+
+
+def _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path):
+    chave = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not chave:
+        raise RuntimeError("Sem ANTHROPIC_API_KEY no servidor.")
+    tools = [{"name": f["name"], "description": f["description"], "input_schema": _tipo_claude(f["parameters"])}
+             for f in FERRAMENTAS[0]["functionDeclarations"]]
+    msgs = [{"role": "assistant" if t["role"] == "model" else "user", "content": t["parts"][0]["text"]} for t in turnos]
+    h = {"x-api-key": chave, "anthropic-version": "2023-06-01"}
+    for _ in range(8):
+        corpo = {"model": MODELO, "max_tokens": 4096, "temperature": 0.3, "tools": tools, "messages": msgs,
+                 "system": [{"type": "text", "text": sistema, "cache_control": {"type": "ephemeral"}}]}
+        for t in range(3):
+            try:
+                d = _post("https://api.anthropic.com/v1/messages", corpo, h, timeout=180)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code in (429, 500, 529) and t < 2:
+                    time.sleep(2 + t * 3)
+                    continue
+                raise RuntimeError("A IA não respondeu (HTTP %d). Tente de novo." % e.code)
+        blocos = d.get("content", [])
+        usos = [b for b in blocos if b.get("type") == "tool_use"]
+        if d.get("stop_reason") != "tool_use" or not usos:
+            return "".join(b.get("text", "") for b in blocos if b.get("type") == "text").strip()
+        msgs = msgs + [{"role": "assistant", "content": blocos},
+                       {"role": "user", "content": [{"type": "tool_result", "tool_use_id": b["id"],
+                                                     "content": json.dumps(_executa(b["name"], b.get("input") or {}, usuario,
+                                                                                    crm_url, crm_key, db_path),
+                                                                           ensure_ascii=False, default=str)}
+                                                    for b in usos]}]
+    return "Precisei de consultas demais para responder. Tente uma pergunta mais específica."
+
+
+def responde(usuario, mensagens, gemini_key, crm_url, crm_key, hoje, db_path=None):
     usuario = (usuario or "").strip().lower()
     if usuario not in USUARIOS:
         raise PermissionError("Assistente disponível só para o comercial.")
-    if not gemini_key:
+    if not MODELO.startswith("claude") and not gemini_key:
         raise RuntimeError("Sem GEMINI_KEY no servidor.")
     if not isinstance(mensagens, list) or not mensagens:
         raise ValueError("Mande ao menos uma mensagem.")
@@ -145,19 +293,36 @@ def responde(usuario, mensagens, gemini_key, crm_url, crm_key, hoje):
     sistema = (REGRAS % {"quem": "a Dione (comercial)" if usuario == "dione" else "o Lucas (dono)", "hoje": hoje}
                + "\n\n# BASE DE CONHECIMENTO\n" + BASE
                + "\n\n# RETRATO DOS DADOS (JSON, gerado agora do CRM)\n" + contexto(crm_url, crm_key))
-    corpo = {"systemInstruction": {"parts": [{"text": sistema}]}, "contents": turnos,
+    if MODELO.startswith("claude"):
+        return _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path)
+    corpo = {"systemInstruction": {"parts": [{"text": sistema}]}, "contents": turnos, "tools": FERRAMENTAS,
              "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4096,
                                   "thinkingConfig": {"thinkingBudget": 1024}}}
     url = ("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s"
            % (MODELO, gemini_key))
+    for _ in range(8):   # rodadas de ferramenta
+        partes = _gemini(url, corpo)
+        chamadas = [p["functionCall"] for p in partes if p.get("functionCall")]
+        if not chamadas:
+            return "".join(p.get("text", "") for p in partes if not p.get("thought")).strip()
+        respostas = []
+        for f in chamadas:
+            r = _executa(f["name"], f.get("args") or {}, usuario, crm_url, crm_key, db_path)
+            respostas.append({"functionResponse": {"name": f["name"], "response": {"resultado": json.loads(json.dumps(r, default=str))}}})
+        corpo["contents"] = corpo["contents"] + [{"role": "model", "parts": partes}, {"role": "user", "parts": respostas}]
+    return "Precisei de consultas demais para responder. Tente uma pergunta mais específica."
+
+
+def _gemini(url, corpo):
     for t in range(3):
         try:
             d = _post(url, corpo, {}, timeout=180)
-            partes = d["candidates"][0]["content"]["parts"]
-            return "".join(p.get("text", "") for p in partes if not p.get("thought")).strip()
+            return d["candidates"][0]["content"]["parts"]
         except urllib.error.HTTPError as e:
             if e.code in (429, 500, 503) and t < 2:
                 time.sleep(2 + t * 3)
                 continue
             raise RuntimeError("A IA não respondeu (HTTP %d). Tente de novo." % e.code)
+        except (KeyError, IndexError):
+            raise RuntimeError("A IA não conseguiu responder essa. Reformule a pergunta.")
     raise RuntimeError("A IA está ocupada. Tente de novo em instantes.")

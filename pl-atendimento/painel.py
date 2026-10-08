@@ -2926,7 +2926,7 @@ class H(BaseHTTPRequestHandler):
                 try:
                     resposta = assistente.responde(self.headers.get("X-Prospeccao-User"), d.get("mensagens"),
                                                    GEMINI_KEY, CRM_CLIENT.url, CRM_CLIENT.key,
-                                                   datetime.now(BRT).strftime("%d/%m/%Y %H:%M"))
+                                                   datetime.now(BRT).strftime("%d/%m/%Y %H:%M"), DB)
                     return self._send(200, json.dumps({"resposta": resposta}, ensure_ascii=False))
                 except PermissionError as e:
                     return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
