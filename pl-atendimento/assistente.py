@@ -95,6 +95,10 @@ conversas, quantidades ou datas (o retrato abaixo é só um resumo):
 - buscar_leads_crm: CRM do Supabase (pipeline de prospecção: etapa, responsável, notas, teste grátis, origem).
 - consultar_pipeline: SQL SELECT (SQLite) no Pipeline de atendimento do WhatsApp — status do chat,
   plano fechado e valor, comissão, mensagens trocadas, quem iniciou cada conversa.
+- preparar_disparo: quando pedirem para disparar/mandar mensagem para leads. Primeiro ache os leads (ferramentas
+  acima), depois prepare. Você NUNCA envia: a pessoa confere a lista e clica em Disparar no cartão. Diga quantos
+  destinatários ficaram, quantos ficaram de fora (sem conversa no WhatsApp ou acima do limite de 100) e peça para
+  revisar. Não inclua quem já fechou (CONVERTIDO/fechou) ou foi perdido, a menos que peçam explicitamente.
 Pode chamar várias vezes e combinar. Se a consulta der erro, corrija e tente de novo.
 
 Regras:
@@ -174,6 +178,15 @@ FERRAMENTAS = [{"functionDeclarations": [
          "criado_desde": {"type": "STRING", "description": "entrou no CRM a partir de AAAA-MM-DD"},
          "criado_ate": {"type": "STRING", "description": "entrou no CRM até AAAA-MM-DD (inclusive)"},
          "limite": {"type": "INTEGER", "description": "1 a 300 (padrão 100). Para CONTAR use limite 1 e leia total_encontrado/por_etapa/por_fonte"}}}},
+    {"name": "preparar_disparo",
+     "description": "Prepara (NÃO envia) um disparo de WhatsApp pela instância Quantic 4714. A pessoa revisa a lista e a "
+                    "mensagem num cartão e só ela confirma o envio. Passe chatids (do consultar_pipeline, coluna chatid) "
+                    "e/ou lead_ids (campo id do buscar_leads_crm). Máximo 100 destinatários. Use {nome} no texto para o "
+                    "primeiro nome de cada lead. Separe em mais de uma mensagem com uma linha contendo só ---.",
+     "parameters": {"type": "OBJECT", "properties": {
+         "chatids": {"type": "ARRAY", "items": {"type": "STRING"}},
+         "lead_ids": {"type": "ARRAY", "items": {"type": "STRING"}},
+         "texto": {"type": "STRING"}}, "required": ["texto"]}},
     {"name": "consultar_pipeline",
      "description": "Executa um SELECT (SQLite) no Pipeline de atendimento do WhatsApp. " + ESQUEMA_PIPELINE,
      "parameters": {"type": "OBJECT", "properties": {"sql": {"type": "STRING"}}, "required": ["sql"]}},
@@ -237,7 +250,52 @@ def buscar_leads_crm(args, crm_url, crm_key):
     return d
 
 
-def _executa(nome, a, usuario, crm_url, crm_key, db_path):
+MAX_DISPARO = 100
+
+
+def preparar_disparo(a, db_path):
+    """Resolve os destinatários no painel.db (só leitura). Quem não tem conversa no WhatsApp
+    da instância fica de fora — o disparo só sai para conversas existentes."""
+    texto = str(a.get("texto") or "").strip()
+    if not texto:
+        return {"erro": "Falta o texto da mensagem."}
+    chatids = [str(x).strip() for x in (a.get("chatids") or []) if str(x).strip()]
+    lead_ids = [str(x).strip() for x in (a.get("lead_ids") or []) if str(x).strip()]
+    if not (chatids or lead_ids):
+        return {"erro": "Informe chatids ou lead_ids."}
+    c = sqlite3.connect("file:%s?mode=ro" % db_path, uri=True)
+    c.row_factory = sqlite3.Row
+    try:
+        sem_conversa = 0
+        if lead_ids:
+            marcas = ",".join("?" * len(lead_ids))
+            achados = {r["lead_id"]: r["chatid"] for r in c.execute(
+                "SELECT lead_id, chatid FROM crm_links WHERE lead_id IN (%s)" % marcas, lead_ids)}
+            sem_conversa = len([l for l in lead_ids if l not in achados])
+            chatids += [achados[l] for l in lead_ids if l in achados]
+        chatids = [x for x in dict.fromkeys(chatids) if not x.endswith("@g.us")]
+        linhas = {}
+        for i in range(0, len(chatids), 500):
+            parte = chatids[i:i + 500]
+            for r in c.execute("SELECT chatid, nome, status, responsavel FROM leads WHERE chatid IN (%s)"
+                               % ",".join("?" * len(parte)), parte):
+                linhas[r["chatid"]] = dict(r)
+    finally:
+        c.close()
+    itens = [linhas[x] for x in chatids if x in linhas]
+    sem_conversa += len(chatids) - len(itens)
+    cortados = max(0, len(itens) - MAX_DISPARO)
+    return {"destinatarios": len(itens[:MAX_DISPARO]), "itens": itens[:MAX_DISPARO], "texto": texto,
+            "sem_conversa_no_whatsapp": sem_conversa, "cortados_pelo_limite": cortados,
+            "aviso": "Rascunho pronto. NADA foi enviado: a pessoa precisa revisar e clicar em Disparar no cartão."}
+
+
+def _executa(nome, a, usuario, crm_url, crm_key, db_path, estado=None):
+    if nome == "preparar_disparo" and db_path:
+        r = preparar_disparo(a, db_path)
+        if estado is not None and r.get("itens"):
+            estado["disparo"] = r
+        return dict(r, itens="%d destinatários (lista vai no cartão)" % len(r["itens"])) if r.get("itens") else r
     if nome == "buscar_leads_crm":
         return buscar_leads_crm(a, crm_url, crm_key)
     if nome == "consultar_pipeline" and db_path:
@@ -256,7 +314,7 @@ def _tipo_claude(p):
     return out
 
 
-def _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path):
+def _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path, estado):
     chave = os.environ.get("ANTHROPIC_API_KEY", "")
     if not chave:
         raise RuntimeError("Sem ANTHROPIC_API_KEY no servidor.")
@@ -285,7 +343,7 @@ def _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path):
         msgs = msgs + [{"role": "assistant", "content": blocos},
                        {"role": "user", "content": [{"type": "tool_result", "tool_use_id": b["id"],
                                                      "content": json.dumps(_executa(b["name"], b.get("input") or {}, usuario,
-                                                                                    crm_url, crm_key, db_path),
+                                                                                    crm_url, crm_key, db_path, estado),
                                                                            ensure_ascii=False, default=str)}
                                                     for b in usos]}]
     return "Precisei de consultas demais para responder. Tente uma pergunta mais específica."
@@ -309,9 +367,10 @@ def responde(usuario, mensagens, gemini_key, crm_url, crm_key, hoje, db_path=Non
     sistema = (REGRAS % {"quem": "a Dione (comercial)" if usuario == "dione" else "o Lucas (dono)", "hoje": hoje}
                + "\n\n# BASE DE CONHECIMENTO\n" + BASE
                + "\n\n# RETRATO DOS DADOS (JSON, gerado agora do CRM)\n" + contexto(crm_url, crm_key))
+    estado = {}
     if MODELO.startswith("claude"):
         try:
-            return _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path)
+            return _final(_responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path, estado), estado)
         except RuntimeError:
             if not gemini_key:
                 raise
@@ -325,13 +384,17 @@ def responde(usuario, mensagens, gemini_key, crm_url, crm_key, hoje, db_path=Non
         partes = _gemini(url, corpo)
         chamadas = [p["functionCall"] for p in partes if p.get("functionCall")]
         if not chamadas:
-            return "".join(p.get("text", "") for p in partes if not p.get("thought")).strip()
+            return _final("".join(p.get("text", "") for p in partes if not p.get("thought")).strip(), estado)
         respostas = []
         for f in chamadas:
-            r = _executa(f["name"], f.get("args") or {}, usuario, crm_url, crm_key, db_path)
+            r = _executa(f["name"], f.get("args") or {}, usuario, crm_url, crm_key, db_path, estado)
             respostas.append({"functionResponse": {"name": f["name"], "response": {"resultado": json.loads(json.dumps(r, default=str))}}})
         corpo["contents"] = corpo["contents"] + [{"role": "model", "parts": partes}, {"role": "user", "parts": respostas}]
-    return "Precisei de consultas demais para responder. Tente uma pergunta mais específica."
+    return _final("Precisei de consultas demais para responder. Tente uma pergunta mais específica.", estado)
+
+
+def _final(texto, estado):
+    return {"texto": texto, "disparo": estado.get("disparo")}
 
 
 def _gemini(url, corpo):

@@ -25,6 +25,7 @@ from metas_config import read_goals, save_goals
 import io
 import json
 import os
+import random
 import re
 import socket
 import sqlite3
@@ -1279,7 +1280,7 @@ def mensagens_abordagem(nome, vendedor):
     return [aplica_nome(esp["abordagem_1"], primeiro_nome(nome)), esp["abordagem_2"]]
 
 
-def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas", responsavel="Lucas"):
+def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas", responsavel="Lucas", pausa=None):
     """Valida os alvos e envia a mensagem escolhida a cada conversa em segundo plano."""
     if not isinstance(chatids, list):
         raise ValueError("Selecione pelo menos uma conversa.")
@@ -1314,7 +1315,10 @@ def inicia_disparo_massa(chatids, texto, modo=None, vendedor="Lucas", responsave
     }
 
     def roda():
-        for alvo in alvos:
+        for n, alvo in enumerate(alvos):
+            if n and pausa:
+                # espaça os contatos: rajada de mensagens para muitos números derruba a instância
+                time.sleep(random.uniform(*pausa))
             resultado = {"chatid": alvo["chatid"], "nome": alvo["nome"] or alvo["fone"],
                          "ok": False, "erro": "", "mensagens_enviadas": 0}
             try:
@@ -2927,7 +2931,8 @@ class H(BaseHTTPRequestHandler):
                     resposta = assistente.responde(self.headers.get("X-Prospeccao-User"), d.get("mensagens"),
                                                    GEMINI_KEY, CRM_CLIENT.url, CRM_CLIENT.key,
                                                    datetime.now(BRT).strftime("%d/%m/%Y %H:%M"), DB)
-                    return self._send(200, json.dumps({"resposta": resposta}, ensure_ascii=False))
+                    return self._send(200, json.dumps({"resposta": resposta["texto"], "disparo": resposta.get("disparo")},
+                                                      ensure_ascii=False))
                 except PermissionError as e:
                     return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 except (ValueError, RuntimeError) as e:
@@ -3080,7 +3085,8 @@ class H(BaseHTTPRequestHandler):
                     usuario = self.headers.get("X-Prospeccao-User")
                     eid = inicia_disparo_massa(
                         d.get("chatids"), d.get("texto"), d.get("modo"),
-                        nome_vendedor(usuario), nome_responsavel(usuario))
+                        nome_vendedor(usuario), nome_responsavel(usuario),
+                        (10, 20) if d.get("origem") == "assistente" else None)
                     return self._send(200, json.dumps({"ok": True, "eid": eid}))
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))

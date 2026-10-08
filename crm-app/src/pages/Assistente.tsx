@@ -5,7 +5,10 @@ import { useEffect, useRef, useState } from "react";
 // crm_ia_contexto do Supabase devolve — sem telefone, e-mail ou faturamento de lojista.
 // A conversa fica só neste navegador (localStorage).
 
-type Msg = { de: "eu" | "ia"; texto: string };
+type Destinatario = { chatid: string; nome: string | null; status: string | null; responsavel: string | null };
+type Disparo = { destinatarios: number; itens: Destinatario[]; texto: string; sem_conversa_no_whatsapp?: number; cortados_pelo_limite?: number };
+type Msg = { de: "eu" | "ia"; texto: string; disparo?: Disparo | null };
+type Envio = { estado: string; total?: number; enviados?: number; falhas?: number; erro?: string };
 
 const STORAGE_KEY = "quantic-crm-assistente";
 const SUGESTOES = [
@@ -53,6 +56,72 @@ function Resposta({ texto }: { texto: string }) {
   );
 }
 
+// Cartão do disparo preparado pela IA. Nada sai sem o clique aqui; o envio usa o mesmo
+// /api/disparo do painel (instância Quantic 4714) com pausa de 10–20 s entre contatos.
+function CartaoDisparo({ d }: { d: Disparo }) {
+  const [itens, setItens] = useState(d.itens);
+  const [texto, setTexto] = useState(d.texto);
+  const [aberto, setAberto] = useState(false);
+  const [envio, setEnvio] = useState<Envio | null>(null);
+  const [erro, setErro] = useState("");
+
+  async function disparar() {
+    if (!itens.length || !texto.trim()) return;
+    if (!window.confirm(`Enviar esta mensagem para ${itens.length} conversa${itens.length === 1 ? "" : "s"} pelo WhatsApp 4714?`)) return;
+    setErro("");
+    try {
+      const r = await fetch("/api/disparo", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatids: itens.map(i => i.chatid), texto, origem: "assistente" }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.eid) throw new Error(j.erro || `Falha ao iniciar o disparo (HTTP ${r.status}).`);
+      setEnvio({ estado: "enviando", total: itens.length, enviados: 0, falhas: 0 });
+      const t = setInterval(async () => {
+        try {
+          const s: Envio = await (await fetch("/api/envio?eid=" + j.eid, { cache: "no-store" })).json();
+          setEnvio(s);
+          if (s.estado !== "enviando") clearInterval(t);
+        } catch { /* tenta de novo no próximo ciclo */ }
+      }, 4000);
+    } catch (e) { setErro(e instanceof Error ? e.message : "Erro ao disparar."); }
+  }
+
+  const travado = !!envio;
+  return (
+    <div className="mt-3 space-y-3 rounded-xl border border-violet/50 bg-active-bg p-3">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <strong className="text-bright">Disparo pronto · {itens.length} conversa{itens.length === 1 ? "" : "s"}</strong>
+        {!!d.sem_conversa_no_whatsapp && <span className="text-xs text-amber">{d.sem_conversa_no_whatsapp} sem conversa no WhatsApp (fora)</span>}
+        {!!d.cortados_pelo_limite && <span className="text-xs text-amber">{d.cortados_pelo_limite} acima do limite de 100 (fora)</span>}
+        <button type="button" onClick={() => setAberto(v => !v)} className="ml-auto text-xs text-violet">{aberto ? "Esconder lista" : "Ver lista"}</button>
+      </div>
+      {aberto && (
+        <ul className="max-h-56 space-y-1 overflow-y-auto text-xs">
+          {itens.map(i => (
+            <li key={i.chatid} className="flex items-center gap-2">
+              <span className="flex-1 truncate text-bright">{i.nome || i.chatid.split("@")[0]}</span>
+              <span className="text-muted">{i.status || ""}{i.responsavel ? " · " + i.responsavel : ""}</span>
+              {!travado && <button type="button" onClick={() => setItens(itens.filter(x => x.chatid !== i.chatid))} className="text-rose" aria-label="Tirar da lista">×</button>}
+            </li>
+          ))}
+        </ul>
+      )}
+      <textarea value={texto} onChange={e => setTexto(e.target.value)} disabled={travado} rows={4} maxLength={4096}
+        className="w-full rounded-lg border border-edge bg-raised px-3 py-2 text-sm text-bright outline-none focus:border-violet disabled:opacity-70" />
+      <p className="text-[11px] text-muted">{"{nome}"} vira o primeiro nome de cada lead · uma linha só com --- separa em duas mensagens · pausa de 10–20 s entre contatos.</p>
+      {erro && <p role="alert" className="text-xs text-rose">{erro}</p>}
+      {envio ? (
+        <p className="text-sm text-sub">
+          {envio.estado === "enviando" ? "Enviando…" : envio.estado === "ok" ? "Disparo concluído ✓" : "Disparo terminou com falhas"}
+          {" "}{envio.enviados ?? 0}/{envio.total ?? itens.length} enviados{envio.falhas ? ` · ${envio.falhas} falha(s)` : ""}
+        </p>
+      ) : (
+        <button type="button" onClick={() => void disparar()} disabled={!itens.length || !texto.trim()}
+          className="rounded-lg bg-violet px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Disparar para {itens.length}</button>
+      )}
+    </div>
+  );
+}
+
 export default function Assistente() {
   const [msgs, setMsgs] = useState<Msg[]>(carrega);
   const [texto, setTexto] = useState("");
@@ -73,15 +142,15 @@ export default function Assistente() {
     try {
       const r = await fetch("/api/assistente", {
         method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensagens: nova }),
+        body: JSON.stringify({ mensagens: nova.map(m => ({ de: m.de, texto: m.texto })) }),
       });
       const bruto = await r.text();
-      let d: { resposta?: string; erro?: string; error?: string } = {};
+      let d: { resposta?: string; erro?: string; error?: string; disparo?: Disparo | null } = {};
       try { d = JSON.parse(bruto); } catch { /* resposta não-JSON (ex.: 502 do proxy) */ }
       if (r.status === 401) throw new Error("Sua sessão expirou. Recarregue a página e entre de novo.");
       if (!r.ok || !d.resposta) throw new Error(d.erro || d.error ||
         `Não consegui responder agora (HTTP ${r.status}${bruto ? ": " + bruto.replace(/<[^>]*>/g, " ").trim().slice(0, 120) : ""}). Tente de novo.`);
-      setMsgs([...nova, { de: "ia", texto: d.resposta }]);
+      setMsgs([...nova, { de: "ia", texto: d.resposta, disparo: d.disparo || null }]);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro ao falar com a IA.");
     } finally { setPensando(false); }
@@ -110,6 +179,7 @@ export default function Assistente() {
         ) : (
           <div key={i} className="max-w-[92%] rounded-2xl rounded-bl-sm border border-edge-subtle bg-raised px-4 py-3 text-sub">
             <Resposta texto={m.texto} />
+            {m.disparo && m.disparo.itens?.length > 0 && <CartaoDisparo d={m.disparo} />}
             <div className="mt-2 flex justify-end"><Copiar texto={m.texto} /></div>
           </div>
         ))}
