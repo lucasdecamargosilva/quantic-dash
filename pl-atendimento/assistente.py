@@ -17,6 +17,9 @@ USUARIOS = {"lucas", "dione"}
 MODELO = os.environ.get("PL_IA_MODELO", "gemini-2.5-flash")   # ou claude-haiku-5-5 (precisa ANTHROPIC_API_KEY)
 MAX_TURNOS = 24
 CACHE_SEG = 180
+MAX_RESULTADO = 25000   # caracteres por resultado de ferramenta
+ETAPAS_RETRATO = {"testando", "teste_catalogo_7_dias", "testando_ativo", "aguardando_cadastro", "passou_prazo",
+                  "proposta_enviada", "negociando", "aguardando_pagamento"}
 
 BASE = """# Provou Levou — o que vendemos
 
@@ -131,6 +134,10 @@ def contexto(crm_url, crm_key):
             raise RuntimeError("Assistente sem configuração (PL_IA_KEY / Supabase).")
         d = _post(crm_url.rstrip("/") + "/rest/v1/rpc/crm_ia_contexto", {"p_chave": chave},
                   {"apikey": crm_key, "Authorization": "Bearer " + crm_key})
+        # retrato enxuto (o resto a IA busca pelas ferramentas): só leads em teste/proposta, notas curtas
+        d["leads_em_andamento"] = [dict(l, notas=(l.get("notas") or "")[-200:]) for l in d.get("leads_em_andamento") or []
+                                   if l.get("etapa") in ETAPAS_RETRATO]
+        d.pop("convertidos_recentes", None)
         _cache.update(em=time.time(), txt=json.dumps(d, ensure_ascii=False, separators=(",", ":")))
         return _cache["txt"]
 
@@ -166,7 +173,7 @@ FERRAMENTAS = [{"functionDeclarations": [
          "fonte": {"type": "STRING", "description": "origem do lead, ex.: Meta, WhatsApp, Instagram"},
          "criado_desde": {"type": "STRING", "description": "entrou no CRM a partir de AAAA-MM-DD"},
          "criado_ate": {"type": "STRING", "description": "entrou no CRM até AAAA-MM-DD (inclusive)"},
-         "limite": {"type": "INTEGER", "description": "1 a 300 (padrão 100); para só contar use 1"}}}},
+         "limite": {"type": "INTEGER", "description": "1 a 300 (padrão 100). Para CONTAR use limite 1 e leia total_encontrado/por_etapa/por_fonte"}}}},
     {"name": "consultar_pipeline",
      "description": "Executa um SELECT (SQLite) no Pipeline de atendimento do WhatsApp. " + ESQUEMA_PIPELINE,
      "parameters": {"type": "OBJECT", "properties": {"sql": {"type": "STRING"}}, "required": ["sql"]}},
@@ -217,10 +224,17 @@ def buscar_leads_crm(args, crm_url, crm_key):
         if args.get(k) not in (None, "", []):
             corpo["p_" + k] = args[k]
     try:
-        return _post(crm_url.rstrip("/") + "/rest/v1/rpc/crm_ia_leads", corpo,
-                     {"apikey": crm_key, "Authorization": "Bearer " + crm_key})
+        d = _post(crm_url.rstrip("/") + "/rest/v1/rpc/crm_ia_leads", corpo,
+                  {"apikey": crm_key, "Authorization": "Bearer " + crm_key})
     except urllib.error.HTTPError as e:
         return {"erro": e.read().decode("utf-8", "replace")[:300]}
+    # Teto de tamanho: resultado gigante estoura o contexto (e o preço do Claude acima de 100k tokens).
+    leads = d.get("leads") or []
+    while leads and len(json.dumps(leads, ensure_ascii=False)) > MAX_RESULTADO:
+        leads = [dict(l, notas=(l.get("notas") or "")[-120:]) for l in leads[:max(1, len(leads) // 2)]]
+        d["lista_cortada"] = "mostrando %d de %d; use as contagens ou filtre mais" % (len(leads), d.get("total_encontrado", 0))
+    d["leads"] = leads
+    return d
 
 
 def _executa(nome, a, usuario, crm_url, crm_key, db_path):
@@ -250,8 +264,10 @@ def _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path):
              for f in FERRAMENTAS[0]["functionDeclarations"]]
     msgs = [{"role": "assistant" if t["role"] == "model" else "user", "content": t["parts"][0]["text"]} for t in turnos]
     h = {"x-api-key": chave, "anthropic-version": "2023-06-01"}
+    if os.environ.get("ANTHROPIC_WORKSPACE_ID"):   # chave de usuário (sk-ant-usr) exige o workspace
+        h["anthropic-workspace-id"] = os.environ["ANTHROPIC_WORKSPACE_ID"]
     for _ in range(8):
-        corpo = {"model": MODELO, "max_tokens": 4096, "temperature": 0.3, "tools": tools, "messages": msgs,
+        corpo = {"model": MODELO, "max_tokens": 4096, "tools": tools, "messages": msgs,
                  "system": [{"type": "text", "text": sistema, "cache_control": {"type": "ephemeral"}}]}
         for t in range(3):
             try:
@@ -279,8 +295,8 @@ def responde(usuario, mensagens, gemini_key, crm_url, crm_key, hoje, db_path=Non
     usuario = (usuario or "").strip().lower()
     if usuario not in USUARIOS:
         raise PermissionError("Assistente disponível só para o comercial.")
-    if not MODELO.startswith("claude") and not gemini_key:
-        raise RuntimeError("Sem GEMINI_KEY no servidor.")
+    if not gemini_key and not os.environ.get("ANTHROPIC_API_KEY"):
+        raise RuntimeError("Sem chave de IA no servidor.")
     if not isinstance(mensagens, list) or not mensagens:
         raise ValueError("Mande ao menos uma mensagem.")
     turnos = []
@@ -294,12 +310,17 @@ def responde(usuario, mensagens, gemini_key, crm_url, crm_key, hoje, db_path=Non
                + "\n\n# BASE DE CONHECIMENTO\n" + BASE
                + "\n\n# RETRATO DOS DADOS (JSON, gerado agora do CRM)\n" + contexto(crm_url, crm_key))
     if MODELO.startswith("claude"):
-        return _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path)
+        try:
+            return _responde_claude(sistema, turnos, usuario, crm_url, crm_key, db_path)
+        except RuntimeError:
+            if not gemini_key:
+                raise
+            # Claude fora do ar / sem crédito: responde pelo Gemini em vez de deixar a Dione sem resposta
     corpo = {"systemInstruction": {"parts": [{"text": sistema}]}, "contents": turnos, "tools": FERRAMENTAS,
              "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4096,
                                   "thinkingConfig": {"thinkingBudget": 1024}}}
     url = ("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s"
-           % (MODELO, gemini_key))
+           % (MODELO if MODELO.startswith("gemini") else "gemini-2.5-flash", gemini_key))
     for _ in range(8):   # rodadas de ferramenta
         partes = _gemini(url, corpo)
         chamadas = [p["functionCall"] for p in partes if p.get("functionCall")]
