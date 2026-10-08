@@ -75,8 +75,12 @@ export default function Assistente() {
         method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mensagens: nova }),
       });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok || !d.resposta) throw new Error(d.erro || "Não consegui responder agora. Tente de novo.");
+      const bruto = await r.text();
+      let d: { resposta?: string; erro?: string; error?: string } = {};
+      try { d = JSON.parse(bruto); } catch { /* resposta não-JSON (ex.: 502 do proxy) */ }
+      if (r.status === 401) throw new Error("Sua sessão expirou. Recarregue a página e entre de novo.");
+      if (!r.ok || !d.resposta) throw new Error(d.erro || d.error ||
+        `Não consegui responder agora (HTTP ${r.status}${bruto ? ": " + bruto.replace(/<[^>]*>/g, " ").trim().slice(0, 120) : ""}). Tente de novo.`);
       setMsgs([...nova, { de: "ia", texto: d.resposta }]);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro ao falar com a IA.");
