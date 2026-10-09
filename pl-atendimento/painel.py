@@ -14,6 +14,7 @@ Como funciona por dentro:
   - Áudios são reproduzidos diretamente, sem transcrição automática na conversa.
 """
 import assistente
+import espelho
 import base64
 import grupos_catalogos
 import historico_lead
@@ -3175,6 +3176,8 @@ if __name__ == "__main__":
     threading.Thread(target=LIVE_EVENTS.loop, daemon=True).start()
     threading.Thread(target=loop_sync, daemon=True).start()
     threading.Thread(target=loop_grupos, daemon=True).start()
+    # espelho do painel.db no Supabase (histórico acessível fora do container)
+    threading.Thread(target=espelho.loop, args=(DB, CRM_CLIENT.url, CRM_CLIENT.key), daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)
     print("Ctrl+C para parar.\n")
