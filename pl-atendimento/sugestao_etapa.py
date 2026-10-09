@@ -27,6 +27,10 @@ ANUNCIO = re.compile(r"(?i)^\s*(oi|ol[aá])!?\s*(gostaria de saber mais sobre o|
 AUTOMATICA = re.compile(r"(?i)agradecemos sua mensagem|n[aã]o estamos dispon[ií]veis|seja muito bem-vind|em breve iremos te atender|hor[aá]rio de atendimento|nosso hor[aá]rio|mensagem autom[aá]tica")
 SPAM = re.compile(r"(?i)\bbets?\b|apostas|tiktok\.com|gire a roda|pix premiado|medida provis[oó]ria")
 SUPORTE = re.compile(r"(?i)tive um problema ao usar o provador")
+# Mensagens NOSSAS que mostram que o lojista já recebeu o catálogo/provador: daí em diante quem move é a
+# rotina do funil pelos dados da loja (Em teste / Teste parado), não o Jev pela conversa.
+ENTREGUE = re.compile(r"(?i)catalogo/painel|ficou pronto|est[aá] pronto|provador online|bem-vind[oa]s? [àa] provou levou|"
+                      r"seu acesso ao painel|j[aá] est[aá] na p[aá]gina|aqui vai o seu acesso")
 SEM_SINAL = ("mensagem automática do anúncio", "resposta automática", "spam/propaganda", "suporte de CLIENTE FINAL")
 INTERVALO = 20
 POR_PASSADA = 8
@@ -137,6 +141,9 @@ def _conversa(c, chatid, transcreve):
         if not t:
             continue
         if m["from_me"]:
+            if ENTREGUE.search(t):
+                linhas.append("NÓS: (entregamos o acesso ao catálogo/provador)")
+                continue
             t = t[:140] + ("…" if len(t) > 140 else "")
             if linhas and linhas[-1].startswith("NÓS:") and len(linhas[-1]) > 300:
                 continue                              # junta nossa sequência longa de mensagens
@@ -178,7 +185,8 @@ def passada(db_path, transcreve, mover=None):
             conversa = _conversa(c, a["chatid"], transcreve)
             etapa, conf, auto = None, 0.0, False
             falas = [x for x in conversa if x.startswith("LOJISTA") and not any(k in x for k in SEM_SINAL)]
-            if falas:
+            ja_entregue = any("entregamos o acesso" in x for x in conversa)
+            if falas and not ja_entregue:
                 try:
                     opiniao = combina(_jev(conversa, a["status"], chave), _haiku(conversa, a["status"]))
                 except Exception as e:
