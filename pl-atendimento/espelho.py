@@ -15,8 +15,9 @@ INTERVALO = 60
 LOTE = 400
 
 
-def _rpc(url, key, chave, mensagens, leads, sugestoes=()):
-    body = json.dumps({"p_chave": chave, "p_mensagens": mensagens, "p_leads": leads, "p_sugestoes": list(sugestoes)}).encode("utf-8")
+def _rpc(url, key, chave, mensagens, leads, sugestoes=(), transcricoes=()):
+    body = json.dumps({"p_chave": chave, "p_mensagens": mensagens, "p_leads": leads, "p_sugestoes": list(sugestoes),
+                       "p_transcricoes": list(transcricoes)}).encode("utf-8")
     r = urllib.request.Request(url.rstrip("/") + "/rest/v1/rpc/pl_atend_espelha", data=body, method="POST",
                                headers={"apikey": key, "Authorization": "Bearer " + key, "Content-Type": "application/json"})
     with urllib.request.urlopen(r, timeout=120) as x:
@@ -68,6 +69,16 @@ def passada(db_path, url, key, chave, enviados_leads):
             _rpc(url, key, chave, [], [l for l, _ in parte])
             for l, h in parte:
                 enviados_leads[l["chatid"]] = h
+        # transcrições de áudio (transcreve_msg grava com url = "msg:<messageid>")
+        ult_t = _cursor(c, "transc_rowid")
+        while True:
+            rows = c.execute("SELECT rowid, url, texto FROM transcricoes WHERE rowid > ? AND url LIKE 'msg:%' ORDER BY rowid LIMIT ?",
+                             (ult_t, LOTE)).fetchall()
+            if not rows:
+                break
+            _rpc(url, key, chave, [], [], [], [{"messageid": r["url"][4:], "texto": r["texto"]} for r in rows])
+            ult_t = rows[-1]["rowid"]
+            _cursor(c, "transc_rowid", ult_t)
         # sugestões de etapa do Jev (pra medir o acerto fora do container)
         try:
             sug = [dict(r) for r in c.execute("SELECT * FROM etapa_sugestao")]

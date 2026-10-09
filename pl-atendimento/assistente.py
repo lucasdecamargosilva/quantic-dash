@@ -153,7 +153,7 @@ ESQUEMA_PIPELINE = """Tabelas (SQLite, só leitura):
   status do chat: NOVO, EM CONVERSA, INTERESSADO, AGUARDANDO DADOS, EM TESTE, TESTE PARADO, PROPOSTA ENVIADA,
   AGUARDANDO PAGAMENTO, CONVERTIDO, STAND-BY, PERDIDO. responsavel: 'Lucas' | 'Dione' | NULL. ultimo_de: 'lead' (esperando a gente) | 'nos'.
   ultimo_ts = epoch em segundos (ou ms se > 1e11). oculto=1 = removido da fila.
-- mensagens(chatid, ts, from_me, tipo, texto)   -- from_me=1 nós; ts epoch (s ou ms)
+- mensagens(chatid, ts, from_me, tipo, texto)   -- from_me=1 nós; ts epoch (s ou ms); áudio transcrito vem como '[áudio] …'
 - planos_fechados(chatid, lead_id, plano, valor_centavos, fechado_em, atualizado_em)  -- fechado_em ISO -03:00
 - comissoes_status(chatid, cliente_pagou_em, comissao_paga_em)   -- comissão = 20% da 1ª mensalidade
 - conversas_iniciadas(chatid, ts, responsavel) / atendimentos_iniciados(chatid, responsavel, ts)
@@ -206,7 +206,9 @@ def consultar_pipeline(sql, db_path, usuario):
         c.execute("ATTACH DATABASE ? AS src", ("file:%s?mode=ro" % db_path,))
         dono = "" if usuario == "lucas" else " WHERE chatid IN (SELECT chatid FROM src.leads WHERE responsavel='Dione')"
         c.execute("CREATE TEMP VIEW leads AS SELECT chatid,fone,nome,status,responsavel,ultimo_ts,ultimo_de,oculto FROM src.leads")
-        c.execute("CREATE TEMP VIEW mensagens AS SELECT chatid,ts,from_me,tipo,texto FROM src.mensagens WHERE excluida=0")
+        c.execute("CREATE TEMP VIEW mensagens AS SELECT m.chatid, m.ts, m.from_me, m.tipo, "
+                  "COALESCE(NULLIF(m.texto,''), CASE WHEN t.texto IS NOT NULL THEN '[áudio] ' || t.texto END) texto "
+                  "FROM src.mensagens m LEFT JOIN src.transcricoes t ON t.url = 'msg:' || m.messageid WHERE m.excluida=0")
         c.execute("CREATE TEMP VIEW planos_fechados AS SELECT * FROM src.planos_fechados" + dono)
         c.execute("CREATE TEMP VIEW comissoes_status AS SELECT chatid,cliente_pagou_em,comissao_paga_em FROM src.comissoes_status" + dono)
         for t in _PIPE_TABELAS:
