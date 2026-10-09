@@ -23,6 +23,13 @@ def _rpc(url, key, chave, mensagens, leads, sugestoes=()):
         return json.loads(x.read().decode("utf-8"))
 
 
+def _post_rpc(url, key, nome, corpo):
+    r = urllib.request.Request(url.rstrip("/") + "/rest/v1/rpc/" + nome, data=json.dumps(corpo).encode("utf-8"), method="POST",
+                               headers={"apikey": key, "Authorization": "Bearer " + key, "Content-Type": "application/json"})
+    with urllib.request.urlopen(r, timeout=120) as x:
+        return json.loads(x.read().decode("utf-8"))
+
+
 def _cursor(c, nome, valor=None):
     c.execute("CREATE TABLE IF NOT EXISTS espelho_cursor (nome TEXT PRIMARY KEY, valor INTEGER)")
     if valor is None:
@@ -87,7 +94,16 @@ def loop(db_path, url, key):
         print("  aviso: espelho do painel desligado (falta PL_CRM_URL/PL_CRM_KEY/PL_IA_KEY)")
         return
     enviados_leads = {}
+    ciclo = 0
     while True:
+        if ciclo % 60 == 0:   # de hora em hora: movimentos automáticos do funil (Em teste / Teste parado / Stand-by vencido)
+            try:
+                r = _post_rpc(url, key, "crm_funil_automatico", {"p_chave": chave})
+                if any(r.values()):
+                    print("  funil automático:", r)
+            except Exception as e:
+                print("  aviso: funil automático falhou (%s)" % str(e)[:160])
+        ciclo += 1
         try:
             m, l = passada(db_path, url, key, chave, enviados_leads)
             if m or l:

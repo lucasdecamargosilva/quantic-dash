@@ -50,13 +50,13 @@ class ResponsavelTest(unittest.TestCase):
         c.executemany("INSERT INTO leads(chatid,fone,nome,status,ultimo_ts,ultimo_de,responsavel) "
                       "VALUES(?,?,?,?,?,?,?)", [
             ("a", "5511000000001", "Loja Aurora", "INTERESSADO", 1, "lead", "Dione"),
-            ("b", "5511000000002", "Loja Bela", "TESTE GRÁTIS", 2, "lead", "Dione"),
+            ("b", "5511000000002", "Loja Bela", "AGUARDANDO DADOS", 2, "lead", "Dione"),
             ("c", "5511000000003", "Loja Clara", "INTERESSADO", 3, "lead", "Lucas"),
             ("d", "5511000000004", "Loja Dora", "INTERESSADO", 4, "lead", None),
         ])
         c.commit()
         self.assertEqual({"a", "b"}, {r["chatid"] for r in painel.fila(responsavel="Dione")})
-        self.assertEqual(["b"], [r["chatid"] for r in painel.fila("TESTE GRÁTIS", responsavel="Dione")])
+        self.assertEqual(["b"], [r["chatid"] for r in painel.fila("AGUARDANDO DADOS", responsavel="Dione")])
         self.assertEqual(["a"], [r["chatid"] for r in painel.fila(busca="Aurora", responsavel="Dione")])
         self.assertEqual([], painel.fila(busca="Aurora", responsavel="Lucas"))
         self.assertEqual(["d"], [r["chatid"] for r in painel.fila(responsavel="_sem_responsavel")])
@@ -78,7 +78,7 @@ class ResponsavelTest(unittest.TestCase):
         c.commit()
         dados = painel.contagem()["_responsaveis"]
         self.assertEqual({"Lucas": 0, "Dione": 2, "": 1}, {r["responsavel"]: r["total"] for r in dados})
-        self.assertEqual({"MENSAGEM 1": 0, "MENSAGEM 2": 0, "MENSAGEM 3": 0, "STAND-BY": 0, "INTERESSADO": 1, "TESTE GRÁTIS": 0, "CONVERTIDO": 1, "PERDIDO": 0},
+        self.assertEqual({**{s: 0 for s in painel.STATUS}, "INTERESSADO": 1, "CONVERTIDO": 1},
                          next(r["etapas"] for r in dados if r["responsavel"] == "Dione"))
         for r in dados:
             self.assertEqual(r["total"], sum(r["etapas"].values()))

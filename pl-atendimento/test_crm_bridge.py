@@ -58,9 +58,12 @@ class BridgeTest(unittest.TestCase):
         return [dict(r) for r in rows]
 
     def test_unqualified_remote_stages_do_not_imply_interest(self):
-        for status in ('novo', 'respondeu', 'meta', 'dm_enviada'):
+        # funil out/2026: lead sem conversa = NOVO (slugs antigos de prospecção também); respondeu = EM CONVERSA
+        for status in ('novo', 'meta', 'dm_enviada', 'mensagem_2'):
             self.crm.reflect_local(self.cid, {'status': status})
-            self.assertEqual('SEM ETAPA', self.db.execute('SELECT status FROM leads').fetchone()[0])
+            self.assertEqual('NOVO', self.db.execute('SELECT status FROM leads').fetchone()[0])
+        self.crm.reflect_local(self.cid, {'status': 'respondeu'})
+        self.assertEqual('EM CONVERSA', self.db.execute('SELECT status FROM leads').fetchone()[0])
         self.crm.reflect_local(self.cid, {'status': 'interessado'})
         self.assertEqual('INTERESSADO', self.db.execute('SELECT status FROM leads').fetchone()[0])
 
@@ -115,27 +118,29 @@ class BridgeTest(unittest.TestCase):
         self.crm.sync()
         self.crm.sync()
         self.assertEqual(len(self.rows), 1)
-        self.assertEqual(self.rows[0]['status'], 'meta')
+        self.assertEqual(self.rows[0]['status'], 'novo')
         self.assertEqual(self.rows[0]['fonte_oportunidade'], 'Meta')
-        self.assertEqual(self.crm.change(self.cid, 'testou_e_saiu')['status'], 'testou_e_saiu')
+        self.assertEqual(self.crm.change(self.cid, 'stand_by')['status'], 'stand_by')
         self.assertEqual(self.rows[0]['status'], 'stand_by')
         self.assertEqual(self.crm.change(self.cid, 'fechou')['status'], 'fechou')
         self.assertEqual(self.custom, {})
         self.assertEqual(self.db.execute('SELECT status FROM leads').fetchone()[0], 'CONVERTIDO')
 
-    def test_catalog_trial_is_custom_stage(self):
+    def test_catalog_trial_is_aguardando_dados(self):
+        # funil out/2026: "teste catálogo 7 dias" deixou de ser etapa própria; vira Aguardando dados
         self.crm.ensure(self.cid, True)
-        saved = self.crm.change(self.cid, 'teste_catalogo_7_dias')
-        self.assertEqual(saved['status'], 'teste_catalogo_7_dias')
-        self.assertEqual(self.rows[0]['status'], 'testando')
-        self.assertEqual(self.custom[self.rows[0]['id']], 'teste_catalogo_7_dias')
-        self.assertEqual(self.db.execute('SELECT status FROM leads').fetchone()[0], 'TESTE GRÁTIS')
+        saved = self.crm.change(self.cid, 'testando')
+        self.assertEqual(saved['status'], 'testando')
+        self.assertEqual(self.custom, {})
+        self.assertEqual(self.db.execute('SELECT status FROM leads').fetchone()[0], 'AGUARDANDO DADOS')
+        with self.assertRaises(ValueError):
+            self.crm.change(self.cid, 'teste_catalogo_7_dias')
 
     def test_external_stage_reflected_locally(self):
         self.crm.ensure(self.cid, True)
         self.rows[0]['status'] = 'testando'
         self.assertEqual(self.crm.ensure(self.cid)['status'], 'testando')
-        self.assertEqual(self.db.execute('SELECT status FROM leads').fetchone()[0], 'TESTE GRÁTIS')
+        self.assertEqual(self.db.execute('SELECT status FROM leads').fetchone()[0], 'AGUARDANDO DADOS')
 
     def test_failed_create_retried(self):
         self.fail_write = True
@@ -167,7 +172,7 @@ class BridgeTest(unittest.TestCase):
         self.fail_write = True
         with self.assertRaises(RuntimeError):
             self.crm.change(self.cid, 'fechou')
-        self.assertEqual(self.rows[0]['status'], 'meta')
+        self.assertEqual(self.rows[0]['status'], 'novo')
 
     def test_note_is_registered_in_opportunity_history(self):
         self.crm.ensure(self.cid, True)
@@ -177,11 +182,14 @@ class BridgeTest(unittest.TestCase):
         self.assertEqual(note['lead_id'], self.rows[0]['id'])
         self.assertIn('updated_at', self.rows[0])
 
-    def test_message_stages_remain_manual_and_sync_to_chat(self):
-        for n in (1, 2, 3):
-            saved = self.crm.change(self.cid, f'mensagem_{n}')
-            self.assertEqual(f'mensagem_{n}', saved['status'])
-            self.assertEqual(f'MENSAGEM {n}', self.db.execute('SELECT status FROM leads WHERE chatid=?', (self.cid,)).fetchone()['status'])
+    def test_funnel_stages_sync_to_chat(self):
+        # funil out/2026: cada etapa do CRM aparece no chat com o rótulo do painel
+        for slug, rotulo in (('novo', 'NOVO'), ('respondeu', 'EM CONVERSA'), ('testando_ativo', 'EM TESTE'), ('passou_prazo', 'TESTE PARADO')):
+            saved = self.crm.change(self.cid, slug)
+            self.assertEqual(slug, saved['status'])
+            self.assertEqual(rotulo, self.db.execute('SELECT status FROM leads WHERE chatid=?', (self.cid,)).fetchone()['status'])
+        with self.assertRaises(ValueError):
+            self.crm.change(self.cid, 'mensagem_2')
 
     def test_empty_note_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'Digite uma observação'):

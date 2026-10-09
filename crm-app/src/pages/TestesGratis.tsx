@@ -15,7 +15,7 @@ type LeadRecord = Lead & { whatsapp?: string | null; plataforma?: string | null 
 type TrialRow = { key: string; name: string; phone: string; email: string; platform: string; start: string | null; end: string | null; remaining: number | null; progress: number; lead: LeadRecord | null };
 
 const DAY = 86400000;
-const TRIAL_STATUSES = ["testando", "teste_catalogo_7_dias"];
+const TRIAL_STATUSES = ["testando", "testando_ativo", "passou_prazo"];   // aguardando dados, em teste, teste parado
 const formatDate = (value: string) => new Date(value + "T12:00:00Z").toLocaleDateString("pt-BR", { timeZone: "UTC" });
 const dateOnly = (value?: string | null) => value ? value.slice(0, 10) : null;
 const shiftDate = (value: string, amount: number) => new Date(Date.parse(value + "T00:00:00Z") + amount * DAY).toISOString().slice(0, 10);

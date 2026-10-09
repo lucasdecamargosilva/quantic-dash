@@ -15,6 +15,7 @@ Como funciona por dentro:
 """
 import assistente
 import espelho
+import etapas
 import sugestao_etapa
 import base64
 import grupos_catalogos
@@ -67,8 +68,9 @@ GEMINI_MODEL = "gemini-2.5-flash"
 JANELA_DIAS = 14
 INTERVALO_SYNC = 6                     # segundos entre uma varredura e outra
 
-STATUS = ["MENSAGEM 1", "MENSAGEM 2", "MENSAGEM 3", "STAND-BY", "CONTATAR", "INTERESSADO", "TESTE GRÁTIS", "AGUARDANDO CADASTRO", "TESTANDO", "PASSOU DO PRAZO", "PROPOSTA ENVIADA", "NEGOCIANDO", "AGUARDANDO PAGAMENTO", "CONVERTIDO", "PERDIDO"]
-STATUS_ENCERRADO = {"CONVERTIDO", "PERDIDO"}
+STATUS = etapas.STATUS   # funil de prospecção: ver etapas.py
+STATUS_ENCERRADO = etapas.ENCERRADO
+COM_COLUNA_SQL = ",".join("'%s'" % s for s in etapas.COM_COLUNA)
 
 RUIDO = re.compile(
     r"(?i)serasa|shopee|rappi|infinitepay|itapeva|nubank|mercado pago|ifood|uber|itau|"
@@ -336,6 +338,12 @@ def cria_banco():
     CREATE INDEX IF NOT EXISTS ix_edicoes_recentes ON edicoes_recentes(chatid, ts);
     """)
     c.execute("CREATE TABLE IF NOT EXISTS metricas_migracoes (nome TEXT PRIMARY KEY)")
+    if not c.execute("SELECT 1 FROM metricas_migracoes WHERE nome='funil_v2'").fetchone():
+        # funil de prospecção out/2026: rótulos antigos -> novos (ver etapas.py)
+        for antigo, novo in etapas.LOCAL_LEGADO.items():
+            c.execute("UPDATE leads SET status=? WHERE COALESCE(status,'SEM ETAPA')=?", (novo, antigo))
+        c.execute("UPDATE leads SET status='NOVO' WHERE status IS NULL")
+        c.execute("INSERT INTO metricas_migracoes(nome) VALUES('funil_v2')")
     if not c.execute("SELECT 1 FROM metricas_migracoes WHERE nome='primeiro_envio_v1'").fetchone():
         c.execute("INSERT OR IGNORE INTO atendimentos_iniciados(chatid,responsavel,ts) "
                   "SELECT chatid,responsavel,ts FROM conversas_iniciadas")
@@ -658,7 +666,7 @@ def sincroniza():
             # o status e do usuario: nunca sobrescreve num sync
             c.execute(
                 "INSERT INTO leads(chatid,fone,nome,status,ultimo_ts,ultimo_de,atualizado)"
-                " VALUES(?,?,?,'SEM ETAPA',?,?,?)"
+                " VALUES(?,?,?,'NOVO',?,?,?)"
                 " ON CONFLICT(chatid) DO UPDATE SET nome=excluded.nome, fone=excluded.fone,"
                 " ultimo_ts=excluded.ultimo_ts, ultimo_de=excluded.ultimo_de,"
                 " atualizado=excluded.atualizado WHERE excluded.ultimo_ts >= COALESCE(leads.ultimo_ts,0)",
@@ -751,7 +759,7 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
         # Quem ja esta em Teste gratis tem coluna propria: nao aparece tambem aqui.
         linhas = c.execute(
             "SELECT * FROM leads WHERE ultimo_de='nos'"
-            " AND COALESCE(oculto,0)=0 AND status NOT IN ('CONVERTIDO','PERDIDO','TESTE GRÁTIS','TESTANDO','PASSOU DO PRAZO','PROPOSTA ENVIADA','AGUARDANDO CADASTRO','NEGOCIANDO','AGUARDANDO PAGAMENTO')"
+            " AND COALESCE(oculto,0)=0 AND status NOT IN (" + COM_COLUNA_SQL + ")"
             + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
     elif status:
         linhas = c.execute("SELECT * FROM leads WHERE status=? AND COALESCE(oculto,0)=0"
@@ -762,7 +770,7 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
         # Quem esta em Teste gratis tem coluna propria e nao deve aparecer aqui tambem.
         linhas = c.execute(
             "SELECT * FROM leads WHERE ultimo_de='lead' AND COALESCE(oculto,0)=0"
-            " AND status NOT IN ('CONVERTIDO','PERDIDO','TESTE GRÁTIS','TESTANDO','PASSOU DO PRAZO','PROPOSTA ENVIADA','AGUARDANDO CADASTRO','NEGOCIANDO','AGUARDANDO PAGAMENTO')"
+            " AND status NOT IN (" + COM_COLUNA_SQL + ")"
             + SEM_SUPORTE + " ORDER BY ultimo_ts DESC").fetchall()
     if responsavel:
         linhas = [r for r in linhas if (not r["responsavel"] if responsavel == "_sem_responsavel"
@@ -793,7 +801,7 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
             m = c.execute('SELECT ts,texto FROM mensagens WHERE chatid=? AND excluida=0 ORDER BY ts DESC LIMIT 1', (g['chatid'],)).fetchone()
             ts = m['ts'] if m else 0
             out.append({'chatid':g['chatid'], 'fone':g['chatid'], 'nome':g['nome'],
-                        'status':'TESTE GRÁTIS', 'responsavel':g['dono'], 'venda':None,
+                        'status':'EM TESTE', 'responsavel':g['dono'], 'venda':None,
                         'ultimo_ts':ts, 'quando':quando(ts).strftime('%d/%m %H:%M') if ts else '',
                         'ha':humano(quando(ts)) if ts else '', 'ultima':m['texto'] if m else 'Grupo do catálogo',
                         'grupo':True, 'lead_chatid':g['lead_chatid']})
@@ -855,10 +863,7 @@ def vincula_grupos(usuario, itens):
     return {"ok": True, "vinculados": n}
 
 
-PIPELINE_REMOTE_STATUS = {"MENSAGEM 1":"mensagem_1", "MENSAGEM 2":"mensagem_2", "MENSAGEM 3":"mensagem_3", "STAND-BY":"stand_by",
-                          "CONTATAR":"contatar",
-                          "INTERESSADO":"interessado", "TESTE GRÁTIS":"testando", "TESTANDO":"testando_ativo", "PASSOU DO PRAZO":"passou_prazo", "PROPOSTA ENVIADA":"proposta_enviada", "AGUARDANDO CADASTRO":"aguardando_cadastro", "NEGOCIANDO":"negociando", "AGUARDANDO PAGAMENTO":"aguardando_pagamento",
-                          "CONVERTIDO":"fechou", "PERDIDO":"perdida"}
+PIPELINE_REMOTE_STATUS = etapas.PARA_CRM
 
 def dados_pipeline(chatid):
     data = CRM_CLIENT.details(chatid)
@@ -867,10 +872,27 @@ def dados_pipeline(chatid):
     data["pipeline"] = {"status": atual, "etapas": {s:s.title() for s in STATUS}}
     return data
 
-def move_pipeline_dados(chatid, status):
+MOTIVOS_PERDA = ("caro", "sem interesse", "já tem solução", "sem loja ou site", "número errado", "outro")
+
+
+def move_pipeline_dados(chatid, status, retomar_dias=None, motivo=None):
     if status not in PIPELINE_REMOTE_STATUS:
         raise ValueError("Selecione uma etapa do Pipeline Atendimento.")
     CRM_CLIENT.change(chatid, PIPELINE_REMOTE_STATUS[status])
+    # funil out/2026: Stand-by guarda quando retomar; Perdido guarda o motivo
+    extra = {}
+    if status == "STAND-BY":
+        try:
+            dias = min(180, max(1, int(retomar_dias or 14)))
+        except (TypeError, ValueError):
+            dias = 14
+        extra["retomar_em"] = (datetime.now(BRT).date() + timedelta(days=dias)).isoformat()
+    if status == "PERDIDO" and motivo:
+        extra["motivo_perda"] = str(motivo).strip()[:80]
+    if extra:
+        lead = CRM_CLIENT.ensure(chatid)
+        if lead:
+            CRM_CLIENT.request("leads", {"id": "eq." + lead["id"]}, "PATCH", extra, "return=minimal")
     c = con()
     c.execute("UPDATE leads SET oculto=0 WHERE chatid=?", (chatid,))
     c.commit()
@@ -1035,7 +1057,7 @@ def contagem():
     sem_resposta_responsavel = {}
     for r in c.execute(
         "SELECT COALESCE(NULLIF(TRIM(responsavel),''),'') responsavel, "
-        "COALESCE(status,'SEM ETAPA') etapa, COUNT(*) n, "
+        "COALESCE(status,'NOVO') etapa, COUNT(*) n, "
         "SUM(CASE WHEN ultimo_de='nos' AND status NOT IN ('CONVERTIDO','PERDIDO') THEN 1 ELSE 0 END) sem_resposta FROM leads "
         "WHERE COALESCE(oculto,0)=0" + SEM_SUPORTE + " GROUP BY 1,2"):
         por_responsavel.setdefault(r["responsavel"], {})[r["etapa"]] = r["n"]
@@ -1056,7 +1078,7 @@ def conversa(chatid, usuario=None):
         grupo = next((g for g in grupos_catalogos.visible(c, usuario) if g['chatid']==chatid), None)
         if not grupo:
             raise ValueError('Grupo não disponível para este acesso.')
-        lead = {'nome':grupo['nome'], 'fone':chatid, 'status':'TESTE GRÁTIS', 'responsavel':grupo['dono'], 'oculto':0}
+        lead = {'nome':grupo['nome'], 'fone':chatid, 'status':'EM TESTE', 'responsavel':grupo['dono'], 'oculto':0}
     grupo_lead = None
     if not chatid.endswith('@g.us'):
         grupo_lead = next((g for g in grupos_catalogos.visible(c, usuario) if g['lead_chatid']==chatid), None)
@@ -1077,7 +1099,7 @@ def conversa(chatid, usuario=None):
             "lead_chatid":grupo['lead_chatid'] if grupo else None,
             "grupo_chatid":grupo_lead['chatid'] if grupo_lead else None,
             "grupo_nome":grupo_lead['nome'] if grupo_lead else None,
-            "status": lead["status"] if lead else "SEM ETAPA",
+            "status": lead["status"] if lead else "NOVO",
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
             "nome": lead["nome"] if lead else "", "fone": lead["fone"] if lead else "",
             "responsavel": lead["responsavel"] if lead else None,
@@ -1584,7 +1606,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .grafico-etapa{display:inline-flex;align-items:center;gap:7px;padding:4px 8px;border:1px solid var(--linha);
  border-radius:7px;background:var(--chip);font-size:11px;color:var(--fraco)}
 .grafico-etapa b{color:var(--txt);font-variant-numeric:tabular-nums}.grafico-etapa::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--etapa-cor,var(--fraco))}
-.grafico-etapa[data-etapa="INTERESSADO"]{--etapa-cor:var(--alerta)}.grafico-etapa[data-etapa="TESTE GRÁTIS"]{--etapa-cor:var(--azul)}
+.grafico-etapa[data-etapa="INTERESSADO"]{--etapa-cor:var(--alerta)}.grafico-etapa[data-etapa="AGUARDANDO DADOS"]{--etapa-cor:var(--azul)}.grafico-etapa[data-etapa="EM TESTE"]{--etapa-cor:var(--ok)}
 .grafico-etapa[data-etapa="CONVERTIDO"]{--etapa-cor:var(--ok)}.grafico-etapa[data-etapa="PERDIDO"]{--etapa-cor:var(--verm)}
 .grafico-etapa[data-etapa="SEM RESPOSTA"]{--etapa-cor:var(--roxo2);border-style:dashed}
 .filtro-responsavel{order:1;display:flex;align-items:center;gap:8px;padding:0 14px 12px;
@@ -1961,7 +1983,7 @@ async function filtros(){
              ['_ocultos','Removidos','_ocultos']];
   document.getElementById('filtros').innerHTML=rot.map(([v,r,k])=>
     `<button class="fbtn${filtro===v?' on':''}" aria-pressed="${filtro===v}" onclick="setFiltro('${v}')">${icone(
-      ({'':'chat','_sem_resposta':'clock','INTERESSADO':'user','TESTE GRÁTIS':'calendar','CONVERTIDO':'check','PERDIDO':'logout','_ocultos':'logout'})[v]||'tag')}${esc(r)}
+      ({'':'chat','_sem_resposta':'clock','NOVO':'tag','EM CONVERSA':'chat','INTERESSADO':'user','AGUARDANDO DADOS':'calendar','EM TESTE':'calendar','TESTE PARADO':'clock','STAND-BY':'clock','CONVERTIDO':'check','PERDIDO':'logout','_ocultos':'logout'})[v]||'tag')}${esc(r)}
        <b${v===''?' class="naolidas"':''}>${n[k]||0}</b></button>`).join('');
 }
 function setFiltro(v){ conversaDestino=null; filtro=v; limpaBusca(false); filtros(); carrega(); }
@@ -1974,7 +1996,7 @@ function desenhaGraficoResponsaveis(dados){
   document.getElementById('graficoResponsaveisTotal').textContent=total.toLocaleString('pt-BR')+' leads';
   document.getElementById('graficoResponsaveis').innerHTML=dados.map(r=>{
     const pct=total?r.total/total*100:0;
-    const rotulos={'INTERESSADO':'Interessados','TESTE GRÁTIS':'Teste grátis','CONVERTIDO':'Convertidos','PERDIDO':'Perdidos'};
+    const rotulos={'NOVO':'Novos','EM CONVERSA':'Em conversa','INTERESSADO':'Interessados','AGUARDANDO DADOS':'Aguardando dados','EM TESTE':'Em teste','TESTE PARADO':'Teste parado','CONVERTIDO':'Convertidos','PERDIDO':'Perdidos'};
     const etapas=Object.entries(r.etapas||{}).map(([etapa,n])=>`<span class="grafico-etapa" data-etapa="${esc(etapa)}">${esc(rotulos[etapa]||etapa)}<b>${n.toLocaleString('pt-BR')}</b></span>`).join('')+
       `<span class="grafico-etapa" data-etapa="SEM RESPOSTA" title="Leads aguardando resposta do cliente. Já incluídos nas etapas e no total acima.">Sem resposta<b>${(r.sem_resposta||0).toLocaleString('pt-BR')}</b></span>`;
     return `<div class="grafico-linha" data-responsavel="${esc(r.responsavel)}"><div class="grafico-rotulo"><span><i class="grafico-ponto" aria-hidden="true"></i>${esc(r.nome)}</span><b>${r.total.toLocaleString('pt-BR')}</b></div><div class="grafico-trilha" role="img" aria-label="${esc(r.nome)}: ${r.total} leads, ${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}% do total"><div class="grafico-barra" style="width:${pct}%"></div></div><div class="grafico-etapas">${etapas}</div></div>`;
@@ -2326,11 +2348,21 @@ async function carregaCRM(chatid=selId){
 }
 async function salvaCRM(path,status){
   if(crmOcupado || !selId) return;
+  let extra={};
+  if(status==='STAND-BY'){
+    const dias=prompt('Retomar o contato em quantos dias?','14'); if(dias===null){carregaCRM();return;}
+    extra.retomar_dias=parseInt(dias,10)||14;
+  }
+  if(status==='PERDIDO'){
+    const ops=['caro','sem interesse','já tem solução','sem loja ou site','número errado','outro'];
+    const r=prompt('Motivo da perda:\n'+ops.map((o,i)=>(i+1)+' - '+o).join('\n')+'\n\nDigite o número:','2'); if(r===null){carregaCRM();return;}
+    extra.motivo=ops[(parseInt(r,10)||6)-1]||'outro';
+  }
   const chatid=selId; crmOcupado=true; ++crmConsulta;
   const box=document.getElementById('crm');
   box.querySelectorAll('button,select').forEach(b=>b.disabled=true);
   try{
-    const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},body:JSON.stringify({chatid,status})});
+    const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},body:JSON.stringify({chatid,status,...extra})});
     const d=await response.json(); if(!response.ok || d.erro) throw new Error(d.erro||'Não foi possível salvar no CRM');
     if(selId===chatid) desenhaCRM(d);
     carrega(); filtros();
@@ -3012,7 +3044,7 @@ class H(BaseHTTPRequestHandler):
                         note = CRM_CLIENT.add_note(d["chatid"], d.get("texto"))
                         return self._send(200, json.dumps({"ok": True, "note": note}, ensure_ascii=False))
                     if self.path.endswith("/etapa"):
-                        data = move_pipeline_dados(d["chatid"], d["status"])
+                        data = move_pipeline_dados(d["chatid"], d["status"], d.get("retomar_dias"), d.get("motivo"))
                     else:
                         CRM_CLIENT.ensure(d["chatid"], create=True)
                         data = dados_pipeline(d["chatid"])
@@ -3045,14 +3077,15 @@ class H(BaseHTTPRequestHandler):
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
                         origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
                     return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
-                mapping = {"MENSAGEM 1": "mensagem_1", "MENSAGEM 2": "mensagem_2", "MENSAGEM 3": "mensagem_3", "STAND-BY": "stand_by", "CONTATAR": "contatar", "INTERESSADO": "interessado", "TESTE GRÁTIS": "testando", "TESTANDO": "testando_ativo", "PASSOU DO PRAZO": "passou_prazo", "PROPOSTA ENVIADA": "proposta_enviada", "AGUARDANDO CADASTRO": "aguardando_cadastro", "NEGOCIANDO": "negociando", "AGUARDANDO PAGAMENTO": "aguardando_pagamento",
-                           "CONVERTIDO": "fechou", "PERDIDO": "perdida"}
+                mapping = etapas.PARA_CRM
                 if d["status"] == "CONVERTIDO" and "plano" in d:
                     try:
                         return self._send(200, json.dumps(salva_plano_fechado(d["chatid"], d["plano"], d.get("valor_centavos"))))
                     except (ValueError, RuntimeError) as e:
                         return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
-                CRM_CLIENT.change(d["chatid"], mapping[d["status"]])
+                if d["status"] not in mapping:
+                    return self._send(400, json.dumps({"erro": "Etapa inválida."}, ensure_ascii=False))
+                move_pipeline_dados(d["chatid"], d["status"], d.get("retomar_dias"), d.get("motivo"))
                 return self._send(200, json.dumps({"ok": True}))
             if self.path == "/api/grupos/vincular":
                 origin = self.headers.get("Origin")
@@ -3223,8 +3256,8 @@ if __name__ == "__main__":
     threading.Thread(target=loop_grupos, daemon=True).start()
     # espelho do painel.db no Supabase (histórico acessível fora do container)
     threading.Thread(target=espelho.loop, args=(DB, CRM_CLIENT.url, CRM_CLIENT.key), daemon=True).start()
-    # Jev sugere a etapa quando o lojista responde (a Dione aplica ou ignora na conversa)
-    threading.Thread(target=sugestao_etapa.loop, args=(DB, transcreve, avisa_mensagem_nova), daemon=True).start()
+    # Jev organiza o funil: move sozinho quando é seguro (>= 0,9), senão sugere na conversa
+    threading.Thread(target=sugestao_etapa.loop, args=(DB, transcreve, avisa_mensagem_nova, move_pipeline_dados), daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)
     print("Ctrl+C para parar.\n")

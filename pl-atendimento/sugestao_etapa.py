@@ -1,9 +1,11 @@
-"""Sugestão de etapa pelo Jev (TypeSafe) quando o lojista responde no WhatsApp.
+"""Jev (TypeSafe) organizando o funil de prospecção pelas conversas do WhatsApp.
 
-Lê as últimas mensagens da conversa (áudio do lojista vira texto pelo transcritor do
-painel), pergunta ao Jev em que etapa o lojista está e, se tiver confiança >= 0,8 e for
-um avanço válido, grava uma sugestão. Nada muda sozinho: a Dione aplica ou ignora na
-tela, e a decisão fica registrada para medir o acerto.
+Para cada conversa com mensagem nova (e, na 1ª passada, todas as do funil), lê as últimas
+mensagens (áudio do lojista vira texto pelo transcritor do painel) e pergunta ao Jev em que
+etapa o lojista está. Só avança, nunca volta. Com confiança >= 0,9 em etapas seguras
+(Em conversa, Interessado, Aguardando dados, Stand-by) MOVE SOZINHO; de 0,8 a 0,9, ou
+Perdido, vira SUGESTÃO na conversa (a Dione aplica ou ignora). Tudo fica registrado em
+etapa_sugestao (decisao: auto / aplicada / ignorada) e espelhado no Supabase.
 """
 import json
 import os
@@ -12,28 +14,33 @@ import sqlite3
 import time
 import urllib.request
 
-CONFIANCA = 0.8
+CONFIANCA = 0.8          # mostra sugestão
+CONFIANCA_AUTO = 0.9     # move sozinho (exceto Perdido)
+AUTO_OK = {"EM CONVERSA", "INTERESSADO", "AGUARDANDO DADOS", "STAND-BY"}
 # Texto pronto que o WhatsApp preenche quando o lojista clica no anúncio: não é interesse real ainda.
 ANUNCIO = re.compile(r"(?i)^\s*oi!?\s*gostaria de saber mais sobre o (provador virtual|provou cat[aá]logo)")
 INTERVALO = 20
 POR_PASSADA = 8
 
 CRITERIOS = {
-    "mensagem": "Lojista ainda não demonstrou interesse claro: só cumprimentou, respondeu genérico, mandou ok/emoji, ou ainda não respondeu nossa abordagem",
-    "interessado": "Lojista demonstrou interesse: perguntou preço, como funciona, pediu detalhes ou disse que quer conhecer",
-    "teste_gratis": "Lojista aceitou testar / pediu para montar o catálogo ou instalar, ou mandou logo, e-mail ou dados para criarmos o teste",
+    "novo": "Lojista ainda não conversou de verdade: só clicou no anúncio, só cumprimentou, mandou ok/emoji, ou ainda não respondeu nossa abordagem",
+    "em_conversa": "Lojista está conversando: respondeu nossas perguntas (onde vende, plataforma, tipo de loja) ou tirou uma dúvida inicial, sem pedir preço nem demonstrar interesse claro",
+    "interessado": "Lojista demonstrou interesse: perguntou preço, como funciona, pediu detalhes, pediu ligação/reunião ou disse que quer conhecer",
+    "aguardando_dados": "Lojista aceitou testar / pediu para montar o catálogo ou instalar, ou mandou logo, e-mail ou dados para criarmos o teste",
     "stand_by": "Lojista pediu para falar depois, agora não pode, está viajando, vai pensar, retomar em outro momento",
-    "perdido": "Lojista disse que não tem interesse, não quer, já tem solução, ou pediu para parar de mandar mensagem",
+    "perdido": "Lojista disse que não tem interesse, não quer, já tem solução, achou caro e desistiu, ou pediu para parar de mandar mensagem",
 }
-ETAPA = {"interessado": "INTERESSADO", "teste_gratis": "TESTE GRÁTIS", "stand_by": "STAND-BY", "perdido": "PERDIDO"}
-# De onde cada sugestão pode partir (só avanço; nunca puxa um lead em teste de volta pra "Interessado").
-INICIO = {"SEM ETAPA", "MENSAGEM 1", "MENSAGEM 2", "MENSAGEM 3", "CONTATAR", "STAND-BY", None, ""}
+ETAPA = {"em_conversa": "EM CONVERSA", "interessado": "INTERESSADO", "aguardando_dados": "AGUARDANDO DADOS",
+         "stand_by": "STAND-BY", "perdido": "PERDIDO"}
+# De onde cada etapa pode partir (só avanço; nunca puxa um lead de volta).
 PODE_SAIR_DE = {
-    "INTERESSADO": INICIO,
-    "TESTE GRÁTIS": INICIO | {"INTERESSADO"},
-    "STAND-BY": (INICIO - {"STAND-BY"}) | {"INTERESSADO", "TESTE GRÁTIS"},
-    "PERDIDO": INICIO | {"INTERESSADO", "TESTE GRÁTIS"},
+    "EM CONVERSA": {"NOVO", "STAND-BY"},
+    "INTERESSADO": {"NOVO", "EM CONVERSA", "STAND-BY"},
+    "AGUARDANDO DADOS": {"NOVO", "EM CONVERSA", "INTERESSADO", "STAND-BY"},
+    "STAND-BY": {"NOVO", "EM CONVERSA", "INTERESSADO", "AGUARDANDO DADOS"},
+    "PERDIDO": {"NOVO", "EM CONVERSA", "INTERESSADO", "AGUARDANDO DADOS", "STAND-BY"},
 }
+AVALIA = ("NOVO", "EM CONVERSA", "INTERESSADO", "AGUARDANDO DADOS", "STAND-BY")
 
 
 def init(c):
@@ -71,7 +78,7 @@ def _conversa(c, chatid, transcreve):
     return linhas
 
 
-def passada(db_path, transcreve):
+def passada(db_path, transcreve, mover=None):
     chave = os.environ.get("JEV_API_KEY", "")
     if not chave:
         return 0
@@ -81,9 +88,11 @@ def passada(db_path, transcreve):
         init(c)
         alvos = c.execute(
             "SELECT l.chatid, l.status, l.ultimo_ts FROM leads l LEFT JOIN etapa_sugestao s ON s.chatid = l.chatid "
-            "WHERE l.ultimo_de = 'lead' AND COALESCE(l.oculto,0) = 0 AND l.chatid NOT LIKE '%@g.us' "
-            "AND COALESCE(l.status,'SEM ETAPA') IN ('SEM ETAPA','MENSAGEM 1','MENSAGEM 2','MENSAGEM 3','CONTATAR','STAND-BY','INTERESSADO','TESTE GRÁTIS') "
-            "AND (s.chatid IS NULL OR s.ultimo_ts < l.ultimo_ts) ORDER BY l.ultimo_ts DESC LIMIT ?", (POR_PASSADA,)).fetchall()
+            "WHERE COALESCE(l.oculto,0) = 0 AND l.chatid NOT LIKE '%@g.us' "
+            "AND COALESCE(l.status,'NOVO') IN (" + ",".join("'%s'" % x for x in AVALIA) + ") "
+            "AND (s.chatid IS NULL OR s.ultimo_ts < l.ultimo_ts) "
+            # quem respondeu agora vem primeiro; depois o resto do funil (1ª passada)
+            "ORDER BY (l.ultimo_de = 'lead') DESC, l.ultimo_ts DESC LIMIT ?", (POR_PASSADA,)).fetchall()
         feitos = 0
         for a in alvos:
             conversa = _conversa(c, a["chatid"], transcreve)
@@ -93,17 +102,25 @@ def passada(db_path, transcreve):
                 try:
                     escolha, conf = _jev(conversa, chave)
                     alvo = ETAPA.get(escolha)
-                    if alvo and conf >= CONFIANCA and alvo != a["status"] and a["status"] in PODE_SAIR_DE[alvo]:
+                    if alvo and conf >= CONFIANCA and alvo != a["status"] and (a["status"] or "NOVO") in PODE_SAIR_DE[alvo]:
                         etapa = alvo
                 except Exception as e:
                     print("  aviso: sugestão de etapa falhou (%s)" % str(e)[:120])
                     continue
+            decisao = None
+            if etapa and mover and conf >= CONFIANCA_AUTO and etapa in AUTO_OK:
+                try:
+                    mover(a["chatid"], etapa)
+                    decisao = "auto"
+                except Exception as e:
+                    print("  aviso: Jev não conseguiu mover %s (%s)" % (a["chatid"][-12:], str(e)[:100]))
             # grava mesmo sem sugestão: marca a mensagem como avaliada e não repete a chamada
             c.execute("INSERT INTO etapa_sugestao(chatid,etapa,conf,status_antes,ultimo_ts,criado_ts,decisao,decidido_ts,decidido_por) "
-                      "VALUES(?,?,?,?,?,?,NULL,NULL,NULL) ON CONFLICT(chatid) DO UPDATE SET etapa=excluded.etapa, conf=excluded.conf, "
+                      "VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(chatid) DO UPDATE SET etapa=excluded.etapa, conf=excluded.conf, "
                       "status_antes=excluded.status_antes, ultimo_ts=excluded.ultimo_ts, criado_ts=excluded.criado_ts, "
-                      "decisao=NULL, decidido_ts=NULL, decidido_por=NULL",
-                      (a["chatid"], etapa, conf, a["status"], a["ultimo_ts"], int(time.time())))
+                      "decisao=excluded.decisao, decidido_ts=excluded.decidido_ts, decidido_por=excluded.decidido_por",
+                      (a["chatid"], etapa, conf, a["status"], a["ultimo_ts"], int(time.time()),
+                       decisao, int(time.time()) if decisao else None, "jev" if decisao else None))
             c.commit()
             feitos += 1
         return feitos
@@ -111,13 +128,13 @@ def passada(db_path, transcreve):
         c.close()
 
 
-def loop(db_path, transcreve, avisa):
+def loop(db_path, transcreve, avisa, mover=None):
     if not os.environ.get("JEV_API_KEY"):
         print("  aviso: sugestão de etapa desligada (sem JEV_API_KEY)")
         return
     while True:
         try:
-            if passada(db_path, transcreve):
+            if passada(db_path, transcreve, mover):
                 avisa()
         except Exception as e:
             print("  aviso: sugestão de etapa falhou (%s)" % str(e)[:160])
@@ -128,7 +145,7 @@ def pendente(c, chatid, status_atual):
     """Sugestão ainda válida para mostrar na conversa (some se a etapa já mudou)."""
     r = c.execute("SELECT etapa, conf, status_antes FROM etapa_sugestao WHERE chatid=? AND decisao IS NULL AND etapa IS NOT NULL",
                   (chatid,)).fetchone()
-    if not r or (r["status_antes"] or "SEM ETAPA") != (status_atual or "SEM ETAPA"):
+    if not r or (r["status_antes"] or "NOVO") != (status_atual or "NOVO"):
         return None
     return {"etapa": r["etapa"], "conf": round(r["conf"], 2)}
 

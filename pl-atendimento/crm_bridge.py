@@ -11,25 +11,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-ETAPAS = dict([
-    ('meta', 'Meta'), ('respondeu', 'Respondeu'), ('contatar', 'Contatar'), ('interessado', 'Interessado'),
-    ('atendimento_ia', 'Atendimento com IA'), ('fotos_enviadas', 'Fotos Enviadas'),
-    ('reuniao_agendada', 'Reunião Agendada'), ('testando', 'Testando'),
-    ('testando_ativo', 'Testando'),
-    ('aguardando_cadastro', 'Aguardando cadastro'),
-    ('passou_prazo', 'Passou do prazo'),
-    ('proposta_enviada', 'Proposta enviada'),
-    ('negociando', 'Negociando'),
-    ('aguardando_pagamento', 'Aguardando pagamento'),
-    ('teste_catalogo_7_dias', 'Teste Catálogo — 7 dias'),
-    ('testou_e_saiu', 'Testou e Saiu'), ('fechou', 'Fechou'), ('stand_by', 'Stand By'),
-    ('sem_site', 'Sem Site'), ('parou_responder', 'Parou de Responder'),
-    ('perdida', 'Perdida'), ('descartado', 'Descartado'), ('novo', 'Novo Instagram'),
-    ('novo_tiktok', 'Novo TikTok'), ('dm_enviada', 'DM Enviada'),
-    ('mensagem_1', 'Mensagem 1'), ('mensagem_2', 'Mensagem 2'),
-    ('mensagem_3', 'Mensagem 3'), ('email_a_enviar', 'Email a Enviar'),
-    ('email_enviado', 'Email Enviado'), ('lead_coletado', 'Lead Coletado'),
-])
+import etapas
+
+# Etapas oferecidas no painel: só o funil novo (slugs antigos o banco converte sozinho).
+ETAPAS = {slug: etapas.ROTULO_CRM[slug] for _, slug in etapas.FUNIL}
 
 
 def telefone(value):
@@ -123,8 +108,7 @@ class CRM:
 
     def reflect_local(self, chatid, lead):
         """Os filtros locais acompanham a etapa confirmada, inclusive encerramentos."""
-        status = {'testando': 'TESTE GRÁTIS', 'teste_catalogo_7_dias': 'TESTE GRÁTIS', 'fechou': 'CONVERTIDO',
-                  'perdida': 'PERDIDO', 'descartado': 'PERDIDO', 'interessado': 'INTERESSADO', 'mensagem_1':'MENSAGEM 1', 'mensagem_2':'MENSAGEM 2', 'mensagem_3':'MENSAGEM 3', 'stand_by':'STAND-BY', 'contatar':'CONTATAR', 'testando_ativo':'TESTANDO', 'passou_prazo':'PASSOU DO PRAZO', 'proposta_enviada':'PROPOSTA ENVIADA', 'aguardando_cadastro':'AGUARDANDO CADASTRO', 'negociando':'NEGOCIANDO', 'aguardando_pagamento':'AGUARDANDO PAGAMENTO'}.get(lead['status'], 'SEM ETAPA')
+        status = etapas.local_do_slug(lead['status'])
         c = self.connect()
         c.execute('UPDATE leads SET status=? WHERE chatid=?', (status, chatid))
         c.commit()
@@ -183,8 +167,7 @@ class CRM:
                 handle = 'whatsapp_' + number
                 self.request('leads', {'on_conflict': 'instagram'}, 'POST', {
                     'instagram': handle, 'nome_loja': local['nome'] or local['fone'],
-                    'telefone': local['fone'], 'status': {'CONVERTIDO': 'fechou', 'PERDIDO': 'perdida',
-                        'TESTE GRÁTIS': 'testando', 'INTERESSADO': 'interessado', 'MENSAGEM 1':'mensagem_1', 'MENSAGEM 2':'mensagem_2', 'MENSAGEM 3':'mensagem_3', 'STAND-BY':'stand_by', 'CONTATAR':'contatar', 'TESTANDO':'testando_ativo', 'PASSOU DO PRAZO':'passou_prazo', 'PROPOSTA ENVIADA':'proposta_enviada', 'AGUARDANDO CADASTRO':'aguardando_cadastro', 'NEGOCIANDO':'negociando', 'AGUARDANDO PAGAMENTO':'aguardando_pagamento'}.get(local['status'], 'meta' if ad else 'respondeu'),
+                    'telefone': local['fone'], 'status': etapas.PARA_CRM.get(local['status']) or ('novo' if ad else 'respondeu'),
                     'fonte_oportunidade': 'Meta' if ad else 'WhatsApp',
                     'notas': 'Registrado pelo PL Atendimento. Instagram não informado.' +
                              ('\nMensagem de entrada: ' + ad if ad else ''),
@@ -253,8 +236,26 @@ class CRM:
                 errors += 1
         self.sync_status['erro'] = ('%d cadastro(s) pendente(s) no CRM; nova tentativa automática.' % errors) if errors else ''
 
+    def pull_statuses(self):
+        """Traz pro painel as etapas mudadas fora dele (agente de catálogos, rotina do funil, Quantic Dash)."""
+        c = self.connect()
+        por_lead = {}
+        for r in c.execute('SELECT chatid, lead_id FROM crm_links'):
+            por_lead.setdefault(r['lead_id'], []).append(r['chatid'])
+        ids = list(por_lead)
+        for i in range(0, len(ids), 150):
+            for row in self.request('leads', {'select': 'id,status', 'id': 'in.(' + ','.join(ids[i:i + 150]) + ')'}):
+                novo = etapas.local_do_slug(row['status'])
+                for chatid in por_lead.get(row['id'], []):
+                    c.execute('UPDATE leads SET status=? WHERE chatid=? AND COALESCE(status,\'\')<>?', (novo, chatid, novo))
+        c.commit()
+
     def loop(self):
         while True:
+            try:
+                self.pull_statuses()
+            except Exception:
+                pass
             try:
                 self.sync()
             except Exception:

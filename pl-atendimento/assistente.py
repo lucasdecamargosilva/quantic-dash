@@ -76,12 +76,14 @@ Clientes conhecidos: Cacife Brand, Mariana Cardoso, Amazoni, Maxilook, Califa, P
   "Conseguiu dar uma olhada no que te enviei sobre o Provador Virtual?".
 - Quem só tem loja física, Instagram ou WhatsApp → Provou Catálogo.
 
-## Etapas do funil (códigos do CRM)
-meta/dm_enviada/mensagem_1..3 = prospecção fria · respondeu · contatar · interessado ·
-fotos_enviadas · reuniao_agendada · teste_catalogo_7_dias e testando (Teste Grátis, ainda sem
-catálogo/instalação) · testando_ativo (Testando: catálogo/provador no ar) · aguardando_cadastro ·
-passou_prazo (teste acabou sem fechar) · proposta_enviada · negociando · aguardando_pagamento ·
-fechou (Convertido) · stand_by · parou_responder · perdida · descartado.
+## Etapas do funil (out/2026) — rótulo no painel = código no CRM
+NOVO = novo (chegou, ainda não respondeu de verdade) · EM CONVERSA = respondeu (respondeu; descobrindo onde vende) ·
+INTERESSADO = interessado (pediu preço/como funciona) · AGUARDANDO DADOS = testando (aceitou o teste; falta logo,
+e-mail ou WhatsApp) · EM TESTE = testando_ativo (catálogo/provador no ar) · TESTE PARADO = passou_prazo (no ar sem
+produto/prova há 3 dias ou teste de 7 dias vencido) · PROPOSTA ENVIADA = proposta_enviada · AGUARDANDO PAGAMENTO =
+aguardando_pagamento · CONVERTIDO = fechou · STAND-BY = stand_by (com data de retorno em retomar_em) · PERDIDO =
+perdida (com motivo em motivo_perda). Etapas antigas (meta, dm_enviada, mensagem_1..3, contatar, negociando…) foram
+migradas para essas. No Pipeline de atendimento (SQLite) o status usa o rótulo em maiúsculas.
 """
 
 REGRAS = """Você é o assistente interno do time comercial da Provou Levou, dentro do CRM de prospecção.
@@ -148,9 +150,8 @@ def contexto(crm_url, crm_key):
 
 ESQUEMA_PIPELINE = """Tabelas (SQLite, só leitura):
 - leads(chatid, fone, nome, status, responsavel, ultimo_ts, ultimo_de, oculto)
-  status do chat: MENSAGEM 1, MENSAGEM 2, MENSAGEM 3, STAND-BY, CONTATAR, INTERESSADO, TESTE GRÁTIS,
-  AGUARDANDO CADASTRO, TESTANDO, PASSOU DO PRAZO, PROPOSTA ENVIADA, NEGOCIANDO, AGUARDANDO PAGAMENTO,
-  CONVERTIDO, PERDIDO. responsavel: 'Lucas' | 'Dione' | NULL. ultimo_de: 'lead' (esperando a gente) | 'nos'.
+  status do chat: NOVO, EM CONVERSA, INTERESSADO, AGUARDANDO DADOS, EM TESTE, TESTE PARADO, PROPOSTA ENVIADA,
+  AGUARDANDO PAGAMENTO, CONVERTIDO, STAND-BY, PERDIDO. responsavel: 'Lucas' | 'Dione' | NULL. ultimo_de: 'lead' (esperando a gente) | 'nos'.
   ultimo_ts = epoch em segundos (ou ms se > 1e11). oculto=1 = removido da fila.
 - mensagens(chatid, ts, from_me, tipo, texto)   -- from_me=1 nós; ts epoch (s ou ms)
 - planos_fechados(chatid, lead_id, plano, valor_centavos, fechado_em, atualizado_em)  -- fechado_em ISO -03:00
@@ -165,10 +166,9 @@ FERRAMENTAS = [{"functionDeclarations": [
     {"name": "buscar_leads_crm",
      "description": "Busca leads no CRM (Supabase). Devolve total_encontrado, contagens por_etapa/por_fonte/por_responsavel do conjunto filtrado e até 'limite' leads (mais recentes primeiro) "
                     "com loja, etapa, responsável, instagram, site, plataforma, categoria, fonte, criado, atualizado, "
-                    "teste_desde e notas. Etapas: meta, dm_enviada, mensagem_1, mensagem_2, mensagem_3, respondeu, contatar, "
-                    "interessado, fotos_enviadas, reuniao_agendada, testando, teste_catalogo_7_dias, testando_ativo, "
-                    "aguardando_cadastro, passou_prazo, proposta_enviada, negociando, aguardando_pagamento, fechou, "
-                    "stand_by, parou_responder, perdida, descartado, sem_site, email_a_enviar, novo.",
+                    "teste_desde e notas. Etapas (funil out/2026): novo, respondeu (Em conversa), interessado, testando "
+                    "(Aguardando dados), testando_ativo (Em teste), passou_prazo (Teste parado), proposta_enviada, "
+                    "aguardando_pagamento, fechou (Convertido), stand_by, perdida.",
      "parameters": {"type": "OBJECT", "properties": {
          "busca": {"type": "STRING", "description": "texto no nome da loja, instagram, site ou notas"},
          "etapas": {"type": "ARRAY", "items": {"type": "STRING"}},

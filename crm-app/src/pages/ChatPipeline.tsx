@@ -14,12 +14,16 @@ type Plan={nome:string;preco:string};
 const CUSTOM_PLAN="Personalizado",CUSTOM_KEY="__personalizado__";
 type Sale={plano:string;valor_centavos:number};
 type Lead={venda?:Sale|null;chatid:string;nome:string;fone:string;status:string;responsavel:string|null;quando:string;ultimo_ts:number|null;ha:string;ultima:string;origem?:"crm";crmId?:string;hasConv?:boolean;grupoChatid?:string|null;grupoNome?:string|null;diasTeste?:number|null};
-const stages=[{label:"Esperando",value:"",color:"#7c3aed"},{label:"Sem resposta",value:"_sem_resposta",color:"#8490a3"},{label:"Mensagem 1",value:"MENSAGEM 1",color:"#3b82f6"},{label:"Mensagem 2",value:"MENSAGEM 2",color:"#6366f1"},{label:"Mensagem 3",value:"MENSAGEM 3",color:"#a855f7"},{label:"Stand-by",value:"STAND-BY",color:"#f59e0b"},{label:"Contatar",value:"CONTATAR",color:"#0ea5e9"},{label:"Interessado",value:"INTERESSADO",color:"#8b5cf6"},{label:"Teste grátis",value:"TESTE GRÁTIS",color:"#06b6d4"},{label:"Aguardando cadastro",value:"AGUARDANDO CADASTRO",color:"#14b8a6"},{label:"Testando",value:"TESTANDO",color:"#84cc16"},{label:"Passou do prazo",value:"PASSOU DO PRAZO",color:"#f97316"},{label:"Proposta enviada",value:"PROPOSTA ENVIADA",color:"#a855f7"},{label:"Negociando",value:"NEGOCIANDO",color:"#ec4899"},{label:"Aguardando pagamento",value:"AGUARDANDO PAGAMENTO",color:"#22c55e"},{label:"Convertido",value:"CONVERTIDO",color:"#10b981"},{label:"Perdido",value:"PERDIDO",color:"#ef4444"},{label:"Removidos",value:"_ocultos",color:"#8490a3"}];
+const stages=[{label:"Esperando",value:"",color:"#7c3aed"},{label:"Sem resposta",value:"_sem_resposta",color:"#8490a3"},{label:"Novo",value:"NOVO",color:"#3b82f6"},{label:"Em conversa",value:"EM CONVERSA",color:"#0ea5e9"},{label:"Interessado",value:"INTERESSADO",color:"#8b5cf6"},{label:"Aguardando dados",value:"AGUARDANDO DADOS",color:"#06b6d4"},{label:"Em teste",value:"EM TESTE",color:"#84cc16"},{label:"Teste parado",value:"TESTE PARADO",color:"#f97316"},{label:"Proposta enviada",value:"PROPOSTA ENVIADA",color:"#a855f7"},{label:"Aguardando pagamento",value:"AGUARDANDO PAGAMENTO",color:"#22c55e"},{label:"Convertido",value:"CONVERTIDO",color:"#10b981"},{label:"Stand-by",value:"STAND-BY",color:"#f59e0b"},{label:"Perdido",value:"PERDIDO",color:"#ef4444"},{label:"Removidos",value:"_ocultos",color:"#8490a3"}];
 // Colunas comerciais: passam a ler do banco (Supabase) — fonte da verdade do CRM.
 // As demais (Esperando, Sem resposta, Mensagem 1-3, Stand-by, Removidos) seguem do painel.
-const COMMERCIAL=new Set(["CONTATAR","INTERESSADO","TESTE GRÁTIS","TESTANDO","AGUARDANDO CADASTRO","PASSOU DO PRAZO","PROPOSTA ENVIADA","NEGOCIANDO","AGUARDANDO PAGAMENTO","CONVERTIDO","PERDIDO"]);
+const COMMERCIAL=new Set(["INTERESSADO","AGUARDANDO DADOS","EM TESTE","TESTE PARADO","PROPOSTA ENVIADA","AGUARDANDO PAGAMENTO","CONVERTIDO","STAND-BY","PERDIDO"]);
 // Mesmo mapa do backend (PIPELINE_REMOTE_STATUS): etapa do painel <-> slug do Supabase.
-const PANEL_SLUG:Record<string,string>={"MENSAGEM 1":"mensagem_1","MENSAGEM 2":"mensagem_2","MENSAGEM 3":"mensagem_3","STAND-BY":"stand_by","CONTATAR":"contatar","INTERESSADO":"interessado","TESTE GRÁTIS":"testando","TESTANDO":"testando_ativo","PASSOU DO PRAZO":"passou_prazo","PROPOSTA ENVIADA":"proposta_enviada","AGUARDANDO CADASTRO":"aguardando_cadastro","NEGOCIANDO":"negociando","AGUARDANDO PAGAMENTO":"aguardando_pagamento","CONVERTIDO":"fechou","PERDIDO":"perdida"};
+const PANEL_SLUG:Record<string,string>={"NOVO":"novo","EM CONVERSA":"respondeu","INTERESSADO":"interessado","AGUARDANDO DADOS":"testando","EM TESTE":"testando_ativo","TESTE PARADO":"passou_prazo","PROPOSTA ENVIADA":"proposta_enviada","AGUARDANDO PAGAMENTO":"aguardando_pagamento","CONVERTIDO":"fechou","STAND-BY":"stand_by","PERDIDO":"perdida"};
+// Stand-by pede quando retomar; Perdido pede o motivo (funil out/2026).
+const MOTIVOS=["caro","sem interesse","já tem solução","sem loja ou site","número errado","outro"];
+function extrasDaEtapa(target:string):Record<string,unknown>|null{if(target==="STAND-BY"){const d=window.prompt("Retomar o contato em quantos dias?","14");if(d===null)return null;return {retomar_dias:parseInt(d,10)||14}}if(target==="PERDIDO"){const r=window.prompt("Motivo da perda:\n"+MOTIVOS.map((m,i)=>(i+1)+" - "+m).join("\n")+"\n\nDigite o número:","2");if(r===null)return null;return {motivo:MOTIVOS[(parseInt(r,10)||6)-1]||"outro"}}return {}}
+async function salvaExtrasCrm(crmId:string,ex:Record<string,unknown>){const up:Record<string,unknown>={};if(ex.retomar_dias){const d=new Date();d.setDate(d.getDate()+Number(ex.retomar_dias));up.retomar_em=d.toISOString().slice(0,10)}if(ex.motivo)up.motivo_perda=ex.motivo;if(Object.keys(up).length){const {error}=await supabase.from("leads").update(up).eq("id",crmId);if(error)throw new Error(error.message)}}
 function normFone(f:string){let d=(f||"").replace(/\D/g,"");if(d.length>11&&d.startsWith("55"))d=d.slice(2);return d.replace(/^0+/,"");}
 function DragCard({lead,stage,disabled,onOpen,children}:{lead:Lead;stage:string;disabled:boolean;onOpen:()=>void;children:React.ReactNode}){
  const {attributes,listeners,setNodeRef,transform,isDragging}=useDraggable({id:stage+":"+(lead.crmId||lead.chatid),data:{lead,stage},disabled});
@@ -90,8 +94,9 @@ export default function ChatPipeline(){
  useEffect(()=>{void load();const timer=window.setInterval(()=>{void load()},30000);return()=>clearInterval(timer)},[]);
  async function update(path:string,data:Record<string,unknown>){if(!selected)return;if(path==="status"&&data.status==="CONVERTIDO"&&!("plano" in data)){openSale(selected.lead,selected.removed);return;}setSaving(true);try{
    const L=selected.lead;
+   const ex=path==="status"?extrasDaEtapa(String(data.status)):{};if(ex===null){setSaving(false);return;}data={...data,...ex};
    if(L.origem==="crm"&&!L.hasConv){
-     if(path==="status")await persistLeadStatus(L.crmId!,(PANEL_SLUG[String(data.status)]||String(data.status)) as any);
+     if(path==="status"){await persistLeadStatus(L.crmId!,(PANEL_SLUG[String(data.status)]||String(data.status)) as any);await salvaExtrasCrm(L.crmId!,ex);}
      else if(path==="responsavel"){const {error}=await supabase.from("leads").update({responsavel:(data.responsavel as string)||null}).eq("id",L.crmId!);if(error)throw new Error(error.message)}
    } else {
      const r=await fetch(`/api/${path}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chatid:L.chatid,...data})});if(!r.ok){const d=await r.json();throw new Error(d.erro||"Não foi possível salvar.")}
@@ -122,12 +127,13 @@ export default function ChatPipeline(){
    if(crmOnly){setSaving(true);setError("");try{await persistLeadStatus(source.lead.crmId!,"fechou" as any);await load()}catch(e){await load();setError(e instanceof Error?e.message:"Falha ao mover o lead.")}finally{setSaving(false)}return;}
    openSale(source.lead,source.stage==="_ocultos");return;
   }
+  const ex=extrasDaEtapa(target);if(ex===null)return;
   setSaving(true);setError("");
   try{
-   if(crmOnly){await persistLeadStatus(source.lead.crmId!,(PANEL_SLUG[target]||target) as any);}
+   if(crmOnly){await persistLeadStatus(source.lead.crmId!,(PANEL_SLUG[target]||target) as any);await salvaExtrasCrm(source.lead.crmId!,ex);}
    else{
     async function post(path:string,data:Record<string,unknown>){const r=await fetch(`/api/${path}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chatid:source!.lead.chatid,...data})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.erro||"Não foi possível mover o lead.")}}
-    if(target==="_ocultos")await post("ocultar",{oculto:true});else{await post("status",{status:target});if(source.stage==="_ocultos")await post("ocultar",{oculto:false})}
+    if(target==="_ocultos")await post("ocultar",{oculto:true});else{await post("status",{status:target,...ex});if(source.stage==="_ocultos")await post("ocultar",{oculto:false})}
    }
    await load()
   }catch(e){await load();setError(e instanceof Error?e.message:"Falha ao mover o lead.")}finally{setSaving(false)}

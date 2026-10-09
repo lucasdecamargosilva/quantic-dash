@@ -1,65 +1,32 @@
 import { STATUS_LABELS, STATUS_HEX } from "../types";
 import type { LeadStatus } from "../types";
 
-// Funil — etapas em sequência. Stand By é lateral (não conta no funil principal).
-// Cada etapa mostra o COUNT CUMULATIVO (todos que passaram por essa etapa ou além).
+// Funil de prospecção (out/2026) — etapas em sequência; Stand-by e Perdido são laterais.
+// Cada etapa mostra o COUNT CUMULATIVO (quem está nela ou já passou dela).
 const FUNNEL_STEPS: LeadStatus[] = [
-  "dm_enviada",
-  "mensagem_1",
-  "mensagem_2",
-  "mensagem_3",
-  "email_enviado",
+  "novo",
   "respondeu",
-  "fotos_enviadas",
   "interessado",
-  "reuniao_agendada",
-  "teste_catalogo_7_dias",
   "testando",
+  "testando_ativo",
+  "proposta_enviada",
   "fechou",
 ];
+const ORDEM: LeadStatus[] = ["novo", "respondeu", "interessado", "testando", "testando_ativo", "passou_prazo", "proposta_enviada", "aguardando_pagamento", "fechou"];
+// Stand-by e Perdido já conversaram com a gente: contam até "Em conversa".
+const LATERAIS: LeadStatus[] = ["stand_by", "perdida"];
 
-// Lista cumulativa: todos os status DEPOIS desta etapa (incluindo perdida)
-// porque "perdida" também passou pela etapa
-const STAGES_AFTER: Record<LeadStatus, LeadStatus[]> = {
-  novo: [],
-  novo_tiktok: [],
-  lead_coletado: [],
-  contatar: [],
-  testando_ativo: [],
-  passou_prazo: [],
-  proposta_enviada: [],
-  aguardando_cadastro: [],
-  negociando: [],
-  aguardando_pagamento: [],
-  descartado: [],
-  meta: [],
-  email_a_enviar: [],
-  dm_enviada: ["mensagem_1", "mensagem_2", "mensagem_3", "email_enviado", "respondeu", "atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  mensagem_1: ["mensagem_2", "mensagem_3", "email_enviado", "respondeu", "atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  mensagem_2: ["mensagem_3", "email_enviado", "respondeu", "atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  mensagem_3: ["email_enviado", "respondeu", "atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  email_enviado: ["respondeu", "atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  respondeu: ["atendimento_ia", "fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  atendimento_ia: ["fotos_enviadas", "interessado", "stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  fotos_enviadas: ["interessado", "stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  interessado: ["stand_by", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  stand_by: ["reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  reuniao_agendada: ["teste_catalogo_7_dias", "testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  teste_catalogo_7_dias: ["testando", "testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  testando: ["testou_e_saiu", "fechou", "sem_site", "parou_responder", "perdida"],
-  testou_e_saiu: [],
-  fechou: [],
-  sem_site: [],
-  parou_responder: [],
-  perdida: [],
-};
+function stagesAfter(step: LeadStatus): LeadStatus[] {
+  const depois = ORDEM.slice(ORDEM.indexOf(step) + 1);
+  return ORDEM.indexOf(step) <= ORDEM.indexOf("respondeu") ? [...depois, ...LATERAIS] : depois;
+}
 
 interface Props {
   counts: Record<LeadStatus, number>;
 }
 
 function cumulativeCount(step: LeadStatus, counts: Record<LeadStatus, number>) {
-  return (counts[step] || 0) + STAGES_AFTER[step].reduce((a, s) => a + (counts[s] || 0), 0);
+  return (counts[step] || 0) + stagesAfter(step).reduce((a, s) => a + (counts[s] || 0), 0);
 }
 
 export default function FunnelChart({ counts }: Props) {

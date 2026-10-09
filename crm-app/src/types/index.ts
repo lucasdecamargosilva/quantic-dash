@@ -93,69 +93,26 @@ export type LeadStatus =
   | "perdida"
   | "descartado";
 
+// Funil de prospecção (out/2026) — mesma ordem do painel de Atendimento (pl-atendimento/etapas.py).
+// Os slugs antigos continuam no tipo só por compatibilidade: o banco converte (trigger leads_a_normaliza_etapa).
 export const LEAD_STATUSES: LeadStatus[] = [
   "novo",
-  "dm_enviada",
-  "mensagem_1",
-  "mensagem_2",
-  "mensagem_3",
-  "meta",
-  "email_a_enviar",
-  "email_enviado",
   "respondeu",
-  "contatar",
-  "atendimento_ia",
-  "fotos_enviadas",
   "interessado",
-  "stand_by",
-  "reuniao_agendada",
   "testando",
-  "aguardando_cadastro",
+  "testando_ativo",
   "passou_prazo",
   "proposta_enviada",
-  "negociando",
   "aguardando_pagamento",
-  "teste_catalogo_7_dias",
-  "testou_e_saiu",
   "fechou",
-  "sem_site",
-  "parou_responder",
+  "stand_by",
   "perdida",
-  "descartado",
 ];
 
 // Status "quentes" — leads prontos pra avançar (usado em Top Responsáveis e Desempenho do Time)
-export const HOT_STATUSES: LeadStatus[] = ["interessado", "reuniao_agendada", "testando", "teste_catalogo_7_dias"];
+export const HOT_STATUSES: LeadStatus[] = ["interessado", "testando"];
 
-export const PIPELINE_STATUSES: LeadStatus[] = [
-  "novo",
-  "dm_enviada",
-  "mensagem_1",
-  "mensagem_2",
-  "mensagem_3",
-  "atendimento_ia",
-  "meta",
-  "email_a_enviar",
-  "email_enviado",
-  "respondeu",
-  "contatar",
-  "fotos_enviadas",
-  "interessado",
-  "reuniao_agendada",
-  "teste_catalogo_7_dias",
-  "testando",
-  "aguardando_cadastro",
-  "passou_prazo",
-  "proposta_enviada",
-  "negociando",
-  "aguardando_pagamento",
-  "testou_e_saiu",
-  "fechou",
-  "stand_by",
-  "sem_site",
-  "parou_responder",
-  "perdida",
-];
+export const PIPELINE_STATUSES: LeadStatus[] = LEAD_STATUSES;
 
 export interface Interacao {
   id: string;
@@ -175,7 +132,7 @@ export const INTERACAO_TIPOS: InteracaoTipo[] = [
 ];
 
 export const STATUS_LABELS: Record<LeadStatus, string> = {
-  novo: "Novo Instagram",
+  novo: "Novo",
   novo_tiktok: "Novo TikTok",
   dm_enviada: "DM Enviada",
   mensagem_1: "Mensagem 1",
@@ -184,16 +141,16 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   meta: "Meta",
   email_a_enviar: "Email a Enviar",
   email_enviado: "Email Enviado",
-  respondeu: "Respondeu",
+  respondeu: "Em conversa",
   contatar: "Contatar",
   atendimento_ia: "Atendimento com IA",
   lead_coletado: "Lead Coletado",
   fotos_enviadas: "Fotos Enviadas",
-  stand_by: "Stand By",
+  stand_by: "Stand-by",
   reuniao_agendada: "Reunião Agendada",
-  testando: "Testando",
-  testando_ativo: "Testando",
-  passou_prazo: "Passou do prazo",
+  testando: "Aguardando dados",
+  testando_ativo: "Em teste",
+  passou_prazo: "Teste parado",
   proposta_enviada: "Proposta enviada",
   aguardando_cadastro: "Aguardando cadastro",
   negociando: "Negociando",
@@ -201,10 +158,10 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   teste_catalogo_7_dias: "Teste Catálogo — 7 dias",
   testou_e_saiu: "Testou e Saiu",
   interessado: "Interessado",
-  fechou: "Fechou",
+  fechou: "Convertido",
   sem_site: "Sem Site",
   parou_responder: "Parou de Responder",
-  perdida: "Perdida",
+  perdida: "Perdido",
   descartado: "Descartado",
 };
 

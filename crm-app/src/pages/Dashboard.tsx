@@ -23,12 +23,7 @@ function useTheme(): "light" | "dark" {
   return theme;
 }
 
-const ACTIVE_STATUSES: LeadStatus[] = [
-  "novo", "dm_enviada", "mensagem_1", "mensagem_2", "mensagem_3", "atendimento_ia",
-  "meta", "email_a_enviar", "email_enviado",
-  "respondeu", "fotos_enviadas",
-  "stand_by", "interessado", "reuniao_agendada", "teste_catalogo_7_dias", "testando", "testou_e_saiu",
-];
+const ACTIVE_STATUSES: LeadStatus[] = ["novo", "respondeu", "interessado", "testando", "testando_ativo", "passou_prazo", "proposta_enviada", "aguardando_pagamento", "stand_by"];
 
 type LastInter = { conteudo: string; created_at: string };
 type Atividade7d = { id: string; lead_id: string; conteudo: string; created_at: string; tipo: string };
@@ -100,14 +95,14 @@ export default function Dashboard() {
   const hot = HOT_STATUSES.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   // Funnel cumulativo: dms = todos que passaram por dm_enviada ou além
-  const dmsAlcancadas = ["dm_enviada","mensagem_1","mensagem_2","mensagem_3","atendimento_ia","meta","email_a_enviar","email_enviado","respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","teste_catalogo_7_dias","testando","testou_e_saiu","fechou","perdida"]
+  const dmsAlcancadas = ["novo","respondeu","interessado","testando","testando_ativo","passou_prazo","proposta_enviada","aguardando_pagamento","stand_by","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
-  const responderam = ["respondeu","fotos_enviadas","interessado","stand_by","reuniao_agendada","teste_catalogo_7_dias","testando","testou_e_saiu","fechou","perdida"]
+  const responderam = ["respondeu","interessado","testando","testando_ativo","passou_prazo","proposta_enviada","aguardando_pagamento","stand_by","fechou","perdida"]
     .reduce((s, k) => s + (counts[k as LeadStatus] || 0), 0);
   const taxaResposta = dmsAlcancadas > 0 ? ((responderam / dmsAlcancadas) * 100) : 0;
   const taxaFechamentoSobreDM = dmsAlcancadas > 0 ? ((fechados / dmsAlcancadas) * 100) : 0;
-  const taxaFechamentoSobreInteresse = (counts.interessado + counts.reuniao_agendada + counts.testando + counts.fechou + counts.perdida) > 0
-    ? (fechados / (counts.interessado + counts.reuniao_agendada + counts.testando + counts.fechou + counts.perdida)) * 100
+  const taxaFechamentoSobreInteresse = (counts.interessado + counts.testando + counts.testando_ativo + counts.passou_prazo + counts.proposta_enviada + counts.fechou + counts.perdida) > 0
+    ? (fechados / (counts.interessado + counts.testando + counts.testando_ativo + counts.passou_prazo + counts.proposta_enviada + counts.fechou + counts.perdida)) * 100
     : 0;
 
   // === Categoria breakdown ===
