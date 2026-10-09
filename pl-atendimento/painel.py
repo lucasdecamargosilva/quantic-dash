@@ -724,6 +724,32 @@ def transcreve(url):
     return t
 
 
+def transcreve_msg(messageid):
+    """Transcreve um áudio do WhatsApp pelo id da mensagem (baixa decifrado pela Uazapi via carrega_midia).
+    O file_url salvo é o link criptografado do WhatsApp e não serve para baixar direto."""
+    c = con()
+    chave = "msg:" + str(messageid)
+    r = c.execute("SELECT texto FROM transcricoes WHERE url=?", (chave,)).fetchone()
+    if r:
+        return r["texto"]
+    if not GEMINI_KEY:
+        return ""
+    try:
+        corpo, mime = carrega_midia(messageid)
+        d = _req("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=%s" % GEMINI_KEY,
+                 {"contents": [{"role": "user", "parts": [
+                     {"text": "Transcreva este áudio em português do Brasil. Só a transcrição."},
+                     {"inline_data": {"mime_type": mime or "audio/mpeg", "data": base64.b64encode(corpo).decode()}}]}],
+                  "generationConfig": {"temperature": 0}}, timeout=200)
+        t = d["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception:
+        return ""
+    if t:
+        c.execute("INSERT OR REPLACE INTO transcricoes(url,texto) VALUES(?,?)", (chave, t))
+        c.commit()
+    return t
+
+
 # ─────────────────────────── consultas ───────────────────────────
 # Quem abre a conversa com "Olá! Tive um problema ao usar o provador." e um
 # CONSUMIDOR de alguma loja pedindo suporte — nao e lojista, nao e venda. O Lucas
@@ -3257,7 +3283,7 @@ if __name__ == "__main__":
     # espelho do painel.db no Supabase (histórico acessível fora do container)
     threading.Thread(target=espelho.loop, args=(DB, CRM_CLIENT.url, CRM_CLIENT.key), daemon=True).start()
     # Jev organiza o funil: move sozinho quando é seguro (>= 0,9), senão sugere na conversa
-    threading.Thread(target=sugestao_etapa.loop, args=(DB, transcreve, avisa_mensagem_nova, move_pipeline_dados), daemon=True).start()
+    threading.Thread(target=sugestao_etapa.loop, args=(DB, transcreve_msg, avisa_mensagem_nova, move_pipeline_dados), daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)
     print("Ctrl+C para parar.\n")
