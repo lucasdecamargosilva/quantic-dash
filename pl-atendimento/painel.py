@@ -15,6 +15,7 @@ Como funciona por dentro:
 """
 import assistente
 import espelho
+import sugestao_etapa
 import base64
 import grupos_catalogos
 import historico_lead
@@ -299,6 +300,7 @@ LIVE_EVENTS = LiveEvents(UZ, UZ_TOKEN, con, avisa_mensagem_nova)
 def cria_banco():
     c = con()
     grupos_catalogos.initialize(c)
+    sugestao_etapa.init(c)
     tarefas.initialize(c)
     c.executescript("""
     CREATE TABLE IF NOT EXISTS mensagens (
@@ -1079,6 +1081,7 @@ def conversa(chatid, usuario=None):
             "oculto": bool(lead and (lead["oculto"] if "oculto" in lead.keys() else 0)),
             "nome": lead["nome"] if lead else "", "fone": lead["fone"] if lead else "",
             "responsavel": lead["responsavel"] if lead else None,
+            "sugestao_etapa": None if grupo else sugestao_etapa.pendente(c, chatid, lead["status"] if lead else None),
             "encerrado": encerrado}
 
 
@@ -1372,6 +1375,9 @@ h1{font-size:17px;margin:0;font-weight:650}
 .responsavel-select{max-width:160px;border:1px solid var(--linha);border-radius:7px;
  background:var(--campo);color:var(--txt);padding:3px 7px;font:inherit;font-size:12px;cursor:pointer}
 .responsavel-erro{font-size:12px;color:var(--verm)}
+.sugestao-etapa{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:9px 12px;border-radius:10px;
+ border:1px solid var(--roxo2);background:var(--hover);font-size:13px}
+.sugestao-etapa .btn{padding:5px 12px;font-size:12px}
 .pulso{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;
 animation:bat 2s infinite}@keyframes bat{50%{opacity:.25}}
 button{font:inherit;border:0;border-radius:9px;padding:9px 14px;cursor:pointer}
@@ -2180,6 +2186,11 @@ async function abrirLead(lead){
       ${d.grupo_chatid?`<a class="btn sec cliente-link" href="?chatid=${encodeURIComponent(d.grupo_chatid)}" title="${esc(d.grupo_nome||'')}">${icone('chat')} Grupo da loja</a>`:''}
       <button class="btn sec cliente-link" id="btDadosLead" onclick="toggleDadosLead()" aria-expanded="false" aria-controls="leadDrawer">${icone('user')} Dados do lead</button></div>
     </div>
+    ${d.sugestao_etapa?`<div class="sugestao-etapa" id="sugestaoEtapa">
+      <span>✨ Pelo que o lojista disse, mover para <strong>${esc(d.sugestao_etapa.etapa)}</strong>
+      <span class="tag">(${Math.round(d.sugestao_etapa.conf*100)}% de certeza)</span></span>
+      <button class="btn" onclick="decideSugestao('aplicar')">Aplicar</button>
+      <button class="btn sec" onclick="decideSugestao('ignorar')">Ignorar</button></div>`:''}
     <div class="chat" id="chat">${bolhas(d.linhas)}${bolhasPend(d.linhas)}</div>
     <div class="acoes atalhos">
       <button class="btn sec" id="btAbordagem" onclick="poeAbordagem()"
@@ -2372,6 +2383,19 @@ async function ocultar(oc){
   await carrega(); await filtros();
   document.getElementById('painel').innerHTML=
     '<div class="vazio">'+(oc?'Conversa removida.':'Restaurada.')+' Escolha a próxima.</div>';
+}
+async function decideSugestao(acao){
+  const box=document.getElementById('sugestaoEtapa'); if(!box) return;
+  box.querySelectorAll('button').forEach(b=>b.disabled=true);
+  try{
+    const r=await fetch('/api/sugestao_etapa',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chatid:destinatarioAberto().chatid,acao})});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.erro||'Não foi possível salvar.');
+    box.innerHTML=acao==='aplicar'?'<span class="ok">Movido para '+esc(j.etapa)+'.</span>':'<span class="tag">Sugestão ignorada.</span>';
+    setTimeout(()=>box.remove(),2500); carrega();
+  }catch(e){ box.querySelectorAll('button').forEach(b=>b.disabled=false);
+    box.insertAdjacentHTML('beforeend','<span class="err"> '+esc(e.message)+'</span>'); }
 }
 async function mudaStatus(s,b){
   await fetch('/api/status',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
@@ -2995,6 +3019,27 @@ class H(BaseHTTPRequestHandler):
                     return self._send(200, json.dumps(data, ensure_ascii=False))
                 except Exception as e:
                     return self._send(400, json.dumps({"erro": str(e)[:200]}, ensure_ascii=False))
+            if self.path == "/api/sugestao_etapa":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    usuario = self.headers.get("X-Prospeccao-User")
+                    c = con()
+                    lead = c.execute("SELECT status FROM leads WHERE chatid=?", (d.get("chatid"),)).fetchone()
+                    sug = sugestao_etapa.pendente(c, d.get("chatid"), lead["status"] if lead else None)
+                    if not sug:
+                        raise ValueError("Essa sugestão não está mais disponível.")
+                    if d.get("acao") == "aplicar":
+                        move_pipeline_dados(d["chatid"], sug["etapa"])
+                        sugestao_etapa.decide(c, d["chatid"], "aplicada", usuario)
+                    else:
+                        sugestao_etapa.decide(c, d["chatid"], "ignorada", usuario)
+                    UI_EVENTS.publish()
+                    return self._send(200, json.dumps({"ok": True, "etapa": sug["etapa"]}, ensure_ascii=False))
+                except (ValueError, RuntimeError) as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/status":
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
@@ -3178,6 +3223,8 @@ if __name__ == "__main__":
     threading.Thread(target=loop_grupos, daemon=True).start()
     # espelho do painel.db no Supabase (histórico acessível fora do container)
     threading.Thread(target=espelho.loop, args=(DB, CRM_CLIENT.url, CRM_CLIENT.key), daemon=True).start()
+    # Jev sugere a etapa quando o lojista responde (a Dione aplica ou ignora na conversa)
+    threading.Thread(target=sugestao_etapa.loop, args=(DB, transcreve, avisa_mensagem_nova), daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)
     print("Ctrl+C para parar.\n")

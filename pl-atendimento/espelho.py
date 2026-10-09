@@ -15,8 +15,8 @@ INTERVALO = 60
 LOTE = 400
 
 
-def _rpc(url, key, chave, mensagens, leads):
-    body = json.dumps({"p_chave": chave, "p_mensagens": mensagens, "p_leads": leads}).encode("utf-8")
+def _rpc(url, key, chave, mensagens, leads, sugestoes=()):
+    body = json.dumps({"p_chave": chave, "p_mensagens": mensagens, "p_leads": leads, "p_sugestoes": list(sugestoes)}).encode("utf-8")
     r = urllib.request.Request(url.rstrip("/") + "/rest/v1/rpc/pl_atend_espelha", data=body, method="POST",
                                headers={"apikey": key, "Authorization": "Bearer " + key, "Content-Type": "application/json"})
     with urllib.request.urlopen(r, timeout=120) as x:
@@ -61,6 +61,21 @@ def passada(db_path, url, key, chave, enviados_leads):
             _rpc(url, key, chave, [], [l for l, _ in parte])
             for l, h in parte:
                 enviados_leads[l["chatid"]] = h
+        # sugestões de etapa do Jev (pra medir o acerto fora do container)
+        try:
+            sug = [dict(r) for r in c.execute("SELECT * FROM etapa_sugestao")]
+        except sqlite3.OperationalError:
+            sug = []
+        novas = []
+        for x in sug:
+            h = hashlib.md5(json.dumps(x, sort_keys=True, default=str).encode()).hexdigest()
+            if enviados_leads.get("sug:" + x["chatid"]) != h:
+                novas.append((x, h))
+        for i in range(0, len(novas), LOTE):
+            parte = novas[i:i + LOTE]
+            _rpc(url, key, chave, [], [], [x for x, _ in parte])
+            for x, h in parte:
+                enviados_leads["sug:" + x["chatid"]] = h
         return total, len(mudou)
     finally:
         c.close()
