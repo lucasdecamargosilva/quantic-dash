@@ -7,11 +7,14 @@ tela, e a decisão fica registrada para medir o acerto.
 """
 import json
 import os
+import re
 import sqlite3
 import time
 import urllib.request
 
 CONFIANCA = 0.8
+# Texto pronto que o WhatsApp preenche quando o lojista clica no anúncio: não é interesse real ainda.
+ANUNCIO = re.compile(r"(?i)^\s*oi!?\s*gostaria de saber mais sobre o (provador virtual|provou cat[aá]logo)")
 INTERVALO = 20
 POR_PASSADA = 8
 
@@ -61,6 +64,8 @@ def _conversa(c, chatid, transcreve):
             t = ("[áudio] " + (transcreve(m["file_url"]) or "")).strip() if (not m["from_me"] and m["file_url"]) else "[áudio]"
         elif not t:
             t = {"ImageMessage": "[imagem]", "DocumentMessage": "[arquivo]", "VideoMessage": "[vídeo]"}.get(m["tipo"], "")
+        if t and not m["from_me"] and ANUNCIO.search(t):
+            t = "(clicou no anúncio; mensagem automática, ainda sem resposta própria)"
         if t:
             linhas.append(("NÓS" if m["from_me"] else "LOJISTA") + ": " + t[:400])
     return linhas
@@ -83,7 +88,8 @@ def passada(db_path, transcreve):
         for a in alvos:
             conversa = _conversa(c, a["chatid"], transcreve)
             etapa, conf = None, 0.0
-            if any(x.startswith("LOJISTA") for x in conversa):
+            proprias = [x for x in conversa if x.startswith("LOJISTA") and "mensagem automática" not in x]
+            if proprias:
                 try:
                     escolha, conf = _jev(conversa, chave)
                     alvo = ETAPA.get(escolha)
