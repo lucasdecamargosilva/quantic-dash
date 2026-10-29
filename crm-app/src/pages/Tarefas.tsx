@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { saoPauloDay } from "../lib/period";
+import { AVISOS, avisoLabel, notificacaoSuportada, quandoLabel } from "../lib/tarefas-aviso";
+import { EVENTO_CHECAR } from "../components/AlarmeTarefas";
 
 // Quadro de tarefas pessoais (A fazer → Em progresso → Feito). O servidor só devolve
 // as do login: o Lucas vê as dele, a Dione as dela.
@@ -10,10 +12,71 @@ type Estado = "a_fazer" | "em_progresso" | "feito";
 type Tarefa = {
   id: string; titulo: string; notas: string; prazo: string | null; prioridade: Prioridade;
   feita: number; estado: Estado | null; criada_em: string; feita_em: string | null;
+  hora?: string | null; aviso_min?: number | null;
 };
-type Rascunho = { id?: string; titulo: string; notas: string; prazo: string; prioridade: Prioridade; estado?: Estado };
+// aviso: "" = sem aviso, minutos de antecedência ("0" = na hora) ou "custom" (valor + unidade)
+type Rascunho = {
+  id?: string; titulo: string; notas: string; prazo: string; prioridade: Prioridade; estado?: Estado;
+  hora: string; aviso: string; customN: string; customU: "min" | "h" | "dia";
+};
 
-const VAZIO: Rascunho = { titulo: "", notas: "", prazo: "", prioridade: "normal" };
+const VAZIO: Rascunho = { titulo: "", notas: "", prazo: "", prioridade: "normal", hora: "", aviso: "0", customN: "45", customU: "min" };
+const UNIDADE = { min: 1, h: 60, dia: 1440 } as const;
+const horaSP = (d = new Date()) => d.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hour12: false });
+
+function rascunhoDe(t: Tarefa): Rascunho {
+  const base = { id: t.id, titulo: t.titulo, notas: t.notas || "", prazo: t.prazo || "", prioridade: t.prioridade, estado: estadoDe(t), hora: t.hora || "" };
+  const m = t.aviso_min;
+  if (m === null || m === undefined) return { ...base, aviso: t.hora ? "" : "0", customN: "45", customU: "min" };
+  if (AVISOS.some(a => a.min === m)) return { ...base, aviso: String(m), customN: "45", customU: "min" };
+  const u = m % 1440 === 0 ? "dia" : m % 60 === 0 ? "h" : "min";
+  return { ...base, aviso: "custom", customN: String(m / UNIDADE[u]), customU: u };
+}
+function payload(r: Rascunho) {
+  const hora = r.prazo ? r.hora : "";
+  let aviso_min: number | null = null;
+  if (hora && r.aviso === "custom") aviso_min = Math.max(0, Math.round((Number(r.customN) || 0) * UNIDADE[r.customU]));
+  else if (hora && r.aviso !== "") aviso_min = Number(r.aviso);
+  return { id: r.id, titulo: r.titulo, notas: r.notas, prazo: r.prazo, prioridade: r.prioridade, estado: r.estado, hora, aviso_min };
+}
+/** Venceu: data passada, ou hoje com hora já passada. */
+function vencida(t: { prazo?: string | null; hora?: string | null }, hoje: string, agora: string) {
+  if (!t.prazo) return false;
+  return t.prazo < hoje || (t.prazo === hoje && !!t.hora && t.hora <= agora);
+}
+
+function CamposQuando({ r, set }: { r: Rascunho; set: (r: Rascunho) => void }) {
+  const semHora = !r.prazo || !r.hora;
+  return (
+    <>
+      <label className="grid gap-1 text-xs text-muted">Data
+        <input type="date" className={campo} value={r.prazo} onChange={e => set({ ...r, prazo: e.target.value, hora: e.target.value ? r.hora : "" })} />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">Hora
+        <input type="time" className={campo + " disabled:opacity-50"} disabled={!r.prazo} value={r.hora}
+          onChange={e => set({ ...r, hora: e.target.value, aviso: !r.hora && e.target.value && r.aviso === "" ? "0" : r.aviso })} />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">Avisar
+        <select className={campo + " disabled:opacity-50"} disabled={semHora} title={semHora ? "Escolha data e hora para usar o aviso" : undefined}
+          value={semHora ? "" : r.aviso} onChange={e => set({ ...r, aviso: e.target.value })}>
+          <option value="">Sem aviso</option>
+          {AVISOS.map(a => <option key={a.min} value={String(a.min)}>{a.label}</option>)}
+          <option value="custom">Personalizado…</option>
+        </select>
+      </label>
+      {!semHora && r.aviso === "custom" && (
+        <label className="grid gap-1 text-xs text-muted">Quanto antes
+          <span className="flex gap-1">
+            <input type="number" min={1} max={999} className={campo + " w-20"} value={r.customN} onChange={e => set({ ...r, customN: e.target.value })} />
+            <select className={campo} value={r.customU} onChange={e => set({ ...r, customU: e.target.value as Rascunho["customU"] })}>
+              <option value="min">min</option><option value="h">horas</option><option value="dia">dias</option>
+            </select>
+          </span>
+        </label>
+      )}
+    </>
+  );
+}
 const COLUNAS: { id: Estado; label: string; cor: string }[] = [
   { id: "a_fazer", label: "A fazer", cor: "#94a3b8" },
   { id: "em_progresso", label: "Em progresso", cor: "#f59e0b" },
@@ -24,7 +87,6 @@ const PRIO: Record<Prioridade, { label: string; cls: string; peso: number }> = {
   normal: { label: "Normal", cls: "bg-violet/10 text-violet-light", peso: 1 },
   baixa: { label: "Baixa", cls: "bg-muted/10 text-muted", peso: 2 },
 };
-const dataBR = (d: string) => d.split("-").reverse().join("/");
 const estadoDe = (t: Tarefa): Estado => t.estado || (t.feita ? "feito" : "a_fazer");
 const campo = "rounded-lg border border-edge bg-raised px-3 py-2 text-sm text-bright outline-none focus:border-violet";
 
@@ -40,21 +102,22 @@ function Coluna({ id, children }: { id: Estado; children: React.ReactNode }) {
   return <div ref={setNodeRef} className={`flex min-h-[320px] flex-col gap-2 rounded-xl border p-3 transition ${isOver ? "border-violet bg-active-bg" : "border-edge-subtle bg-surface"}`}>{children}</div>;
 }
 
-function Cartao({ t, hoje, onAbrir }: { t: Tarefa; hoje: string; onAbrir: () => void }) {
+function Cartao({ t, hoje, agora, onAbrir }: { t: Tarefa; hoje: string; agora: string; onAbrir: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: t.id, data: { t } });
   const estado = estadoDe(t);
-  const atrasada = estado !== "feito" && !!t.prazo && t.prazo < hoje;
-  const deHoje = estado !== "feito" && t.prazo === hoje;
+  const atrasada = estado !== "feito" && vencida(t, hoje, agora);
+  const deHoje = estado !== "feito" && !atrasada && t.prazo === hoje;
   return (
     <button ref={setNodeRef} {...attributes} {...listeners} type="button" onClick={() => { if (!isDragging) onAbrir(); }}
       style={{ opacity: isDragging ? 0.3 : 1, transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined }}
-      className="w-full cursor-grab rounded-lg border border-edge-subtle bg-raised p-3 text-left hover:border-violet active:cursor-grabbing">
+      className={`w-full cursor-grab rounded-lg border bg-raised p-3 text-left hover:border-violet active:cursor-grabbing ${atrasada ? "border-rose/60 bg-rose/5" : "border-edge-subtle"}`}>
       <span className={`block text-sm font-medium ${estado === "feito" ? "text-muted line-through" : "text-bright"}`}>{t.titulo}</span>
       {t.notas && <span className="mt-1 line-clamp-3 block whitespace-pre-wrap text-xs text-muted">{t.notas}</span>}
       <span className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
         <span className={`rounded px-2 py-0.5 ${PRIO[t.prioridade]?.cls || PRIO.normal.cls}`}>{PRIO[t.prioridade]?.label || "Normal"}</span>
         {t.prazo && <span className={`rounded px-2 py-0.5 ${atrasada ? "bg-rose/10 text-rose" : deHoje ? "bg-amber/10 text-amber" : "bg-muted/10 text-muted"}`}>
-          {atrasada ? "Atrasada · " : deHoje ? "Hoje · " : ""}{dataBR(t.prazo)}</span>}
+          {atrasada ? "Atrasada · " : deHoje ? "Hoje · " : ""}📅 {quandoLabel(t.prazo, t.hora)}
+          {t.hora && t.aviso_min !== null && t.aviso_min !== undefined ? ` · 🔔 ${avisoLabel(t.aviso_min)}` : ""}</span>}
       </span>
     </button>
   );
@@ -70,7 +133,11 @@ export default function Tarefas() {
   const [editando, setEditando] = useState<Rascunho | null>(null);
   const [arrastando, setArrastando] = useState<Tarefa | null>(null);
   const [salvando, setSalvando] = useState(false);
-  const hoje = saoPauloDay();
+  const [relogio, setRelogio] = useState(() => Date.now());
+  const [permissao, setPermissao] = useState(() => notificacaoSuportada() ? Notification.permission : "unsupported");
+  useEffect(() => { const id = window.setInterval(() => setRelogio(Date.now()), 30_000); return () => window.clearInterval(id); }, []);
+  const hoje = saoPauloDay(new Date(relogio));
+  const agora = horaSP(new Date(relogio));
   const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }));
 
@@ -87,7 +154,7 @@ export default function Tarefas() {
 
   async function salvar(t: Rascunho, depois?: () => void) {
     setSalvando(true);
-    try { await post("/api/tarefas/salvar", t); depois?.(); await load(); }
+    try { await post("/api/tarefas/salvar", payload(t)); depois?.(); await load(); window.dispatchEvent(new Event(EVENTO_CHECAR)); }
     catch (e) { setError(e instanceof Error ? e.message : "Falha ao salvar."); }
     finally { setSalvando(false); }
   }
@@ -109,14 +176,18 @@ export default function Tarefas() {
   }
 
   const porColuna = useMemo(() => {
-    const ordem = (a: Tarefa, b: Tarefa) => (a.prazo || "9999").localeCompare(b.prazo || "9999") ||
+    const ordem = (a: Tarefa, b: Tarefa) => ((a.prazo || "9999") + (a.hora || "99")).localeCompare((b.prazo || "9999") + (b.hora || "99")) ||
       (PRIO[a.prioridade]?.peso ?? 1) - (PRIO[b.prioridade]?.peso ?? 1);
     return Object.fromEntries(COLUNAS.map(c => [c.id, lista.filter(t => estadoDe(t) === c.id).sort(c.id === "feito"
       ? (a, b) => (b.feita_em || "").localeCompare(a.feita_em || "") : ordem)])) as Record<Estado, Tarefa[]>;
   }, [lista]);
   const abertas = lista.filter(t => estadoDe(t) !== "feito");
-  const atrasadas = abertas.filter(t => t.prazo && t.prazo < hoje).length;
-  const paraHoje = abertas.filter(t => t.prazo === hoje).length;
+  const atrasadas = abertas.filter(t => vencida(t, hoje, agora)).length;
+  const paraHoje = abertas.filter(t => t.prazo === hoje && !vencida(t, hoje, agora)).length;
+  async function ativarAlertas() {
+    if (!notificacaoSuportada()) return;
+    try { setPermissao(await Notification.requestPermission()); } catch { /* navegador recusou */ }
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
@@ -125,7 +196,11 @@ export default function Tarefas() {
           <h1 className="text-2xl font-semibold text-bright">Tarefas</h1>
           <p className="mt-1 text-sm text-muted">{dono ? `Seu quadro, ${dono}. Arraste os cartões entre as colunas. Só você vê.` : "Seu quadro de tarefas."}</p>
         </div>
-        <div className="flex gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {permissao === "default" && <button type="button" onClick={() => void ativarAlertas()}
+            className="rounded-full border border-violet px-3 py-1 font-medium text-violet-light hover:bg-active-bg">🔔 Ativar alertas</button>}
+          {permissao === "granted" && <span className="rounded-full bg-emerald/10 px-3 py-1 text-emerald" title="O CRM avisa no navegador quando chegar a hora">🔔 Alertas ativos</span>}
+          {permissao === "denied" && <span className="rounded-full bg-muted/10 px-3 py-1 text-muted" title="Libere as notificações deste site no cadeado da barra de endereço">🔕 Alertas do sistema bloqueados</span>}
           <span className="rounded-full bg-amber/10 px-3 py-1 text-amber">{paraHoje} para hoje</span>
           <span className="rounded-full bg-rose/10 px-3 py-1 text-rose">{atrasadas} atrasada{atrasadas === 1 ? "" : "s"}</span>
         </div>
@@ -141,9 +216,7 @@ export default function Tarefas() {
           <textarea className={campo + " w-full"} rows={2} placeholder="Anotações (opcional)" maxLength={5000}
             value={nova.notas} onChange={e => setNova({ ...nova, notas: e.target.value })} />
           <div className="flex flex-wrap items-end gap-3">
-            <label className="grid gap-1 text-xs text-muted">Prazo
-              <input type="date" className={campo} value={nova.prazo} onChange={e => setNova({ ...nova, prazo: e.target.value })} />
-            </label>
+            <CamposQuando r={nova} set={setNova} />
             <label className="grid gap-1 text-xs text-muted">Prioridade
               <select className={campo} value={nova.prioridade} onChange={e => setNova({ ...nova, prioridade: e.target.value as Prioridade })}>
                 <option value="alta">Alta</option><option value="normal">Normal</option><option value="baixa">Baixa</option>
@@ -172,8 +245,7 @@ export default function Tarefas() {
                 </h2>
                 <Coluna id={c.id}>
                   {porColuna[c.id].map(t => (
-                    <Cartao key={t.id} t={t} hoje={hoje}
-                      onAbrir={() => setEditando({ id: t.id, titulo: t.titulo, notas: t.notas || "", prazo: t.prazo || "", prioridade: t.prioridade, estado: estadoDe(t) })} />
+                    <Cartao key={t.id} t={t} hoje={hoje} agora={agora} onAbrir={() => setEditando(rascunhoDe(t))} />
                   ))}
                   {!porColuna[c.id].length && <p className="m-auto text-center text-xs text-muted">
                     {c.id === "a_fazer" ? "Nada por fazer. Crie uma tarefa acima." : "Arraste um cartão pra cá."}</p>}
@@ -196,9 +268,7 @@ export default function Tarefas() {
             <textarea className={campo + " w-full"} rows={6} maxLength={5000} placeholder="Anotações" value={editando.notas}
               onChange={e => setEditando({ ...editando, notas: e.target.value })} />
             <div className="flex flex-wrap items-end gap-3">
-              <label className="grid gap-1 text-xs text-muted">Prazo
-                <input type="date" className={campo} value={editando.prazo} onChange={e => setEditando({ ...editando, prazo: e.target.value })} />
-              </label>
+              <CamposQuando r={editando} set={setEditando} />
               <label className="grid gap-1 text-xs text-muted">Prioridade
                 <select className={campo} value={editando.prioridade} onChange={e => setEditando({ ...editando, prioridade: e.target.value as Prioridade })}>
                   <option value="alta">Alta</option><option value="normal">Normal</option><option value="baixa">Baixa</option>

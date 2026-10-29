@@ -3597,15 +3597,21 @@ class H(BaseHTTPRequestHandler):
                     return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
-            if self.path in ("/api/tarefas/salvar", "/api/tarefas/excluir"):
+            if self.path in ("/api/tarefas/salvar", "/api/tarefas/excluir", "/api/tarefas/avisos", "/api/tarefas/adiar"):
                 origin = self.headers.get("Origin")
                 if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
                         origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
                     return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
                 try:
                     usuario = self.headers.get("X-Prospeccao-User")
-                    r = (tarefas.salva(con(), usuario, d) if self.path.endswith("salvar")
-                         else tarefas.exclui(con(), usuario, d.get("id")))
+                    if self.path.endswith("salvar"):
+                        r = tarefas.salva(con(), usuario, d)
+                    elif self.path.endswith("avisos"):
+                        r = tarefas.avisos(con(), usuario)
+                    elif self.path.endswith("adiar"):
+                        r = tarefas.adia(con(), usuario, d.get("id"), d.get("minutos"))
+                    else:
+                        r = tarefas.exclui(con(), usuario, d.get("id"))
                     return self._send(200, json.dumps(r, ensure_ascii=False))
                 except PermissionError as e:
                     return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))

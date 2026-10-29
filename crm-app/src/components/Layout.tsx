@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useGoalConfig } from "./SharedGoals";
+import AlarmeTarefas from "./AlarmeTarefas";
 import logoProvouLevouClaro from "../assets/provou-levou-logo-claro.png";
 import logoProvouLevouEscuro from "../assets/provou-levou-logo-escuro.png";
 
@@ -243,6 +244,7 @@ export default function Layout() {
         </div>
         <Outlet />
       </main>
+      <AlarmeTarefas />
     </div>
   );
 }
