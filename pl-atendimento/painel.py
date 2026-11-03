@@ -342,6 +342,8 @@ def cria_banco():
     CREATE TABLE IF NOT EXISTS mensagens_especiais (chave TEXT PRIMARY KEY, texto TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS audios_prontos (id TEXT PRIMARY KEY, rotulo TEXT NOT NULL, seg INTEGER DEFAULT 0,
       mime TEXT NOT NULL, ordem INTEGER DEFAULT 0, criado_em INTEGER, criado_por TEXT);
+    CREATE TABLE IF NOT EXISTS videos_prontos (id TEXT PRIMARY KEY, rotulo TEXT NOT NULL, legenda TEXT DEFAULT '',
+      mime TEXT NOT NULL, tamanho INTEGER DEFAULT 0, ordem INTEGER DEFAULT 0, criado_em INTEGER, criado_por TEXT);
     CREATE TABLE IF NOT EXISTS edicoes_recentes (chatid TEXT, texto TEXT, ts INTEGER);
     CREATE TABLE IF NOT EXISTS conversas_vistas (chatid TEXT, usuario TEXT, ts INTEGER, PRIMARY KEY (chatid, usuario));
     CREATE INDEX IF NOT EXISTS ix_edicoes_recentes ON edicoes_recentes(chatid, ts);
@@ -610,6 +612,86 @@ def exclui_audio_pronto(aid):
 
 def manda_audio(fone, a):
     return uz("/send/media", {"number": fone, "type": "ptt", "file": fonte_audio(a)})
+
+
+# Vídeos prontos (03/11/2026): mesmo esquema dos áudios — a equipe sobe o vídeo em
+# "Mensagens Personalizadas", ele vira botão no chat e vai com a legenda salva.
+DIR_VIDEOS_PRONTOS = os.path.join(os.path.dirname(os.path.abspath(DB)), "videos_prontos")
+MAX_VIDEO_BYTES = 16 * 1024 * 1024   # limite do WhatsApp para vídeo
+
+
+def carrega_videos_prontos():
+    rows = con().execute("SELECT id, rotulo, legenda, mime, tamanho FROM videos_prontos ORDER BY ordem, rowid").fetchall()
+    return [dict(r) for r in rows]
+
+
+def acha_video(vid):
+    return next((x for x in carrega_videos_prontos() if x["id"] == vid), None)
+
+
+def caminho_video_pronto(vid):
+    if not re.fullmatch(r"v_[0-9a-f]{8}", str(vid or "")):
+        raise ValueError("Vídeo inválido.")
+    return os.path.join(DIR_VIDEOS_PRONTOS, vid)
+
+
+def salva_video_pronto(dados, usuario):
+    """Cria (com o arquivo enviado) ou edita nome/legenda de um vídeo pronto. Devolve a lista atualizada."""
+    rotulo = str(dados.get("rotulo") or "").strip()[:60]
+    if not rotulo:
+        raise ValueError("Dê um nome pro botão do vídeo.")
+    legenda = str(dados.get("legenda") or "").strip()[:1000]
+    c = con()
+    vid = str(dados.get("id") or "").strip()
+    if vid and c.execute("SELECT 1 FROM videos_prontos WHERE id=?", (vid,)).fetchone():
+        c.execute("UPDATE videos_prontos SET rotulo=?, legenda=? WHERE id=?", (rotulo, legenda, vid))
+        c.commit()
+        return carrega_videos_prontos()
+    b64 = str(dados.get("b64") or "")
+    if "," in b64[:100]:
+        b64 = b64.split(",", 1)[1]
+    try:
+        bruto = base64.b64decode(b64, validate=True)
+    except Exception:
+        raise ValueError("Vídeo inválido. Escolha o arquivo de novo.")
+    if len(bruto) < 1500:
+        raise ValueError("O vídeo está vazio. Escolha outro arquivo.")
+    if len(bruto) > MAX_VIDEO_BYTES:
+        raise ValueError("Vídeo muito grande: o WhatsApp aceita até 16 MB. Use um vídeo mais curto ou comprimido.")
+    mime = str(dados.get("mime") or "video/mp4").split(";")[0].strip().lower()
+    if not re.fullmatch(r"video/[a-z0-9.+-]+", mime):
+        raise ValueError("Esse arquivo não é um vídeo. Use MP4.")
+    vid = "v_" + uuid.uuid4().hex[:8]
+    os.makedirs(DIR_VIDEOS_PRONTOS, exist_ok=True)
+    with open(caminho_video_pronto(vid), "wb") as f:
+        f.write(bruto)
+    ordem = c.execute("SELECT COALESCE(MAX(ordem), -1) + 1 FROM videos_prontos").fetchone()[0]
+    c.execute("INSERT INTO videos_prontos(id, rotulo, legenda, mime, tamanho, ordem, criado_em, criado_por) "
+              "VALUES(?,?,?,?,?,?,?,?)",
+              (vid, rotulo, legenda, mime, len(bruto), ordem, int(time.time()), str(usuario or "")))
+    c.commit()
+    return carrega_videos_prontos()
+
+
+def exclui_video_pronto(vid):
+    caminho = caminho_video_pronto(vid)
+    c = con()
+    c.execute("DELETE FROM videos_prontos WHERE id=?", (vid,))
+    c.commit()
+    try:
+        os.remove(caminho)
+    except FileNotFoundError:
+        pass
+    return carrega_videos_prontos()
+
+
+def manda_video(fone, v):
+    with open(caminho_video_pronto(v["id"]), "rb") as f:
+        arquivo = "data:%s;base64,%s" % (v.get("mime") or "video/mp4", base64.b64encode(f.read()).decode())
+    corpo = {"number": fone, "type": "video", "file": arquivo}
+    if v.get("legenda"):
+        corpo["text"] = v["legenda"]
+    return uz("/send/media", corpo)
 
 
 def fonte_video_catalogo():
@@ -2021,6 +2103,7 @@ function icone(nome){
     phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.8 2.1Z"/>',
     tag:'<path d="M20 13 11 22 2 13V2h11l9 9-2 2Z"/><circle cx="7" cy="7" r="1"/>',
     book:'<path d="M12 5v16M3 3h5a4 4 0 0 1 4 2 4 4 0 0 1 4-2h5v16h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3Z"/>',
+    video:'<rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3v10l-6-3"/>',
     mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/>',
     logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5M21 12H9"/>',
     moon:'<path d="M21 12.8A9 9 0 0 1 11.2 3 9 9 0 1 0 21 12.8Z"/>',
@@ -2528,6 +2611,9 @@ async function abrirLead(lead){
     ${(prontos.audios||[]).some(a=>a.custom)?`<div class="acoes atalhos atalhos-audio">
       ${(prontos.audios||[]).filter(a=>a.custom).map(a=>`<button class="btn sec" onclick="confirmaAudio('${esc(a.id)}',this)" title="Envia este áudio pronto como mensagem de voz">${icone('mic')} ${esc(a.rotulo)} · ${a.seg}s</button>`).join('')}
     </div>`:''}
+    ${(prontos.videos||[]).length?`<div class="acoes atalhos atalhos-video">
+      ${(prontos.videos||[]).map(v=>`<button class="btn sec" onclick="confirmaVideo('${esc(v.id)}',this)" title="${esc(v.legenda?'Envia o vídeo com a legenda: '+v.legenda:'Envia este vídeo pronto')}">${icone('video')} ${esc(v.rotulo)}</button>`).join('')}
+    </div>`:''}
     <label class="editor-label" for="txt">${icone('chat')} Mensagem para ${esc(d.nome||d.fone)} · ${esc(d.fone)}</label>
     <textarea id="txt" data-chatid="${esc(p.chatid)}" placeholder="Digite sua mensagem…"></textarea>
     <div class="catalogo-rascunho" id="catalogoRascunho" hidden>
@@ -2793,6 +2879,29 @@ async function enviar(){
     : '<span class="ok">'+(modo==='catalogo'?'2 mensagens + vídeo enviados ✓':
       enviadas+' mensagem'+(enviadas===1?'':'s')+' enviada'+(enviadas===1?'':'s')+' ✓')+'</span>';
 }
+function confirmaVideo(id,botao){
+  const v=(prontos.videos||[]).find(x=>x.id===id), p=destinatarioAberto();
+  if(!v||!p) return;
+  if(!confirm('Enviar o vídeo "'+v.rotulo+'" para '+(p.nome||p.fone)+'?'+(v.legenda?'\n\nLegenda:\n'+v.legenda:''))) return;
+  mandaVideo(id,botao);
+}
+async function mandaVideo(id,botao){
+  const destinatario=destinatarioAberto();
+  const st=document.getElementById('st'), v=(prontos.videos||[]).find(x=>x.id===id);
+  botao.disabled=true;
+  const item={chatid:destinatario.chatid,tipo:'video',texto:'🎬 '+v.rotulo+(v.legenda?'\n'+v.legenda:''),
+              estado:'enviando',t:Date.now()};
+  pendentes.push(item); desenhaChat(ultimasLinhas);
+  const d=await (await fetch('/api/video',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
+    body:JSON.stringify({chatid:destinatario.chatid,fone:destinatario.fone,id})})).json();
+  botao.disabled=false;
+  if(!d.eid){ item.estado='erro'; item.erro=d.erro||'falhou'; desenhaChat(ultimasLinhas); return; }
+  botao.classList.add('enviado'); enviados.push(v.rotulo);
+  const r=await segue(d.eid,item);
+  st.innerHTML = r.estado==='erro'
+    ? '<span class="err">'+esc(r.erro||'')+'</span>'
+    : '<span class="ok">enviado: '+esc(enviados.join(' → '))+'</span>';
+}
 function confirmaAudio(id,botao){
   const a=prontos.audios.find(x=>x.id===id), p=destinatarioAberto();
   if(!a||!p) return;
@@ -3022,7 +3131,10 @@ border:1px solid var(--linha);border-radius:9px;padding:9px 11px;font:inherit}
 .vazio{grid-column:1/-1;color:var(--fraco);text-align:center;padding:30px 0}
 .secao{margin-top:34px;padding-top:22px;border-top:1px solid var(--linha)}
 .secao h2{font-size:17px;margin:0 0 4px}.secao p{color:var(--fraco);font-size:13px;margin:0 0 14px}
-#audios{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:14px;align-items:start}
+#audios,#videos{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:14px;align-items:start}
+.card video{display:block;width:100%;max-height:260px;margin-top:10px;border-radius:9px;background:#000}
+.arquivo{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13px;color:var(--fraco)}
+.arquivo input{display:none}.arquivo .rec{background:#fff;color:var(--txt);border:1px solid var(--linha)}
 .gravar{display:flex;align-items:center;gap:10px;margin-top:10px}
 .gravar .rec{background:#fff;color:var(--vermelho);border:1px solid var(--linha)}
 .gravar .rec.on{background:var(--vermelho);color:#fff;border-color:var(--vermelho)}
@@ -3038,6 +3150,10 @@ border:1px solid var(--linha);border-radius:9px;padding:9px 11px;font:inherit}
 <p>Grave aqui os áudios que você manda sempre. Cada um vira um botão no chat do atendimento e é enviado como mensagem de voz, depois de você confirmar.</p>
 <button class="novo" onclick="novoAudio()">+ Gravar áudio</button>
 <div id="audios"></div></div>
+<div class="secao"><h2>Vídeos prontos</h2>
+<p>Suba aqui os vídeos que você manda sempre (MP4, até 16 MB). Cada um vira um botão no chat do atendimento e vai com a legenda abaixo, depois de você confirmar.</p>
+<button class="novo" onclick="novoVideo()">+ Adicionar vídeo</button>
+<div id="videos"></div></div>
 </div><script>
 const lista=document.getElementById('lista');
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -3200,8 +3316,87 @@ async function excluirAudio(bt){
     pintaAudios(d.audios);
   }catch(e){ aviso(bt,'Erro de conexão.',false); bt.disabled=false; }
 }
+// ── Vídeos prontos ──
+const videosEl=document.getElementById('videos');
+const MAX_VIDEO=16*1024*1024;
+function mb(b){return (b/1048576).toFixed(1).replace('.',',')+' MB'}
+function cardVideo(v){
+  return `<div class="card" data-id="${esc(v.id)}">
+    <label>Nome do botão <span class="selo">${mb(v.tamanho||0)}</span></label>
+    <input class="c-rotulo" value="${esc(v.rotulo)}" maxlength="60">
+    <label>Legenda (vai junto com o vídeo)</label>
+    <textarea class="c-legenda" maxlength="1000">${esc(v.legenda||'')}</textarea>
+    <video controls preload="none" src="/api/mensagens/videos/ver?id=${encodeURIComponent(v.id)}"></video>
+    <div class="foot"><span class="msg"></span>
+      <button class="btn excluir" onclick="excluirVideo(this)">Excluir</button>
+      <button class="btn salvar" onclick="editarVideo(this)">Salvar</button></div></div>`;
+}
+function pintaVideos(itens){
+  videosEl.innerHTML=(itens||[]).length?itens.map(cardVideo).join(''):'<div class="vazio">Nenhum vídeo pronto ainda. Clique em “+ Adicionar vídeo”.</div>';
+}
+function novoVideo(){
+  if(videosEl.querySelector('.card[data-novo]')) return;
+  const w=document.createElement('div');
+  w.innerHTML=`<div class="card" data-novo="1">
+    <label>Nome do botão</label>
+    <input class="c-rotulo" placeholder="Ex.: Como funciona o provador" maxlength="60">
+    <label>Legenda (vai junto com o vídeo)</label>
+    <textarea class="c-legenda" maxlength="1000" placeholder="Opcional"></textarea>
+    <label class="arquivo"><input type="file" accept="video/mp4,video/*" onchange="escolheVideo(this)"><span class="btn rec">Escolher vídeo</span><span class="nome-arq">nenhum arquivo</span></label>
+    <video controls style="display:none"></video>
+    <div class="foot"><span class="msg"></span>
+      <button class="btn excluir" onclick="cancelaVideo(this)">Cancelar</button>
+      <button class="btn salvar" onclick="salvarVideo(this)" disabled>Salvar vídeo</button></div></div>`;
+  const vazio=videosEl.querySelector('.vazio'); if(vazio) vazio.remove();
+  videosEl.insertBefore(w.firstElementChild,videosEl.firstElementChild);
+  videosEl.querySelector('.card[data-novo] .c-rotulo').focus();
+}
+function cancelaVideo(bt){ bt.closest('.card').remove(); if(!videosEl.children.length) pintaVideos([]); }
+function escolheVideo(inp){
+  const c=inp.closest('.card'), f=inp.files&&inp.files[0];
+  if(!f) return;
+  if(!/^video\//.test(f.type)){ aviso(inp,'Esse arquivo não é um vídeo.',false); return; }
+  if(f.size>MAX_VIDEO){ aviso(inp,'Vídeo de '+mb(f.size)+': o WhatsApp aceita até 16 MB.',false); return; }
+  c._file=f; c.querySelector('.nome-arq').textContent=f.name+' · '+mb(f.size);
+  const v=c.querySelector('video'); v.src=URL.createObjectURL(f); v.style.display='block';
+  c.querySelector('.salvar').disabled=false; aviso(inp,'Confira o vídeo antes de salvar.',true);
+}
+async function salvarVideo(bt){
+  const c=bt.closest('.card'), rotulo=c.querySelector('.c-rotulo').value.trim();
+  if(!rotulo){ aviso(bt,'Dê um nome pro botão.',false); return; }
+  if(!c._file){ aviso(bt,'Escolha o vídeo primeiro.',false); return; }
+  bt.disabled=true; aviso(bt,'Enviando o vídeo…',true);
+  try{
+    const b64=await new Promise((ok,no)=>{const fr=new FileReader(); fr.onerror=()=>no(); fr.onload=()=>ok(fr.result); fr.readAsDataURL(c._file);});
+    const r=await fetch('/api/mensagens/videos/salvar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rotulo,legenda:c.querySelector('.c-legenda').value,b64,mime:c._file.type})});
+    const d=await r.json();
+    if(!r.ok||d.erro){ aviso(bt,d.erro||'Não deu pra salvar.',false); bt.disabled=false; return; }
+    pintaVideos(d.videos);
+  }catch(e){ aviso(bt,'Erro de conexão.',false); bt.disabled=false; }
+}
+async function editarVideo(bt){
+  const c=bt.closest('.card'); bt.disabled=true;
+  try{
+    const r=await fetch('/api/mensagens/videos/salvar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:c.dataset.id,rotulo:c.querySelector('.c-rotulo').value,legenda:c.querySelector('.c-legenda').value})});
+    const d=await r.json();
+    if(!r.ok||d.erro){ aviso(bt,d.erro||'Não deu pra salvar.',false); bt.disabled=false; return; }
+    aviso(bt,'Salvo!',true); bt.disabled=false;
+  }catch(e){ aviso(bt,'Erro de conexão.',false); bt.disabled=false; }
+}
+async function excluirVideo(bt){
+  if(!confirm('Apagar este vídeo pronto?')) return;
+  const c=bt.closest('.card'); bt.disabled=true;
+  try{
+    const r=await fetch('/api/mensagens/videos/excluir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.dataset.id})});
+    const d=await r.json();
+    if(!r.ok||d.erro){ aviso(bt,d.erro||'Não deu pra apagar.',false); bt.disabled=false; return; }
+    pintaVideos(d.videos);
+  }catch(e){ aviso(bt,'Erro de conexão.',false); bt.disabled=false; }
+}
 carrega();
-fetch('/api/mensagens',{cache:'no-store'}).then(r=>r.json()).then(d=>pintaAudios(d.audios)).catch(()=>pintaAudios([]));
+fetch('/api/mensagens',{cache:'no-store'}).then(r=>r.json()).then(d=>{pintaAudios(d.audios);pintaVideos(d.videos);}).catch(()=>{pintaAudios([]);pintaVideos([]);});
 </script></body></html>"""
 
 
@@ -3279,10 +3474,20 @@ class H(BaseHTTPRequestHandler):
                         return self._send_media(f.read(), a["mime"])
                 except (ValueError, FileNotFoundError):
                     return self._send(404, json.dumps({"erro": "Áudio não encontrado."}, ensure_ascii=False))
+            if p.path == "/api/mensagens/videos/ver":
+                try:
+                    vid = (q.get("id") or [""])[0]
+                    v = acha_video(vid)
+                    if not v:
+                        return self._send(404, json.dumps({"erro": "Vídeo não encontrado."}, ensure_ascii=False))
+                    with open(caminho_video_pronto(vid), "rb") as f:
+                        return self._send_media(f.read(), v["mime"])
+                except (ValueError, FileNotFoundError):
+                    return self._send(404, json.dumps({"erro": "Vídeo não encontrado."}, ensure_ascii=False))
             if p.path == "/api/mensagens":
                 esp = carrega_especiais()
                 return self._send(200, json.dumps(
-                    {"itens": carrega_textos(), "audios": carrega_audios_prontos(),
+                    {"itens": carrega_textos(), "audios": carrega_audios_prontos(), "videos": carrega_videos_prontos(),
                      "especiais": [{"chave": k, "rotulo": r, "texto": esp[k]} for k, r in ESPECIAIS_META]},
                     ensure_ascii=False))
             if p.path == "/api/catalogo/video":
@@ -3327,7 +3532,7 @@ class H(BaseHTTPRequestHandler):
             if p.path == "/api/prontos":
                 esp = carrega_especiais()
                 return self._send(200, json.dumps(
-                    {"audios": todos_audios(), "textos": carrega_textos(), "combos": COMBOS,
+                    {"audios": todos_audios(), "videos": carrega_videos_prontos(), "textos": carrega_textos(), "combos": COMBOS,
                      "catalogo": [esp["catalogo_1"], esp["catalogo_2"]],
                      "abordagem": [esp["abordagem_1"], esp["abordagem_2"]],
                      "status": STATUS,
@@ -3441,7 +3646,7 @@ class H(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or 0)
             bruto = self.rfile.read(n).decode("utf-8") if n else ""
             d = json.loads(bruto) if bruto.strip() else {}   # /api/atualizar vai sem corpo
-            if self.path in ("/api/enviar", "/api/catalogo", "/api/catalogo/video", "/api/audio", "/api/gravado", "/api/combo"):
+            if self.path in ("/api/enviar", "/api/catalogo", "/api/catalogo/video", "/api/audio", "/api/video", "/api/gravado", "/api/combo"):
                 if self.headers.get('X-Chat-UI-Version') != '20260916.2':
                     return self._send(409, json.dumps({"ok":False,"erro":"Atualize esta página antes de enviar: uma correção de destinatário está disponível."}, ensure_ascii=False))
                 try:
@@ -3685,6 +3890,11 @@ class H(BaseHTTPRequestHandler):
                 if not a:
                     return self._send(404, json.dumps({"erro": "Esse áudio não existe mais. Atualize a página."}, ensure_ascii=False))
                 return self._fundo(lambda: envia_midia_atendimento(lambda: manda_audio(d["fone"], a), d["fone"], nome_responsavel(self.headers.get("X-Prospeccao-User"))))
+            if self.path == "/api/video":
+                v = acha_video(d.get("id"))
+                if not v:
+                    return self._send(404, json.dumps({"erro": "Esse vídeo não existe mais. Atualize a página."}, ensure_ascii=False))
+                return self._fundo(lambda: envia_midia_atendimento(lambda: manda_video(d["fone"], v), d["fone"], nome_responsavel(self.headers.get("X-Prospeccao-User"))))
             if self.path == "/api/gravado":
                 fone = MEU_NUMERO if d.get("teste") else d["fone"]
                 envia_midia_atendimento(lambda: uz("/send/media", {"number": fone, "type": "ptt", "file": d["b64"]}), fone, nome_responsavel(self.headers.get("X-Prospeccao-User")), bool(d.get("teste")))
@@ -3715,6 +3925,15 @@ class H(BaseHTTPRequestHandler):
                     else:
                         itens = exclui_audio_pronto(d.get("id"))
                     return self._send(200, json.dumps({"ok": True, "audios": itens}, ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+            if self.path in ("/api/mensagens/videos/salvar", "/api/mensagens/videos/excluir"):
+                try:
+                    if self.path.endswith("salvar"):
+                        itens = salva_video_pronto(d, self.headers.get("X-Prospeccao-User"))
+                    else:
+                        itens = exclui_video_pronto(d.get("id"))
+                    return self._send(200, json.dumps({"ok": True, "videos": itens}, ensure_ascii=False))
                 except ValueError as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/mensagens/salvar":
