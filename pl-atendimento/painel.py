@@ -383,6 +383,8 @@ def cria_banco():
     # migracao: bancos criados antes do "remover da fila" nao tem essa coluna
     if "oculto" not in [r[1] for r in c.execute("PRAGMA table_info(leads)")]:
         c.execute("ALTER TABLE leads ADD COLUMN oculto INTEGER DEFAULT 0")
+    if "loja" not in [r[1] for r in c.execute("PRAGMA table_info(planos_fechados)")]:
+        c.execute("ALTER TABLE planos_fechados ADD COLUMN loja TEXT")
     if "responsavel" not in [r[1] for r in c.execute("PRAGMA table_info(leads)")]:
         c.execute("ALTER TABLE leads ADD COLUMN responsavel TEXT")
     if "excluida" not in [r[1] for r in c.execute("PRAGMA table_info(mensagens)")]:
@@ -1180,7 +1182,7 @@ def comissoes(usuario):
     eh_lucas = (usuario or "").strip().lower() == "lucas"
     c = con()
     linhas = c.execute(
-        "SELECT pf.chatid, pf.plano, pf.valor_centavos, pf.fechado_em, l.nome, l.fone, l.responsavel,"
+        "SELECT pf.chatid, pf.plano, pf.valor_centavos, pf.fechado_em, pf.loja, l.nome, l.fone, l.responsavel,"
         "       cs.cliente_pagou_em, cs.comissao_paga_em"
         "  FROM planos_fechados pf"
         "  LEFT JOIN leads l ON l.chatid = pf.chatid"
@@ -1204,12 +1206,27 @@ def comissoes(usuario):
         comissao = round(r["valor_centavos"] * COMISSAO_PCT / 100)
         situacao = "paga" if r["comissao_paga_em"] else "a_receber"
         totais[situacao] += comissao
-        itens.append({"chatid": r["chatid"], "cliente": r["nome"] or r["fone"] or r["chatid"],
+        dono = r["nome"] or r["fone"] or r["chatid"]
+        loja = (r["loja"] or "").strip()
+        # Loja primeiro; o nome do dono continua junto.
+        cliente = dono if not loja else (loja if loja == dono else loja + " (" + dono + ")")
+        itens.append({"chatid": r["chatid"], "cliente": cliente, "loja": loja or None, "dono": dono,
                       "fone": r["fone"], "responsavel": resp or None, "plano": r["plano"],
                       "mensalidade_centavos": r["valor_centavos"], "comissao_centavos": comissao,
                       "fechado_em": r["fechado_em"], "cliente_pagou_em": r["cliente_pagou_em"],
                       "comissao_paga_em": r["comissao_paga_em"], "situacao": situacao})
     return {"pct": COMISSAO_PCT, "canEdit": eh_lucas, "usuario": meu, "itens": itens, "totais": totais}
+
+
+def loja_comissao(usuario, chatid, loja):
+    if (usuario or "").strip().lower() != "lucas":
+        raise PermissionError("Só o Lucas pode alterar a loja da comissão.")
+    c = con()
+    if not c.execute("SELECT 1 FROM planos_fechados WHERE chatid=?", (chatid,)).fetchone():
+        raise ValueError("Cliente sem plano fechado registrado.")
+    c.execute("UPDATE planos_fechados SET loja=? WHERE chatid=?", ((loja or "").strip() or None, chatid))
+    c.commit()
+    return {"ok": True, "chatid": chatid, "loja": (loja or "").strip() or None}
 
 
 def marca_comissao(usuario, chatid, campo, marcado, data=None):
@@ -3786,6 +3803,18 @@ class H(BaseHTTPRequestHandler):
                     return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
                 try:
                     return self._send(200, json.dumps(vincula_grupos(self.headers.get("X-Prospeccao-User"), d.get("itens")), ensure_ascii=False))
+                except PermissionError as e:
+                    return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+            if self.path == "/api/comissoes/loja":
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    return self._send(200, json.dumps(loja_comissao(self.headers.get("X-Prospeccao-User"),
+                        d.get("chatid"), d.get("loja")), ensure_ascii=False))
                 except PermissionError as e:
                     return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 except ValueError as e:
