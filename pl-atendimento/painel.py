@@ -3584,6 +3584,9 @@ class H(BaseHTTPRequestHandler):
                                                   ensure_ascii=False))
             if p.path == "/api/comissoes":
                 return self._send(200, json.dumps(comissoes(self.headers.get("X-Prospeccao-User")), ensure_ascii=False))
+            if p.path == "/api/tv/tarefas":
+                # O token é validado no server.js, única porta pública até este serviço.
+                return self._send(200, json.dumps(tarefas.do_dia(con(), "lucas"), ensure_ascii=False))
             if p.path == "/api/tarefas":
                 try:
                     return self._send(200, json.dumps(tarefas.lista(con(), self.headers.get("X-Prospeccao-User")), ensure_ascii=False))
