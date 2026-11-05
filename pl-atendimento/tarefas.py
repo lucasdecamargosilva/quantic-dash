@@ -99,6 +99,17 @@ def salva(c, usuario, d):
 AVISOS_MIN = (0, 15, 30, 60, 120, 1440)   # na hora, 15 min, 30 min, 1 h, 2 h, 1 dia antes (+ personalizado)
 
 
+def do_dia(c, usuario):
+    """Tela da TV: só o que vence hoje ou está atrasado, sem as notas."""
+    dono = _dono(usuario)
+    hoje = datetime.now(BRT).strftime("%Y-%m-%d")
+    rows = c.execute("SELECT titulo, prazo, hora, prioridade, estado FROM tarefas "
+                     "WHERE dono=? AND feita=0 AND prazo IS NOT NULL AND prazo<>'' AND prazo<=? "
+                     "ORDER BY prazo, CASE WHEN hora IS NULL OR hora='' THEN 1 ELSE 0 END, hora, criada_em",
+                     (dono, hoje)).fetchall()
+    return {"hoje": hoje, "tarefas": [dict(r) for r in rows]}
+
+
 def _aviso_min(v, hora):
     """Minutos de antecedência do alarme; None = sem aviso. Sem hora não há alarme."""
     if v is None or v == "" or not hora:
