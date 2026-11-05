@@ -284,6 +284,21 @@ app.use((req, res, next) => {
     return autenticaProspeccao(req, res, () => prospeccaoPageProxy(req, res, next));
 });
 
+// Painel da TV: leitura das tarefas do dia, com token próprio em vez de sessão.
+const TV_ORIGENS = ['https://provoulevou.com.br', 'https://www.provoulevou.com.br'];
+app.get('/api/tv/tarefas', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (TV_ORIGENS.includes(req.headers.origin)) res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+    const esperado = process.env.TV_PAINEL_TOKEN;
+    const recebido = String(req.query.t || '');
+    const hash = valor => crypto.createHash('sha256').update(valor).digest();
+    if (!esperado || !crypto.timingSafeEqual(hash(esperado), hash(recebido))) return res.status(401).json({ error: 'Token inválido.' });
+    delete req.headers.origin;
+    delete req.headers.cookie;
+    delete req.headers['x-prospeccao-user'];
+    return prospeccaoProxy(req, res, next);
+});
+
 // A tela usa caminhos absolutos /api/*. Encaminhamos somente os endpoints do
 // painel, preservando as APIs já existentes do Quantic Dash.
 app.use((req, res, next) => {
