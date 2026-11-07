@@ -306,6 +306,27 @@ app.use((req, res, next) => {
     return autenticaProspeccao(req, res, () => prospeccaoProxy(req, res, next));
 });
 
+// 2a-quater. Dados do CRM (07/11/2026): a tela não fala mais com o Supabase pela chave pública.
+// Só quem tem sessão do CRM passa, só nestas tabelas, e a chave de serviço fica aqui no servidor.
+const CRM_SERVICE_KEY = process.env.PL_CRM_KEY;
+const CRM_TABELAS = /^\/sb\/rest\/v1\/(leads|interacoes|crm_lead_etapas|pl_catalog_stores)(\?|$)/;
+const crmDadosProxy = createProxyMiddleware({
+    target: SUPABASE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/sb': '' },
+    headers: { apikey: CRM_SERVICE_KEY || '', Authorization: `Bearer ${CRM_SERVICE_KEY || ''}` },
+    on: { proxyReq: (proxyReq) => proxyReq.removeHeader('cookie') },
+});
+app.use((req, res, next) => {
+    if (req.url !== '/sb' && !req.url.startsWith('/sb/')) return next();
+    return autenticaProspeccao(req, res, () => {
+        if (!CRM_SERVICE_KEY) return res.status(503).json({ error: 'Acesso aos dados não configurado.' });
+        if (!CRM_TABELAS.test(req.url)) return res.sendStatus(403);
+        if (req.url.startsWith('/sb/rest/v1/pl_catalog_stores') && req.method !== 'GET' && req.method !== 'HEAD') return res.sendStatus(403);
+        return crmDadosProxy(req, res, next);
+    });
+});
+
 // 2a. CRM (React SPA) — servido sob /crm/*
 const CRM_DIST = path.join(__dirname, 'crm-app', 'dist');
 app.use('/crm', express.static(CRM_DIST));
