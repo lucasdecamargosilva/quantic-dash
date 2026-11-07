@@ -2854,8 +2854,11 @@ async function enviar(){
   if(modo==='catalogo'&&!segundo){
     st.innerHTML='<span class="err">Revise também a segunda mensagem antes de enviar.</span>'; return;
   }
-  const textos=modo==='catalogo' ? [texto,segundo]
-    : modo==='abordagem' ? texto.split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean) : [texto];
+  // Mesma regra de SEPARADOR_MENSAGENS do servidor: cada parte tem a sua bolha e o seu envio. Sem isso a bolha
+  // temporaria ficava com o texto inteiro, nao casava com nenhuma mensagem real e aparecia junto por 25 s.
+  const textos=(modo==='catalogo' ? [texto,segundo]
+    : modo==='abordagem' ? texto.split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean) : [texto])
+    .flatMap(t=>t.split(/\r?\n[ \t]*(?:[-_–—=][ \t]*){3,}(?:\r?\n|$)/).map(p=>p.trim()).filter(Boolean));
   const destinatario=destinatarioAberto(), conversa=destinatario.chatid, fone=destinatario.fone;
   campo.value=''; delete campo.dataset.modo;
   const rascunho=document.getElementById('catalogoRascunho');
@@ -2863,7 +2866,8 @@ async function enviar(){
   botao.disabled=true; st.textContent='';
   let enviadas=0, erro='', videoTentado=false;
   try{
-    for(const t of textos){
+    for(const [i,t] of textos.entries()){
+      if(i) await new Promise(r=>setTimeout(r,1500));
       const item={chatid:conversa,tipo:'texto',texto:t,estado:'enviando',t:Date.now()};
       pendentes.push(item); desenhaChat(ultimasLinhas);   // aparece na hora
       const d=await (await fetch('/api/enviar',{method:'POST',headers:{'Content-Type':'application/json','X-Chat-UI-Version':'20260916.2'},
