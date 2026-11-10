@@ -959,8 +959,39 @@ ULTIMO_DO_LEAD = ("(SELECT MAX(m.ts) FROM mensagens m WHERE m.chatid = leads.cha
                   " AND m.from_me = 0 AND m.excluida = 0)")
 
 
+def trecho_busca(texto, termo, raio=40):
+    """Pedaço da mensagem em volta da palavra buscada (para mostrar na lista)."""
+    texto = " ".join(str(texto or "").split())
+    norm = normaliza_busca(texto)
+    i = norm.find(termo)
+    if i < 0 or len(norm) != len(texto):
+        return texto[:2 * raio] + ("…" if len(texto) > 2 * raio else "")
+    ini, fim = max(0, i - raio), min(len(texto), i + len(termo) + raio)
+    return ("…" if ini else "") + texto[ini:fim] + ("…" if fim < len(texto) else "")
+
+
+def busca_nas_mensagens(c, termo):
+    """{chatid: {texto, ts, id}} da mensagem MAIS RECENTE de cada conversa que contém o termo."""
+    try:
+        c.create_function("pl_norm", 1, normaliza_busca, deterministic=True)
+    except Exception:
+        pass
+    achados = {}
+    # Pré-filtro rápido no próprio SQLite: letras que podem ter acento viram curinga "_" no LIKE
+    # (LIKE já ignora maiúscula); só o que passar é normalizado em Python.
+    padrao = "%" + "".join("_" if ch in "aeioucn" else ("\\" + ch if ch in "%_\\" else ch) for ch in termo) + "%"
+    for m in c.execute("SELECT chatid, messageid, texto, ts FROM mensagens WHERE excluida=0"
+                       " AND texto IS NOT NULL AND texto <> '' AND texto LIKE ? ESCAPE '\\'"
+                       " AND instr(pl_norm(texto), ?) > 0"
+                       " ORDER BY ts DESC", (padrao, termo)):
+        if m["chatid"] not in achados:
+            achados[m["chatid"]] = {"texto": trecho_busca(m["texto"], termo), "ts": m["ts"], "id": m["messageid"]}
+    return achados
+
+
 def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
     c = con()
+    achados = {}
     busca = str(busca or "").strip()
     if chatid:
         linhas = c.execute("SELECT *, " + ULTIMO_DO_LEAD + " AS ultimo_lead_ts FROM leads WHERE chatid=?", (chatid,)).fetchall()
@@ -970,8 +1001,11 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
         termo = normaliza_busca(busca)
         digitos = re.sub(r"\D", "", busca)
         busca_telefone = bool(digitos) and not re.search(r"[^\d\s()+.\-]", busca)
+        # 10/11/2026 (Lucas): a busca também procura palavras ditas nas conversas (sem acento, sem maiúscula).
+        achados = busca_nas_mensagens(c, termo) if len(termo) >= 3 and not busca_telefone else {}
         linhas = [r for r in linhas if termo in normaliza_busca(r["nome"])
-                  or (busca_telefone and digitos in re.sub(r"\D", "", r["fone"] or ""))]
+                  or (busca_telefone and digitos in re.sub(r"\D", "", r["fone"] or ""))
+                  or r["chatid"] in achados]
     elif status == "_ocultos":
         linhas = c.execute("SELECT *, " + ULTIMO_DO_LEAD + " AS ultimo_lead_ts FROM leads WHERE oculto=1 ORDER BY COALESCE(ultimo_lead_ts, 0) DESC, ultimo_ts DESC").fetchall()
     elif status == "_sem_resposta":
@@ -1006,7 +1040,8 @@ def fila(status=None, busca=None, responsavel=None, chatid=None, usuario=None):
                     "nao_visto": bool(r["ultimo_de"] == "lead" and _ms(r["ultimo_lead_ts"] if "ultimo_lead_ts" in r.keys() else r["ultimo_ts"]) > _ms(vistas.get(r["chatid"]))), "ultimo_de": r["ultimo_de"], "ultimo_ts": r["ultimo_ts"], "ultimo_lead_ts": (r["ultimo_lead_ts"] if "ultimo_lead_ts" in r.keys() else None), "quando": dt.strftime("%d/%m %H:%M"),
                     "ha": humano(dt),
                     "ultima": (u["texto"] if u and u["texto"]
-                               else rotulo(u["tipo"], u["segundos"]) if u else "")})
+                               else rotulo(u["tipo"], u["segundos"]) if u else ""),
+                    "achado": achados.get(r["chatid"])})
     # Os grupos de catálogo NÃO entram mais na coluna "Teste grátis": o lead da
     # loja já está lá (ex.: Bellavi = o lead 51 9673-9517), então o cartão do
     # grupo era duplicata. Seguem visíveis na busca e ao abrir o grupo direto.
@@ -1779,6 +1814,11 @@ color:var(--txt);padding:0 10px;font:inherit;font-size:13px;outline:0}
 .busca input:focus{border-color:var(--roxo)}
 .busca-limpar{padding:4px 7px;background:transparent;color:var(--fraco);font-size:15px}
 .busca-limpar:hover{color:var(--txt);background:var(--hover)}
+.bc-conta{font-size:11.5px;color:var(--fraco);white-space:nowrap}
+.bc-conta[hidden]{display:none}
+mark.bc-mark{background:#fde68a;color:#1c1826;border-radius:3px;padding:0 1px}
+mark.bc-mark.atual{background:#f59e0b;color:#fff;box-shadow:0 0 0 2px #f59e0b55}
+.msg-achado{white-space:normal!important}
 .lista{display:flex;flex-direction:column;gap:0;min-height:0;flex:1;overflow:auto;background:var(--card)}
 .item{background:transparent;border:0;border-bottom:1px solid var(--linha);border-radius:0;
 padding:12px 16px;cursor:pointer;display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px}
@@ -2046,8 +2086,9 @@ header>.filtro-responsavel select{width:135px;flex:0 0 auto}
     </div>
     <div class="busca">
       <span class="busca-icone" data-icon="search" aria-hidden="true"></span>
-      <input id="busca" type="search" placeholder="Buscar por nome ou telefone…" autocomplete="off"
-        aria-label="Buscar por nome ou telefone" oninput="agendaBusca(this.value)" onkeydown="if(event.key==='Escape')limpaBusca()">
+      <input id="busca" type="search" placeholder="Buscar por nome, telefone ou palavra da conversa…" autocomplete="off"
+        aria-label="Buscar por nome, telefone ou palavra da conversa" oninput="agendaBusca(this.value)" onkeydown="if(event.key==='Escape')limpaBusca();else if(event.key==='Enter'&&document.getElementById('chat')){event.preventDefault();bcVai(event.shiftKey?-1:1)}">
+      <span class="bc-conta" id="bcConta" role="status" hidden></span>
       <button class="busca-limpar" id="buscaLimpar" onclick="limpaBusca()" aria-label="Limpar pesquisa" hidden>✕</button>
     </div>
 
@@ -2271,7 +2312,7 @@ async function carrega(){
       <div class="top"><span class="nome">${esc(p.nome||p.fone)}</span>
       <span class="h">${esc(p.ha)}</span></div>
       <span class="responsavel-tag" data-responsavel="${esc(p.responsavel||'')}">${tagResponsavel(p.responsavel)}</span>${(p.nao_visto??p.ultimo_de==='lead')&&!p.grupo?'<i class="ponto-resposta" title="Cliente mandou mensagem e ainda não respondemos" aria-label="Esperando sua resposta"></i>':''}
-      <div class="msg">${esc(p.ultima)}</div>
+      ${p.achado?`<div class="msg msg-achado" title="Palavra encontrada nesta conversa">💬 ${bcMarca(p.achado.texto,busca)}</div>`:`<div class="msg">${esc(p.ultima)}</div>`}
       <div style="margin-top:6px;display:flex;gap:5px">
         ${p.grupo?'<span class="pill">Grupo do catálogo</span>':''}<span class="pill ${cls(p.status)}">${esc(p.status)}</span>
         <span class="pill">${esc(p.quando)}</span></div></div>`;
@@ -2285,13 +2326,14 @@ async function carrega(){
 function agendaBusca(valor){
   conversaDestino=null;
   busca=valor.trim(); document.getElementById('buscaLimpar').hidden=!busca;
-  clearTimeout(buscaTimer); buscaTimer=setTimeout(carrega,220);
+  clearTimeout(buscaTimer); buscaTimer=setTimeout(()=>{ carrega(); bc.atual=-1; bcAplica(true); },220);
 }
 function limpaBusca(recarregar=true){
   conversaDestino=null;
   busca=''; clearTimeout(buscaTimer);
   const campo=document.getElementById('busca'); if(campo){campo.value='';campo.focus()}
   const limpar=document.getElementById('buscaLimpar'); if(limpar)limpar.hidden=true;
+  bc.atual=-1; bcAplica(false);
   if(recarregar) carrega();
 }
 
@@ -2443,6 +2485,7 @@ function desenhaChat(linhas){
     if(perto) ch.scrollTop=9e9;
   }
   ultimasLinhas=linhas;
+  if(busca) bcAplica(false);
 }
 let ultimasLinhas=[];
 let editandoMensagem=null, mensagemEmAcao=null;
@@ -2549,6 +2592,53 @@ function conteudoBolha(l){
   if(l.tipo==='VideoMessage') return `<video class="midia-video" controls preload="metadata" src="${url}"></video>${legenda}`;
   return `<a class="midia-link" href="${url}" target="_blank">📎 Abrir documento</a>${legenda}`;
 }
+
+// ── Busca de palavra (10/11/2026, pedido do Lucas): usa a MESMA barra de busca da lista.
+// A lista mostra as conversas em que a palavra apareceu; na conversa aberta, destaca e Enter/Shift+Enter navega.
+const bc={atual:-1};
+function bcNorm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()}
+function bcMarca(texto,termo){
+  const t=String(texto||''), q=bcNorm(String(termo||'').trim());
+  if(!q) return esc(t);
+  const n=bcNorm(t); if(n.length!==t.length) return esc(t);
+  let out='',i=0,j;
+  while((j=n.indexOf(q,i))>=0){ out+=esc(t.slice(i,j))+'<mark class="bc-mark">'+esc(t.slice(j,j+q.length))+'</mark>'; i=j+q.length; }
+  return out+esc(t.slice(i));
+}
+function bcLimpa(){
+  document.querySelectorAll('#chat mark.bc-mark').forEach(m=>{ const p=m.parentNode; p.replaceChild(document.createTextNode(m.textContent),m); p.normalize(); });
+}
+function bcAplica(navegar){
+  bcLimpa();
+  const conta=document.getElementById('bcConta'), q=bcNorm(busca);
+  const fone=/^[\d\s()+.\-]+$/.test(busca);
+  if(!document.getElementById('chat')||q.length<3||fone){ if(conta){conta.hidden=true;conta.textContent='';} return; }
+  const marks=[];
+  document.querySelectorAll('#chat .bolha').forEach(bolha=>{
+    const w=document.createTreeWalker(bolha,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.meta,button,audio,video,textarea')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+    const nos=[]; while(w.nextNode()) nos.push(w.currentNode);
+    nos.forEach(no=>{
+      const t=no.nodeValue, n=bcNorm(t); if(n.length!==t.length) return;
+      let i=0,j,achou=false; const frag=document.createDocumentFragment();
+      while((j=n.indexOf(q,i))>=0){ achou=true; frag.append(t.slice(i,j)); const m=document.createElement('mark'); m.className='bc-mark'; m.textContent=t.slice(j,j+q.length); frag.append(m); marks.push(m); i=j+q.length; }
+      if(achou){ frag.append(t.slice(i)); no.parentNode.replaceChild(frag,no); }
+    });
+  });
+  if(!marks.length){ if(conta){conta.hidden=false;conta.textContent='0 nesta conversa';} bc.atual=-1; return; }
+  if(bc.atual<0||bc.atual>=marks.length) bc.atual=marks.length-1;   // começa pela mais recente
+  bcMostra(marks,navegar);
+}
+function bcMostra(marks,rolar){
+  marks=marks||[...document.querySelectorAll('#chat mark.bc-mark')];
+  marks.forEach((m,i)=>m.classList.toggle('atual',i===bc.atual));
+  const conta=document.getElementById('bcConta'); if(conta){conta.hidden=false;conta.textContent=(bc.atual+1)+' de '+marks.length;}
+  if(rolar&&marks[bc.atual]) marks[bc.atual].scrollIntoView({block:'center',behavior:'smooth'});
+}
+function bcVai(dir){
+  const marks=[...document.querySelectorAll('#chat mark.bc-mark')]; if(!marks.length) return;
+  bc.atual=(bc.atual+dir+marks.length)%marks.length; bcMostra(marks,true);
+}
+
 function bolhas(linhas){
   const grupo=!!conversaAberta?.grupo;
   return linhas.map(l=>{
@@ -2572,6 +2662,7 @@ async function abrir(i){
 }
 async function abrirLead(lead){
   const p={...lead}, abertura=++aberturaSeq;
+  bc.atual=-1;
   conversaAberta=null;
   descarta();
   editandoMensagem=null;
@@ -2588,11 +2679,13 @@ async function abrirLead(lead){
   if(d.grupo){
     P.innerHTML=`<div class="conversa-conteudo"><div class="cliente-topo"><span class="avatar">${icone('chat')}</span>
       <div class="cliente-info"><strong class="cliente-nome">${esc(d.nome)}</strong>
-      <span class="responsavel-tag">${tagResponsavel(d.responsavel)}</span><div class="tag">Grupo do catálogo · Teste grátis</div></div></div>
+      <span class="responsavel-tag">${tagResponsavel(d.responsavel)}</span><div class="tag">Grupo do catálogo · Teste grátis</div></div>
+</div>
       <div class="chat" id="chat">${bolhas(d.linhas)}</div>
       <div class="tag" style="padding:12px">Acompanhamento do grupo · ${esc(d.erro_sync||'Atualização automática das mensagens')}
       <a href="?chatid=${encodeURIComponent(d.lead_chatid)}">Abrir conversa da loja</a></div></div>`;
     document.getElementById('chat').scrollTop=9e9;
+    bcAplica(true);
     return;
   }
   P.innerHTML=`
@@ -2670,6 +2763,7 @@ async function abrirLead(lead){
       <section id="crm" class="crm-card" aria-live="polite"><div class="crm-head"><span class="crm-title">Carregando dados do CRM…</span></div></section>
     </aside>`;
   document.getElementById('chat').scrollTop=9e9;
+  bcAplica(true);
   if(dadosGraficoResponsaveis)desenhaGraficoResponsaveis(dadosGraficoResponsaveis);
   crmNotas=[];
 }
