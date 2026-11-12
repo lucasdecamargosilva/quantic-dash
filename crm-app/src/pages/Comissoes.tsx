@@ -5,7 +5,9 @@ type Item = {
   chatid: string; cliente: string; fone: string | null; responsavel: string | null; plano: string;
   mensalidade_centavos: number; comissao_centavos: number; fechado_em: string;
   cliente_pagou_em: string | null; comissao_paga_em: string | null; situacao: Situacao;
+  loja_situacao?: LojaSit | null; loja_vencimento?: string | null;
 };
+type LojaSit = "ativo" | "vencido" | "pausado" | "teste" | "inativo";
 type Resp = { pct: number; canEdit: boolean; usuario: string; itens: Item[]; totais: Record<Situacao, number> };
 
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -15,6 +17,15 @@ const SIT: Record<Situacao, { label: string; cls: string; hint: string }> = {
   a_receber: { label: "A receber", cls: "bg-cyan/10 text-cyan", hint: "Cliente pagou — comissão liberada" },
   paga: { label: "Paga", cls: "bg-emerald/10 text-emerald", hint: "Comissão já paga ao vendedor" },
 };
+
+const LOJA: Record<LojaSit, { label: string; cls: string }> = {
+  ativo: { label: "Ativo", cls: "bg-emerald/10 text-emerald" },
+  vencido: { label: "Vencido", cls: "bg-amber/10 text-amber" },
+  pausado: { label: "Pausado", cls: "bg-rose/10 text-rose" },
+  teste: { label: "Em teste", cls: "bg-cyan/10 text-cyan" },
+  inativo: { label: "Inativo", cls: "bg-rose/10 text-rose" },
+};
+const dia = (v?: string | null) => v ? v.slice(8, 10) + "/" + v.slice(5, 7) : "";
 
 export default function Comissoes() {
   const [d, setD] = useState<Resp | null>(null);
@@ -91,11 +102,12 @@ export default function Comissoes() {
       <section className="overflow-x-auto rounded-xl border border-edge-subtle bg-raised">
         {loading ? <p className="p-6 text-sm text-muted">Carregando…</p> :
           !itens.length ? <p className="p-6 text-sm text-muted">Nenhum cliente pagante{sit ? " nessa situação" : ""}. Para contar aqui, o cliente precisa estar em <b>Convertido</b> com o plano registrado e a 1ª mensalidade paga.</p> :
-          <table className="w-full min-w-[760px] text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead className="text-left text-xs text-muted">
               <tr className="border-b border-edge-subtle">
                 <th className="px-4 py-3 font-medium">Cliente</th>
                 {d?.canEdit && <th className="px-4 py-3 font-medium">Responsável</th>}
+                <th className="px-4 py-3 font-medium">Cliente ativo?</th>
                 <th className="px-4 py-3 font-medium">Plano</th>
                 <th className="px-4 py-3 text-right font-medium">Mensalidade</th>
                 <th className="px-4 py-3 text-right font-medium">Comissão</th>
@@ -109,6 +121,12 @@ export default function Comissoes() {
                 <tr key={i.chatid} className="border-b border-edge-subtle last:border-0">
                   <td className="px-4 py-3"><strong className="block text-bright">{i.cliente}</strong><small className="text-dim">{i.fone}</small></td>
                   {d?.canEdit && <td className="px-4 py-3 text-muted">{i.responsavel || "Sem responsável"}</td>}
+                  <td className="px-4 py-3">
+                    {i.loja_situacao ? <>
+                      <span className={`inline-block rounded-md px-2 py-1 text-xs font-medium ${LOJA[i.loja_situacao].cls}`}>{LOJA[i.loja_situacao].label}</span>
+                      {i.loja_vencimento && i.loja_situacao !== "teste" && <small className="mt-1 block text-dim">{i.loja_situacao === "ativo" ? "vence" : "venceu"} {dia(i.loja_vencimento)}</small>}
+                    </> : <span className="text-dim">—</span>}
+                  </td>
                   <td className="px-4 py-3">{i.plano}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{brl(i.mensalidade_centavos)}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums text-bright">{brl(i.comissao_centavos)}</td>

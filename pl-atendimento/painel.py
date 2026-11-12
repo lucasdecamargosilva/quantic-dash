@@ -1208,6 +1208,24 @@ def salva_plano_fechado(chatid, plano, valor_centavos, por=None):
 COMISSAO_PCT = 20  # % sobre a 1ª mensalidade que o cliente paga
 
 
+def _situacao_lojas():
+    """Situação da loja de cada cliente (ativo/vencido/pausado/teste/inativo), pela RPC
+    crm_comissoes_lojas do Supabase (mesma chave PL_IA_KEY do Assistente). Vínculo
+    cliente -> loja em pl_comissao_loja. Se falhar, o painel segue sem a coluna."""
+    chave = os.environ.get("PL_IA_KEY", "")
+    try:
+        if not (chave and CRM_CLIENT.url and CRM_CLIENT.key):
+            return {}
+        r = urllib.request.Request(CRM_CLIENT.url.rstrip("/") + "/rest/v1/rpc/crm_comissoes_lojas",
+                                   data=json.dumps({"p_chave": chave}).encode("utf-8"), method="POST",
+                                   headers={"Content-Type": "application/json", "apikey": CRM_CLIENT.key,
+                                            "Authorization": "Bearer " + CRM_CLIENT.key})
+        with urllib.request.urlopen(r, timeout=8) as x:
+            return json.loads(x.read().decode("utf-8")) or {}
+    except Exception:
+        return {}
+
+
 def comissoes(usuario):
     """Comissão do comercial por cliente que JÁ PAGOU (plano em planos_fechados +
     cliente_pagou_em marcado). Plano fechado sem pagamento não aparece (regra do
@@ -1228,6 +1246,7 @@ def comissoes(usuario):
     meu = "Lucas" if eh_lucas else ("Dione" if u == "dione" else None)
     itens = []
     totais = {"a_receber": 0, "paga": 0}
+    sit_lojas = _situacao_lojas() if meu else {}
     for r in linhas:
         resp = r["responsavel"] or ""
         if meu is None:
@@ -1249,7 +1268,9 @@ def comissoes(usuario):
                       "fone": r["fone"], "responsavel": resp or None, "plano": r["plano"],
                       "mensalidade_centavos": r["valor_centavos"], "comissao_centavos": comissao,
                       "fechado_em": r["fechado_em"], "cliente_pagou_em": r["cliente_pagou_em"],
-                      "comissao_paga_em": r["comissao_paga_em"], "situacao": situacao})
+                      "comissao_paga_em": r["comissao_paga_em"], "situacao": situacao,
+                      "loja_situacao": (sit_lojas.get(r["chatid"]) or {}).get("situacao"),
+                      "loja_vencimento": (sit_lojas.get(r["chatid"]) or {}).get("vencimento")})
     return {"pct": COMISSAO_PCT, "canEdit": eh_lucas, "usuario": meu, "itens": itens, "totais": totais}
 
 
