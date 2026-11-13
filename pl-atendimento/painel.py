@@ -4134,6 +4134,8 @@ if __name__ == "__main__":
     threading.Thread(target=sugestao_etapa.loop, args=(DB, transcreve_msg, avisa_mensagem_nova,
                      lambda chatid, etapa: move_pipeline_dados(chatid, etapa, origem="jev", por="Jev")), daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
+    # lembrete das tarefas "A fazer" no WhatsApp a cada 30 min (8h–22h)
+    threading.Thread(target=tarefas.lembrete_loop, args=(con, uz), daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)
     print("Ctrl+C para parar.\n")
     # "localhost" no Windows resolve para ::1 (IPv6) ANTES de 127.0.0.1. Se o

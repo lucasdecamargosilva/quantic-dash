@@ -168,3 +168,66 @@ def exclui(c, usuario, tid):
     if not n:
         raise ValueError("Tarefa não encontrada.")
     return {"ok": True}
+
+
+# ── Lembrete no WhatsApp (pedido do Lucas, 13/11/2026) ──
+# A cada 30 min (:00 e :30, 8h–22h de Brasília) manda pro WhatsApp do dono as tarefas
+# que estão em "A fazer". Sem tarefa em "A fazer", não manda nada. O último horário
+# enviado fica gravado no banco, então reiniciar o container não repete o aviso.
+LEMBRETE = {"Lucas": "5511965749173"}
+LEMBRETE_HORAS = (8, 22)   # das 8h às 22h (inclui o envio das 22h00)
+
+
+def _prazo_txt(prazo, hoje):
+    if not prazo:
+        return ""
+    if prazo < hoje:
+        return " ⚠️ atrasada (" + prazo[8:10] + "/" + prazo[5:7] + ")"
+    if prazo == hoje:
+        return " · hoje"
+    return " · " + prazo[8:10] + "/" + prazo[5:7]
+
+
+def texto_lembrete(c, dono, agora=None):
+    agora = agora or datetime.now(BRT)
+    hoje = agora.strftime("%Y-%m-%d")
+    rows = c.execute("SELECT titulo, prazo, prioridade FROM tarefas WHERE dono=? AND "
+                     "COALESCE(estado, CASE WHEN feita=1 THEN 'feito' ELSE 'a_fazer' END)='a_fazer' "
+                     "ORDER BY CASE prioridade WHEN 'alta' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END, "
+                     "CASE WHEN prazo IS NULL OR prazo='' THEN 1 ELSE 0 END, prazo, criada_em", (dono,)).fetchall()
+    if not rows:
+        return None
+    linhas = ["📋 Tarefas a fazer (%d)" % len(rows), ""]
+    for r in rows:
+        alta = "🔴 " if r["prioridade"] == "alta" else "• "
+        linhas.append(alta + r["titulo"] + _prazo_txt(r["prazo"], hoje))
+    linhas += ["", "Quando terminar, mova para Feito no CRM que eu paro de lembrar."]
+    return "\n".join(linhas)
+
+
+def lembrete_loop(con, uz):
+    import time
+    c0 = con()
+    c0.execute("CREATE TABLE IF NOT EXISTS tarefas_lembrete (dono TEXT PRIMARY KEY, slot TEXT)")
+    c0.commit()
+    while True:
+        try:
+            agora = datetime.now(BRT)
+            ini, fim = LEMBRETE_HORAS
+            dentro = ini <= agora.hour < fim or (agora.hour == fim and agora.minute < 30)
+            if dentro:
+                slot = agora.strftime("%Y-%m-%d %H:") + ("00" if agora.minute < 30 else "30")
+                c = con()
+                for dono, fone in LEMBRETE.items():
+                    r = c.execute("SELECT slot FROM tarefas_lembrete WHERE dono=?", (dono,)).fetchone()
+                    if r and r["slot"] == slot:
+                        continue
+                    texto = texto_lembrete(c, dono, agora)
+                    if texto:
+                        uz("/send/text", {"number": fone, "text": texto})
+                    c.execute("INSERT INTO tarefas_lembrete(dono, slot) VALUES(?,?) "
+                              "ON CONFLICT(dono) DO UPDATE SET slot=excluded.slot", (dono, slot))
+                    c.commit()
+        except Exception as e:
+            print("[tarefas] lembrete falhou:", str(e)[:200])
+        time.sleep(60)
