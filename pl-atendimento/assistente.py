@@ -45,7 +45,7 @@ cliente usando o produto + modelo provado + WhatsApp do cliente), para chamar en
 interesse está quente. 7 dias grátis para testar, sem cartão e sem custo de instalação.
 
 ## Planos do Provou Catálogo (mensais — é a tabela que o comercial envia)
-Essencial R$ 39 (50 provas) · Crescimento R$ 79 (100) · Profissional R$ 159 (200) ·
+Essencial R$ 49 (50 provas) · Crescimento R$ 89 (100) · Profissional R$ 169 (200) ·
 Escala R$ 369 (500) · Volume 1.000 R$ 699 · Volume 1.500 R$ 959 · Volume 2.500 R$ 1.499.
 No fim do teste recomendamos o pacote pelo volume real de provas (projete as provas dos
 últimos 7 dias para 30 dias).
