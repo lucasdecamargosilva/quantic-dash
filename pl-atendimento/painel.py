@@ -95,9 +95,9 @@ O que a Provou Levou vende:
 - Em ambos, criamos um grupo no WhatsApp onde o lojista acompanha cada prova em tempo real.
 
 Planos mensais do Provou Catálogo:
-  Essencial = R$ 49, com 50 provas virtuais
-  Crescimento = R$ 89, com 100 provas virtuais
-  Profissional = R$ 169, com 200 provas virtuais
+  Essencial = R$ 39, com 50 provas virtuais
+  Crescimento = R$ 79, com 100 provas virtuais
+  Profissional = R$ 159, com 200 provas virtuais
   Escala = R$ 369, com 500 provas virtuais
   Volume 1.000 = R$ 699, com 1.000 provas virtuais
   Volume 1.500 = R$ 959, com 1.500 provas virtuais
@@ -129,9 +129,9 @@ AUDIOS = [
 # Tabela pra CONSULTA na tela — a equipe olha enquanto conversa.
 # (o texto de envio fica em TEXTOS['tabela'])
 PLANOS = [
- {"nome": "Essencial",     "preco": "R$ 49",    "fotos": "50",    "por_prova": "R$ 0,98"},
- {"nome": "Crescimento",   "preco": "R$ 89",    "fotos": "100",   "por_prova": "R$ 0,89"},
- {"nome": "Profissional",  "preco": "R$ 169",   "fotos": "200",   "por_prova": "R$ 0,85"},
+ {"nome": "Essencial",     "preco": "R$ 39",    "fotos": "50",    "por_prova": "R$ 0,78"},
+ {"nome": "Crescimento",   "preco": "R$ 79",    "fotos": "100",   "por_prova": "R$ 0,79"},
+ {"nome": "Profissional",  "preco": "R$ 159",   "fotos": "200",   "por_prova": "R$ 0,80"},
  {"nome": "Escala",        "preco": "R$ 369",   "fotos": "500",   "por_prova": "R$ 0,74"},
  {"nome": "Volume 1.000",  "preco": "R$ 699",   "fotos": "1.000", "por_prova": "R$ 0,70"},
  {"nome": "Volume 1.500",  "preco": "R$ 959",   "fotos": "1.500", "por_prova": "R$ 0,64"},
@@ -149,7 +149,7 @@ CATALOGO_MENSAGENS = [
  "cadastrar as fotos, nomes, preços e informações dos produtos. Depois, é só compartilhar "
  "o link do catálogo pelo WhatsApp, Instagram ou onde preferir. O cliente acessa, escolhe "
  "um produto, envia uma foto e se vê usando a peça com o provador virtual por IA.\n\n"
- "A instalação não tem custo e os planos começam em R$ 49 por mês por 50 provas virtuais\n\n"
+ "A instalação não tem custo e os planos começam em R$ 39 por mês por 50 provas virtuais\n\n"
  "Nós disponibilizamos 7 dias grátis para você testar o catálogo, só precisamos que nos "
  "envie o logo da loja, e-mail e o WhatsApp da loja para criarmos o catálogo.",
 ]
@@ -159,9 +159,9 @@ TEXTOS = [
   "texto": "Oi, Conseguiu dar uma olhada no que te enviei sobre o Provador Virtual?"},
  {"id": "tabela", "rotulo": "Tabela de planos",
   "texto": "Nossos pacotes mensais do Provou Catálogo são:\n\n"
-           "*Essencial* — R$ 49 — 50 provas virtuais\n"
-           "*Crescimento* — R$ 89 — 100 provas virtuais\n"
-           "*Profissional* — R$ 169 — 200 provas virtuais\n"
+           "*Essencial* — R$ 39 — 50 provas virtuais\n"
+           "*Crescimento* — R$ 79 — 100 provas virtuais\n"
+           "*Profissional* — R$ 159 — 200 provas virtuais\n"
            "*Escala* — R$ 369 — 500 provas virtuais\n"
            "*Volume 1.000* — R$ 699 — 1.000 provas virtuais\n"
            "*Volume 1.500* — R$ 959 — 1.500 provas virtuais\n"
