@@ -53,6 +53,7 @@ export const FONTES_OPORTUNIDADE = [
   "TikTok",
   "Indicação",
   "Site",
+  "Site Provou",
   "Prospecção Ativa",
   "WhatsApp",
   "Meta",

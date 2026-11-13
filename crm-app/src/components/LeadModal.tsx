@@ -300,6 +300,9 @@ export default function LeadModal({ leadId, onClose, onUpdated }: Props) {
                   className="w-full bg-surface border border-edge-subtle rounded-lg px-3.5 py-2.5 text-xs text-sub focus:outline-none focus:border-violet/30 transition-all"
                 >
                   <option value="">— Selecione —</option>
+                  {lead.fonte_oportunidade && !(FONTES_OPORTUNIDADE as readonly string[]).includes(lead.fonte_oportunidade) && (
+                    <option value={lead.fonte_oportunidade}>{lead.fonte_oportunidade}</option>
+                  )}
                   {FONTES_OPORTUNIDADE.map((f) => (
                     <option key={f} value={f}>{f}</option>
                   ))}

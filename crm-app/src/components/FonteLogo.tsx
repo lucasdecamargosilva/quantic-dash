@@ -1,5 +1,16 @@
 // Logo da fonte da oportunidade — usado no card do pipeline e na Atividade recente
 export default function FonteLogo({ fonte }: { fonte: string | null }) {
+  if (fonte && (fonte === "Site" || fonte.startsWith("Site Provou"))) {
+    // veio pelo botão de WhatsApp do provoulevou.com.br; o detalhe (Google, Instagram...) vai no title
+    return (
+      <span title={fonte} aria-label={fonte} className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold leading-none" style={{ color: "#7C3AED" }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+          <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+        {fonte.startsWith("Site Provou") ? fonte.replace("Site Provou", "Site").replace(" · ", " · ") : "Site"}
+      </span>
+    );
+  }
   if (fonte === "Instagram") {
     return (
       <svg

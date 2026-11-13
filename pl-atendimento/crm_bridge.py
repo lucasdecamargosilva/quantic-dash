@@ -30,6 +30,23 @@ def telefone(value):
     return digits
 
 
+_VIA = re.compile(r'\[via:\s*([^\]#]*?)\s*(?:#[^\]]*)?\]', re.I)
+_VIA_NOMES = {'direto': '', 'site provou': '', 'site': '', 'instagram': 'Instagram', 'ig': 'Instagram',
+              'google': 'Google', 'meta': 'Meta', 'facebook': 'Meta', 'gpt': 'ChatGPT', 'chatgpt': 'ChatGPT', 'chatgpt.com': 'ChatGPT',
+              'widget': 'Widget das lojas'}
+
+
+def fonte_site(text):
+    """'[via: google #ab12cd]' (carimbo dos botões de WhatsApp do provoulevou.com.br) ->
+    'Site Provou · Google'. Sem carimbo -> None."""
+    m = _VIA.search(text or '')
+    if not m:
+        return None
+    via = m.group(1).strip().lower()
+    det = _VIA_NOMES.get(via, via.capitalize() if via else '')
+    return 'Site Provou' + (' · ' + det if det else '')
+
+
 def anuncio(text):
     text = ''.join(c for c in unicodedata.normalize('NFD', text.lower())
                    if unicodedata.category(c) != 'Mn')
@@ -169,12 +186,13 @@ class CRM:
             else:
                 messages = c.execute('SELECT texto FROM mensagens WHERE chatid=? AND from_me=0 ORDER BY ts', (chatid,)).fetchall()
                 ad = next((r['texto'] for r in messages if anuncio(r['texto'] or '')), None)
+                site = next((fonte_site(r['texto']) for r in messages if fonte_site(r['texto'] or '')), None)
                 # Chave determinística: retries não duplicam e não redefinem etapa.
                 handle = 'whatsapp_' + number
                 self.request('leads', {'on_conflict': 'instagram'}, 'POST', {
                     'instagram': handle, 'nome_loja': local['nome'] or local['fone'],
                     'telefone': local['fone'], 'status': etapas.PARA_CRM.get(local['status']) or ('novo' if ad else 'respondeu'),
-                    'fonte_oportunidade': 'Meta' if ad else 'WhatsApp',
+                    'fonte_oportunidade': site or ('Meta' if ad else 'WhatsApp'),
                     'notas': 'Registrado pelo PL Atendimento. Instagram não informado.' +
                              ('\nMensagem de entrada: ' + ad if ad else ''),
                 }, 'resolution=ignore-duplicates,return=minimal')
