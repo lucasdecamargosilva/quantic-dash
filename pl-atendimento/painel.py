@@ -429,11 +429,11 @@ def _req(url, body=None, headers=None, timeout=90, raw=False):
     return b if raw else json.loads(b.decode("utf-8"))
 
 
-def uz(path, body):
+def uz(path, body, timeout=90):
     if not UZ_TOKEN:
         raise RuntimeError("Configure UAZAPI_TOKEN em .env.local.")
     try:
-        return _req(UZ + path, body, {"token": UZ_TOKEN})
+        return _req(UZ + path, body, {"token": UZ_TOKEN}, timeout=timeout)
     except urllib.error.HTTPError as e:
         if e.code == 503:
             raise RuntimeError('WhatsApp indisponível. Verifique a conexão da instância Quantic 4714 na Uazapi antes de tentar novamente.') from None
@@ -693,7 +693,7 @@ def manda_video(fone, v):
     corpo = {"number": fone, "type": "video", "file": arquivo}
     if v.get("legenda"):
         corpo["text"] = v["legenda"]
-    return uz("/send/media", corpo)
+    return uz("/send/media", corpo, timeout=300)   # vídeo de vários MB demora a subir (18/11/2026)
 
 
 def fonte_video_catalogo():
@@ -2591,8 +2591,10 @@ async function encaminhaPara(destino){
   }catch(e){st.innerHTML='<span class="err">Erro de conexão.</span>';}
 }
 // acompanha o envio em segundo plano e marca a bolha como enviada ou falhou
-async function segue(eid,item){
-  for(let i=0;i<40;i++){
+async function segue(eid,item,maxMs){
+  // 18/11/2026: vídeo leva mais que 16 s para subir; o envio continua por trás, então espera até maxMs
+  const tentativas=Math.ceil((maxMs||16000)/400);
+  for(let i=0;i<tentativas;i++){
     await new Promise(r=>setTimeout(r,400));
     const s=await (await fetch('/api/envio?eid='+encodeURIComponent(eid))).json();
     if(s.estado==='ok'||s.estado==='erro'){
@@ -3033,9 +3035,10 @@ async function mandaVideo(id,botao){
   botao.disabled=false;
   if(!d.eid){ item.estado='erro'; item.erro=d.erro||'falhou'; desenhaChat(ultimasLinhas); return; }
   botao.classList.add('enviado'); enviados.push(v.rotulo);
-  const r=await segue(d.eid,item);
+  st.innerHTML='<span>enviando o vídeo… pode levar até 2 minutos, não precisa reenviar</span>';
+  const r=await segue(d.eid,item,180000);
   st.innerHTML = r.estado==='erro'
-    ? '<span class="err">'+esc(r.erro||'')+'</span>'
+    ? '<span class="err">'+esc(r.erro==='sem resposta'?'o vídeo ainda está subindo; confira a conversa em 1 minuto antes de reenviar':(r.erro||''))+'</span>'
     : '<span class="ok">enviado: '+esc(enviados.join(' → '))+'</span>';
 }
 function confirmaAudio(id,botao){
