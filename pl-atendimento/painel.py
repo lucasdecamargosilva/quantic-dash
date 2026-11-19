@@ -715,7 +715,7 @@ def manda_video_catalogo(fone):
         "number": fone,
         "type": "video",
         "file": fonte_video_catalogo(),
-    })
+    }, timeout=300)   # 19/11/2026: igual ao manda_video — o vídeo do catálogo também leva mais que 90 s
 
 
 DIR_CACHE_MIDIAS = os.path.join(os.path.dirname(os.path.abspath(DB)), "cache-midias")
@@ -3002,8 +3002,9 @@ async function enviar(){
         body:JSON.stringify({chatid:conversa,fone})})).json();
       if(!d.eid){item.estado='erro';item.erro=d.erro||'falhou';desenhaChat(ultimasLinhas);erro=item.erro;}
       else{
-        const r=await segue(d.eid,item);
-        if(r.estado==='erro') erro=r.erro||'falhou';
+        st.innerHTML='<span>enviando o vídeo… pode levar até 2 minutos, não precisa reenviar</span>';
+        const r=await segue(d.eid,item,180000);   // 19/11/2026: antes desistia em 16 s e acusava falha com o vídeo ainda subindo
+        if(r.estado==='erro') erro=(r.erro==='sem resposta'?'o vídeo ainda está subindo; confira a conversa em 1 minuto antes de reenviar':(r.erro||'falhou'));
       }
     }
   }catch(e){ erro=e.message||'falhou';
