@@ -1246,14 +1246,18 @@ def registra_comissoes_auto():
         lead = c.execute("SELECT responsavel FROM leads WHERE chatid=?", (chatid,)).fetchone()
         if not lead or (lead["responsavel"] or "").strip().lower() != "dione" or valor <= 0:
             continue
-        if not c.execute("SELECT 1 FROM planos_fechados WHERE chatid=?", (chatid,)).fetchone():
-            c.execute("INSERT INTO planos_fechados(chatid,lead_id,plano,valor_centavos,fechado_em,atualizado_em,loja) "
-                      "VALUES(?,?,?,?,?,?,?)", (chatid, None, _plano_por_valor(valor), valor, dia, agora,
-                                                 (it.get("loja") or "").strip() or None))
-            novos += 1
+        loja = (it.get("loja") or "").strip()
+        if c.execute("SELECT 1 FROM planos_fechados WHERE chatid=?", (chatid,)).fetchone():
+            continue  # já registrado (à mão ou antes): não mexe
+        # mesma loja já registrada com OUTRO contato (dono x funcionário) -> não duplica (Jóia Dada/Beach Netty 26/11)
+        if loja and c.execute("SELECT 1 FROM planos_fechados WHERE lower(trim(loja))=lower(?)", (loja,)).fetchone():
+            continue
+        c.execute("INSERT INTO planos_fechados(chatid,lead_id,plano,valor_centavos,fechado_em,atualizado_em,loja) "
+                  "VALUES(?,?,?,?,?,?,?)", (chatid, None, _plano_por_valor(valor), valor, dia, agora, loja or None))
         c.execute("INSERT INTO comissoes_status(chatid,cliente_pagou_em,atualizado_por,atualizado_em) VALUES(?,?,?,?) "
                   "ON CONFLICT(chatid) DO UPDATE SET cliente_pagou_em=COALESCE(comissoes_status.cliente_pagou_em, excluded.cliente_pagou_em)",
                   (chatid, dia, "auto", agora))
+        novos += 1
     c.commit()
     return novos
 
