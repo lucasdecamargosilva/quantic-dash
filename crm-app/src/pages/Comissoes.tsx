@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 type Situacao = "a_receber" | "paga";
 type Item = {
@@ -8,7 +8,8 @@ type Item = {
   loja_situacao?: LojaSit | null; loja_vencimento?: string | null;
 };
 type LojaSit = "ativo" | "vencido" | "pausado" | "teste" | "inativo";
-type Resp = { pct: number; canEdit: boolean; usuario: string; itens: Item[]; totais: Record<Situacao, number> };
+type Mov = { id?: number; data: string; tipo: string; descricao: string; entrada_centavos: number; saida_centavos: number; saldo_centavos: number };
+type Resp = { pct: number; canEdit: boolean; usuario: string; itens: Item[]; totais: Record<Situacao, number> & { adiantado?: number; saldo?: number }; extrato?: Mov[] };
 
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const data = (v: string | null) => v ? new Date(v).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—";
@@ -34,6 +35,40 @@ export default function Comissoes() {
   const [saving, setSaving] = useState<string | null>(null);
   const [resp, setResp] = useState("");
   const [sit, setSit] = useState<"" | Situacao>("");
+  const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const [lData, setLData] = useState(hoje);
+  const [lValor, setLValor] = useState("");
+  const [lDesc, setLDesc] = useState("");
+
+  async function lancar(e: FormEvent) {
+    e.preventDefault();
+    const centavos = Math.round(parseFloat(lValor.replace(/\./g, "").replace(",", ".")) * 100);
+    if (!centavos || centavos <= 0) { setError("Informe um valor maior que zero."); return; }
+    setSaving("lanc"); setError("");
+    try {
+      const r = await fetch("/api/comissoes/lancamento", {
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: lData, valor_centavos: centavos, descricao: lDesc, tipo: "adiantamento" }),
+      });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.erro || "Não foi possível lançar."); }
+      setLValor(""); setLDesc(""); await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Falha ao lançar."); }
+    finally { setSaving(null); }
+  }
+
+  async function excluir(m: Mov) {
+    if (!m.id || !window.confirm(`Excluir o lançamento de ${brl(m.saida_centavos)}?`)) return;
+    setSaving("ex" + m.id); setError("");
+    try {
+      const r = await fetch("/api/comissoes/lancamento/excluir", {
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: m.id }),
+      });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.erro || "Não foi possível excluir."); }
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Falha ao excluir."); }
+    finally { setSaving(null); }
+  }
 
   async function load() {
     setError("");
@@ -78,7 +113,7 @@ export default function Comissoes() {
 
       {error && <div role="alert" className="rounded-lg border border-rose/40 px-4 py-3 text-sm text-rose">{error}</div>}
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid gap-3 sm:grid-cols-4">
         {(["a_receber", "paga"] as Situacao[]).map(k => (
           <button key={k} onClick={() => setSit(sit === k ? "" : k)} aria-pressed={sit === k}
             className={`rounded-xl border p-4 text-left transition ${sit === k ? "border-violet bg-active-bg" : "border-edge-subtle bg-raised hover:border-edge"}`}>
@@ -87,6 +122,16 @@ export default function Comissoes() {
             <span className="text-[11px] text-dim">{SIT[k].hint}</span>
           </button>
         ))}
+        <div className="rounded-xl border border-edge-subtle bg-raised p-4">
+          <span className="text-xs text-muted">Adiantado</span>
+          <strong className="mt-1 block text-2xl tabular-nums text-amber">{brl(d?.totais.adiantado || 0)}</strong>
+          <span className="text-[11px] text-dim">Descontado da comissão a receber</span>
+        </div>
+        <div className="rounded-xl border border-violet/40 bg-active-bg p-4">
+          <span className="text-xs text-muted">Saldo a pagar</span>
+          <strong className={`mt-1 block text-2xl tabular-nums ${(d?.totais.saldo || 0) < 0 ? "text-rose" : "text-bright"}`}>{brl(d?.totais.saldo || 0)}</strong>
+          <span className="text-[11px] text-dim">A receber − adiantado</span>
+        </div>
       </section>
 
       {d?.canEdit && responsaveis.length > 1 && (
@@ -155,6 +200,60 @@ export default function Comissoes() {
             </tbody>
           </table>}
       </section>
+
+      {d?.extrato && (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-bright">Extrato</h2>
+              <p className="text-sm text-muted">Fluxo de caixa da comissão: entra quando o cliente paga, sai quando a comissão é paga ou adiantada.</p>
+            </div>
+            {d.canEdit && (
+              <form onSubmit={e => void lancar(e)} className="flex flex-wrap items-end gap-2 text-sm">
+                <label className="flex flex-col gap-1 text-xs text-muted">Data
+                  <input type="date" value={lData} max={hoje} onChange={e => setLData(e.target.value)} required
+                    className="h-9 rounded-md border border-edge bg-raised px-2 text-sm text-bright" /></label>
+                <label className="flex flex-col gap-1 text-xs text-muted">Valor (R$)
+                  <input inputMode="decimal" placeholder="300,00" value={lValor} onChange={e => setLValor(e.target.value)} required
+                    className="h-9 w-28 rounded-md border border-edge bg-raised px-2 text-sm text-bright" /></label>
+                <label className="flex flex-col gap-1 text-xs text-muted">Descrição
+                  <input placeholder="Ex.: adiantamento via PIX" value={lDesc} onChange={e => setLDesc(e.target.value)}
+                    className="h-9 w-56 rounded-md border border-edge bg-raised px-2 text-sm text-bright" /></label>
+                <button disabled={saving === "lanc"} className="h-9 rounded-md bg-violet px-4 text-sm font-medium text-white disabled:opacity-50">Lançar adiantamento</button>
+              </form>
+            )}
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-edge-subtle bg-raised">
+            {!d.extrato.length ? <p className="p-6 text-sm text-muted">Nenhuma movimentação ainda.</p> :
+              <table className="w-full min-w-[720px] text-sm">
+                <thead className="text-left text-xs text-muted">
+                  <tr className="border-b border-edge-subtle">
+                    <th className="px-4 py-3 font-medium">Data</th>
+                    <th className="px-4 py-3 font-medium">Descrição</th>
+                    <th className="px-4 py-3 text-right font-medium">Entrada</th>
+                    <th className="px-4 py-3 text-right font-medium">Saída</th>
+                    <th className="px-4 py-3 text-right font-medium">Saldo</th>
+                    {d.canEdit && <th className="px-4 py-3" />}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...d.extrato].reverse().map((m, k) => (
+                    <tr key={(m.id ?? "c") + "-" + k} className="border-b border-edge-subtle last:border-0">
+                      <td className="px-4 py-2.5 text-muted">{data(m.data)}</td>
+                      <td className="px-4 py-2.5 text-bright">{m.descricao}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-emerald">{m.entrada_centavos ? "+ " + brl(m.entrada_centavos) : ""}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-rose">{m.saida_centavos ? "− " + brl(m.saida_centavos) : ""}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-bright">{brl(m.saldo_centavos)}</td>
+                      {d.canEdit && <td className="px-4 py-2.5 text-right">
+                        {m.id && <button disabled={!!saving} onClick={() => void excluir(m)} className="text-xs text-dim hover:text-rose">Excluir</button>}
+                      </td>}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

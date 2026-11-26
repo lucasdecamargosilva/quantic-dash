@@ -329,6 +329,9 @@ def cria_banco():
     CREATE TABLE IF NOT EXISTS comissoes_status (
       chatid TEXT PRIMARY KEY, cliente_pagou_em TEXT, comissao_paga_em TEXT,
       atualizado_por TEXT, atualizado_em TEXT);
+    CREATE TABLE IF NOT EXISTS comissoes_lancamentos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT NOT NULL, tipo TEXT NOT NULL,
+      valor_centavos INTEGER NOT NULL, descricao TEXT, criado_por TEXT, criado_em TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS atendimentos_iniciados (
       chatid TEXT NOT NULL, responsavel TEXT NOT NULL, ts INTEGER NOT NULL,
       PRIMARY KEY (chatid, responsavel));
@@ -1271,7 +1274,63 @@ def comissoes(usuario):
                       "comissao_paga_em": r["comissao_paga_em"], "situacao": situacao,
                       "loja_situacao": (sit_lojas.get(r["chatid"]) or {}).get("situacao"),
                       "loja_vencimento": (sit_lojas.get(r["chatid"]) or {}).get("vencimento")})
-    return {"pct": COMISSAO_PCT, "canEdit": eh_lucas, "usuario": meu, "itens": itens, "totais": totais}
+    # Fluxo de caixa (Lucas, 26/11): entra a comissão quando o cliente paga; saem os
+    # pagamentos de comissão e os adiantamentos lançados à mão. Saldo = o que falta pagar.
+    lanc = []
+    movs = []
+    if meu:
+        for i in itens:
+            movs.append({"data": i["cliente_pagou_em"], "tipo": "comissao", "descricao": "Comissão · " + i["cliente"],
+                         "entrada_centavos": i["comissao_centavos"], "saida_centavos": 0})
+            if i["comissao_paga_em"]:
+                movs.append({"data": i["comissao_paga_em"], "tipo": "comissao_paga", "descricao": "Comissão paga · " + i["cliente"],
+                             "entrada_centavos": 0, "saida_centavos": i["comissao_centavos"]})
+        for r in c.execute("SELECT id, data, tipo, valor_centavos, descricao FROM comissoes_lancamentos ORDER BY data, id"):
+            lanc.append(dict(r))
+            rotulo = {"adiantamento": "Adiantamento", "pagamento": "Pagamento"}.get(r["tipo"], "Lançamento")
+            movs.append({"id": r["id"], "data": r["data"], "tipo": r["tipo"],
+                         "descricao": rotulo + (" · " + r["descricao"] if r["descricao"] else ""),
+                         "entrada_centavos": 0, "saida_centavos": r["valor_centavos"]})
+    movs.sort(key=lambda m: (str(m["data"] or "")[:10], 0 if m["entrada_centavos"] else 1))
+    saldo = 0
+    for m in movs:
+        saldo += m["entrada_centavos"] - m["saida_centavos"]
+        m["saldo_centavos"] = saldo
+    totais["adiantado"] = sum(l["valor_centavos"] for l in lanc)
+    totais["saldo"] = totais["a_receber"] - totais["adiantado"]
+    return {"pct": COMISSAO_PCT, "canEdit": eh_lucas, "usuario": meu, "itens": itens, "totais": totais,
+            "extrato": movs}
+
+
+def lanca_comissao(usuario, data, valor_centavos, descricao, tipo="adiantamento"):
+    if (usuario or "").strip().lower() != "lucas":
+        raise PermissionError("Só o Lucas pode lançar no extrato de comissões.")
+    if tipo not in ("adiantamento", "pagamento"):
+        raise ValueError("Tipo inválido.")
+    try:
+        valor = int(valor_centavos)
+    except (TypeError, ValueError):
+        raise ValueError("Valor inválido.")
+    if valor <= 0:
+        raise ValueError("O valor precisa ser maior que zero.")
+    try:
+        dia = datetime.strptime(str(data or "")[:10], "%Y-%m-%d").replace(hour=12, tzinfo=BRT)
+    except ValueError:
+        raise ValueError("Data inválida (use AAAA-MM-DD).")
+    c = con()
+    cur = c.execute("INSERT INTO comissoes_lancamentos(data,tipo,valor_centavos,descricao,criado_por,criado_em) VALUES(?,?,?,?,?,?)",
+                    (dia.isoformat(), tipo, valor, (descricao or "").strip()[:200] or None, usuario, datetime.now(BRT).isoformat()))
+    c.commit()
+    return {"ok": True, "id": cur.lastrowid}
+
+
+def exclui_lancamento_comissao(usuario, lanc_id):
+    if (usuario or "").strip().lower() != "lucas":
+        raise PermissionError("Só o Lucas pode excluir lançamentos.")
+    c = con()
+    c.execute("DELETE FROM comissoes_lancamentos WHERE id=?", (int(lanc_id),))
+    c.commit()
+    return {"ok": True}
 
 
 def loja_comissao(usuario, chatid, loja):
@@ -3944,6 +4003,20 @@ class H(BaseHTTPRequestHandler):
                 except PermissionError as e:
                     return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
                 except ValueError as e:
+                    return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
+            if self.path in ("/api/comissoes/lancamento", "/api/comissoes/lancamento/excluir"):
+                origin = self.headers.get("Origin")
+                if self.headers.get("Content-Type", "").split(";")[0] != "application/json" or (
+                        origin and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")):
+                    return self._send(403, json.dumps({"erro": "Origem ou formato inválido."}))
+                try:
+                    u = self.headers.get("X-Prospeccao-User")
+                    r = (exclui_lancamento_comissao(u, d.get("id")) if self.path.endswith("/excluir")
+                         else lanca_comissao(u, d.get("data"), d.get("valor_centavos"), d.get("descricao"), d.get("tipo") or "adiantamento"))
+                    return self._send(200, json.dumps(r, ensure_ascii=False))
+                except PermissionError as e:
+                    return self._send(403, json.dumps({"erro": str(e)}, ensure_ascii=False))
+                except (ValueError, TypeError) as e:
                     return self._send(400, json.dumps({"erro": str(e)}, ensure_ascii=False))
             if self.path == "/api/comissoes/marcar":
                 origin = self.headers.get("Origin")
