@@ -1211,6 +1211,65 @@ def salva_plano_fechado(chatid, plano, valor_centavos, por=None):
 COMISSAO_PCT = 20  # % sobre a 1ª mensalidade que o cliente paga
 
 
+def _plano_por_valor(centavos):
+    for teto, nome in ((7000, "Essencial"), (13000, "Crescimento"), (27000, "Profissional"), (53000, "Escala"),
+                       (83000, "Volume 1.000"), (123000, "Volume 1.500")):
+        if centavos < teto:
+            return nome
+    return "Volume 2.500"
+
+
+def registra_comissoes_auto():
+    """26/11/2026 (Lucas): comissão da Dione automática. A RPC crm_comissoes_pendentes (Supabase) devolve a 1ª
+    mensalidade paga de cada loja cujo lead é da Dione (desde 10/11); aqui vira plano fechado + "cliente pagou"
+    com a data real do pagamento. Nunca marca "comissão paga". Não mexe em quem já tem plano registrado, só
+    completa o "cliente pagou" se estiver vazio."""
+    chave = os.environ.get("PL_IA_KEY", "")
+    if not (chave and CRM_CLIENT.url and CRM_CLIENT.key):
+        return 0
+    r = urllib.request.Request(CRM_CLIENT.url.rstrip("/") + "/rest/v1/rpc/crm_comissoes_pendentes",
+                               data=json.dumps({"p_chave": chave}).encode("utf-8"), method="POST",
+                               headers={"Content-Type": "application/json", "apikey": CRM_CLIENT.key,
+                                        "Authorization": "Bearer " + CRM_CLIENT.key})
+    with urllib.request.urlopen(r, timeout=20) as x:
+        linhas = json.loads(x.read().decode("utf-8")) or []
+    c = con()
+    novos = 0
+    agora = datetime.now(BRT).isoformat()
+    for it in linhas:
+        chatid = it.get("chatid")
+        try:
+            dia = datetime.strptime(str(it.get("data"))[:10], "%Y-%m-%d").replace(hour=12, tzinfo=BRT).isoformat()
+            valor = int(it.get("valor_centavos") or 0)
+        except (TypeError, ValueError):
+            continue
+        lead = c.execute("SELECT responsavel FROM leads WHERE chatid=?", (chatid,)).fetchone()
+        if not lead or (lead["responsavel"] or "").strip().lower() != "dione" or valor <= 0:
+            continue
+        if not c.execute("SELECT 1 FROM planos_fechados WHERE chatid=?", (chatid,)).fetchone():
+            c.execute("INSERT INTO planos_fechados(chatid,lead_id,plano,valor_centavos,fechado_em,atualizado_em,loja) "
+                      "VALUES(?,?,?,?,?,?,?)", (chatid, None, _plano_por_valor(valor), valor, dia, agora,
+                                                 (it.get("loja") or "").strip() or None))
+            novos += 1
+        c.execute("INSERT INTO comissoes_status(chatid,cliente_pagou_em,atualizado_por,atualizado_em) VALUES(?,?,?,?) "
+                  "ON CONFLICT(chatid) DO UPDATE SET cliente_pagou_em=COALESCE(comissoes_status.cliente_pagou_em, excluded.cliente_pagou_em)",
+                  (chatid, dia, "auto", agora))
+    c.commit()
+    return novos
+
+
+def loop_comissoes_auto():
+    time.sleep(90)
+    while True:
+        try:
+            n = registra_comissoes_auto()
+            if n:
+                print(f"[comissoes] {n} comissão(ões) da Dione registrada(s) automaticamente", flush=True)
+        except Exception as e:
+            print("[comissoes] erro:", str(e)[:200], flush=True)
+        time.sleep(1800)
+
+
 def _situacao_lojas():
     """Situação da loja de cada cliente (ativo/vencido/pausado/teste/inativo), pela RPC
     crm_comissoes_lojas do Supabase (mesma chave PL_IA_KEY do Assistente). Vínculo
@@ -4211,6 +4270,8 @@ if __name__ == "__main__":
     threading.Thread(target=sugestao_etapa.loop, args=(DB, transcreve_msg, avisa_mensagem_nova,
                      lambda chatid, etapa: move_pipeline_dados(chatid, etapa, origem="jev", por="Jev")), daemon=True).start()
     threading.Thread(target=CRM_CLIENT.loop, daemon=True).start()
+    # comissão da Dione: 1ª mensalidade paga de lead dela entra sozinha no painel de Comissões (26/11)
+    threading.Thread(target=loop_comissoes_auto, daemon=True).start()
     # lembrete das tarefas "A fazer" no WhatsApp a cada 30 min (8h–22h)
     threading.Thread(target=tarefas.lembrete_loop, args=(con, uz), daemon=True).start()
     print("\nPainel de Atendimento em  http://localhost:%d" % PORTA)
