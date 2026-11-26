@@ -79,3 +79,28 @@
 .pipeline-dias{background:#10b98122;color:#10b981}
 .pipeline-acoes>button{padding:9px 14px;border:1px solid var(--color-edge);border-radius:8px}
 .chat-pipeline-card .chat-pipeline-owner{margin-right:6px}
+
+/* 25/11/2026: Efetividade comercial (follow-up, parados, conversão, por responsável) */
+.pef{display:grid;gap:16px;margin-top:4px}
+.pef-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.pef-head h3{font-size:16px;font-weight:700}.pef-head span{font-size:12px;color:var(--color-muted)}
+.pef-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.pef-kpi{background:var(--color-raised);border:1px solid var(--color-edge-subtle);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.pef-kpi small{font-size:11px;font-weight:600;color:var(--color-muted)}
+.pef-kpi b{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--color-bright);line-height:1.1}
+.pef-kpi span{font-size:11.5px;color:var(--color-muted)}
+.pef-kpi.roxo b{color:#7c3aed}.pef-kpi.amarelo b{color:#d97706}.pef-kpi.vermelho b{color:#ef4444}.pef-kpi.verde b{color:#10b981}
+.pef-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+.pef-fila h3{display:flex;justify-content:space-between;gap:8px}.pef-fila h3 span{font-size:11.5px;font-weight:500;color:var(--color-muted)}
+.pef-fila ul{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:420px;overflow-y:auto}
+.pef-fila button{width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid transparent;border-radius:10px;background:none;text-align:left;cursor:pointer;color:inherit}
+.pef-fila button:hover{background:var(--color-active-bg);border-color:var(--color-edge-subtle)}
+.pef-fila i{width:8px;height:8px;border-radius:50%;flex:none}
+.pef-nome{display:flex;flex-direction:column;min-width:0;flex:1}.pef-nome b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pef-nome small{font-size:11px;color:var(--color-muted)}
+.pef-tempo{font-size:11.5px;color:var(--color-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pef-donos table{width:100%;border-collapse:collapse;font-size:12.5px}
+.pef-donos th{text-align:right;font-size:11px;font-weight:600;color:var(--color-muted);padding:6px 8px;border-bottom:1px solid var(--color-edge-subtle)}
+.pef-donos td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--color-edge-subtle);font-variant-numeric:tabular-nums}
+.pef-donos th:first-child,.pef-donos td:first-child{text-align:left}
+.pef-donos td.roxo{color:#7c3aed;font-weight:700}.pef-donos td.amarelo{color:#d97706;font-weight:700}.pef-donos td.vermelho{color:#ef4444;font-weight:700}
+@media(max-width:1200px){.pef-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.pef-grid{grid-template-columns:1fr}.pef-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pef-donos{overflow-x:auto}}
